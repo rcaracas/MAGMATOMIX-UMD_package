@@ -1,0 +1,40 @@
+*** GENERAL REFERENCES USED FOR THE ANALYSIS OF FLUIDS:
+
+@book{Allen:2017wd,
+author = {Allen, M P and Tildesley, D J and ALLEN, TILDESLEY},
+title = {{Computer Simulation of Liquids}},
+publisher = {Oxford University Press},
+year = {1989}
+}
+
+@book{FRENKEL200223,
+author = {Frenkel, Daan and Smit, Berend},
+title = {{Understanding Molecular Simulation}},
+publisher = {Elsevier},
+year = {2001},
+series = {From Algorithms to Applications},
+month = oct
+}
+
+@book{trove.nla.gov.au/work/37472540,
+author = {Tuckerman, Mark E Mark Edward},
+title = {{Statistical mechanics : theory and molecular simulation}},
+publisher = {Oxford : Oxford University Press},
+year = {2010},
+annote = {Formerly CIP}
+}
+
+
+*** CALCULATION OF THE ERROR ON THE AVERAGE
+@article{Flyvbjerg:1989kaa,
+author = {Flyvbjerg, H and Petersen, H G},
+title = {{Error estimates on averages of correlated data}},
+journal = {The Journal of Chemical Physics},
+year = {1989},
+volume = {91},
+number = {1},
+pages = {461--466},
+month = jul
+}
+
+

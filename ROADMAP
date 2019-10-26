@@ -1,0 +1,21 @@
+UMD program for the post-processing of (ab initio) molecular-dynamics runs
+
+Stable production version v1.0
+
+Naming conventions:
+vX.0 => stable production versions
+vX.Y => major bug-free improvements
+vX.Y.Z => minor improvements, debugging, experimental personal versions
+
+MAJOR AIMS for the v2.0:
+speciation: chemical (pair) bonds
+speciation: interatomic angles (3-body)
+speciation: the second coordination sphere
+bubble: estimation of the gas/liquid volume and density
+
+MAJOR AIMS for the v3.0 version:
+CPU-parallelization
+
+MAJOR AIMS for THE v4.0 version:
+GPU-parallelization
+

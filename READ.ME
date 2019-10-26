@@ -1,0 +1,84 @@
+UMD = Universal python package for post-processing Molecular Dynamics runs.
+
+=====
+
+UMD is a Universal python package for post-processing Molecular Dynamics runs. UMd is based on a genrealized ascii-type free format of storing the atomic trajectories and the relevant thermodynamic information of the simulations.
+UMD includes two major libraries dealing with file formats and with crystallography.
+UMD allows for computation of:
+- structural properties: pair distribution functions, bond analysis, bond interconnectivity, atomic coordination, polymerization, chemical speciation, species lifetimes
+- dynamical properties: mean square displacements of atomic types, of individual atoms, of chemical species, diffusion coefficients, viscosity
+- thermodynamical properties: average thermodynamic potentials, including temperature, internal energy, pressure, self-correlation, vibrational spectra
+The package is available via the github website as an open-access package and we encourage further collaborators.
+
+=====
+
+AUTHORS
+Razvan CARACAS
+Anais KOBSCH
+Natalia V SOLOMATOVA
+Zhi LI
+Francois SOUBIRAN
+Jean-Alexis HERNANDEZ
+
+
+=====
+
+USAGE
+The UMD package is a stand-alone collection of executable python scripts.
+
+
+=====
+
+DEPENDENCIES
+python3
+numpy
+scipy
+pylab
+matplotlib
+
+
+=====
+
+LICENSE
+UMND is open-source software, distributed under licence GNU-GPL v3 and CeCILL v2 (mutually compatible)
+
+
+=====
+
+COMPONENTS
+    general libraries:
+crystallography.py
+umd_process.py
+
+    I/O:
+VaspParser.py
+QBoxParser.py
+umd2poscar.py
+umd2xyz.py
+
+    structural properties:
+gofrs_umd.py
+analyze_1gofr.py
+analyze_gofr_semi_automatic.py
+speciation_umd.py
+
+    transport properties:
+msd_all_umd.py
+msd_clusters_umd.py
+msd_umd.py
+analyze_msd.py
+viscosity_umd.py
+
+    thermodynamic properties:
+averages.py
+check_overlap.py
+fullaverages.py
+vibr_spectrum_umd.py
+
+
+=====
+
+CHANGELOG
+
+v 1.0, September 2019 - First production release
+
