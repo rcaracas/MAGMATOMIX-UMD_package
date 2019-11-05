@@ -246,7 +246,7 @@ def main(argv):
         if opt == '-h':
             print ('speciation.py program to compute bonding maps and identify speciation')
             print ('speciation.py -f <UMD_filename> -s <Sampling_Frequency> -l <MaxLength> -c <Cations> -a <Anions> -m <MinLife>  -i <InputFile> -r <Rings>')
-            print ('  default values: -f output.umd.dat -s 1 -l 3.0 -m 0 -r 1)
+            print ('  default values: -f output.umd.dat -s 1 -l 3.0 -m 0 -r 1')
             print (' the input file contains the bond lengths for the different atom pairs. \n the values overwrite the option -l')
             print (' rings = 1 default, polymerization, all anions and cations bond to each other; rings = 0 only individual cation-anion groups')
             sys.exit()
