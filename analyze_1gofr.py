@@ -26,7 +26,7 @@ def headerfile(firstfile):
     for couple in header:
         for i in range(0,4):
             firstline.append(couple)
-        secondline.extend(['xmax','ymax','xmin','coord'])
+        secondline.extend(['xmax','ymax','xmin','coord','bond'])
     newfilename = 'gofr_' + firstfile.split('/')[-1] +'.txt' 
     print('The file ',newfilename,' is created')
     f = open(newfilename,'w')
@@ -35,12 +35,25 @@ def headerfile(firstfile):
     return f, header     #I return the newly created files f along with the list of element couples
 
 
+def average_bond(radius,gofr,xmin_gofr):
+    """compute [int(r^3 gofr(r)]/[r^2 gofr(r)] up to the 1st xmin"""
+    ii = 0
+    r3gofr = 0.0
+    r2gofr = 0.0
+    
+    while radius[ii] < xmin_gofr:
+        r3gofr = r3gofr + radius[ii]**3 * gofr[ii]
+        r2gofr = r2gofr + radius[ii]**2 * gofr[ii]
+        ii += 1
+#    print('r3gofr, r2gofr, bond',)
+    return r3gofr/r2gofr
+
 
 def interactive_fit(data, data2, file,couples, distance, col, couple):
     """fit max and min of data using interactive plot for one couple of atoms"""
     print(couple, couples.index(couple) + col + 1, couples.index(couple) + col + 2)
-    gofr, intgofr = np.loadtxt(file,
-                               usecols=(couples.index(couple) + col + 1, couples.index(couple) + col + 2),
+    radius, gofr, intgofr = np.loadtxt(file,
+                               usecols=(0, couples.index(couple) + col + 1, couples.index(couple) + col + 2),
                                skiprows=1, unpack=True)
     orig_size = np.size(distance)  # size of our data
     nonzeros = np.count_nonzero(gofr)
@@ -134,11 +147,13 @@ def interactive_fit(data, data2, file,couples, distance, col, couple):
         y_intgofr = yaxis_intgofr[
             int(poly_min_i)]  # y value of the integral of gofr that corresponds to the min x value of gofr
 
+        bond = average_bond(radius,gofr,xmin_gofr)
+
         class Decision(object):
             def good(self, event):
                 global value_array
                 plt.close(fig)  # close and move to next plot
-                print('xmax=', round(xmax_gofr, 2), ' ymax=', round(ymax_gofr, 2), ' xmin=', round(xmin_gofr, 2), ' coord=', round(y_intgofr, 2))
+                print('xmax=', round(xmax_gofr, 2), ' ymax=', round(ymax_gofr, 2), ' xmin=', round(xmin_gofr, 2), ' coord=', round(y_intgofr, 2), 'average bond=',round(bond,3))
                 value_array = (xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr)
                 return value_array
 
@@ -183,15 +198,19 @@ def interactive_fit(data, data2, file,couples, distance, col, couple):
         xmin_gofr = 0
         y_intgofr = 0
     
+    bond = average_bond(radius,gofr,xmin_gofr)
+    
     data.append(str(xmax_gofr))
     data.append(str(ymax_gofr))
     data.append(str(xmin_gofr))
     data.append(str(y_intgofr))
+    data.append(str(bond))
     
     data2.append(str(xmax_click))
     data2.append(str(ymax_click))
     data2.append(str(xmin_click))
     data2.append(str(y_intgofr2))
+    data2.append(str(bond))
     
     cutdistance = 0  # re initialization of variables for the next loop
     fit_min_dist = 0
@@ -216,8 +235,8 @@ def analyze_gofrs_interactive(data,data2,file,couples, atoms):
             if (couple == atom_couple):
                 data, data2 = interactive_fit(data,data2,file,couples, distance, col, couple)
         if len(data) == size: #if data hasn't changed then we put X in the list
-            data.extend(['X','X','X','X'])
-            data2.extend(['X','X','X','X'])
+            data.extend(['X','X','X','X','X'])
+            data2.extend(['X','X','X','X','X'])
         size = len(data) #we update the size of data
         col += 1
     return(data, data2)
