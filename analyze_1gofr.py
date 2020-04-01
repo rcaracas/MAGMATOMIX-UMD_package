@@ -22,7 +22,8 @@ def headerfile(firstfile):
     with open(firstfile, 'r') as f:
         header = f.readline()
     header = header.strip('dist')
-    header = re.sub('(Int\([A-Za-z-]*\))', ' ',header).split()        #I substitute all Int(...)  by a blankspace and split using spaces
+#    header = re.sub('(Int\([A-Za-z-]*\))', ' ',header).split()        #I substitute all Int(...)  by a blankspace and split using spaces
+    header = re.sub('(Int\([A-Za-z-]*\))', '\t',header).split('\t')        #I substitute all Int(...)  by a blankspace and split using spaces
     for couple in header:
         for i in range(0,4):
             firstline.append(couple)

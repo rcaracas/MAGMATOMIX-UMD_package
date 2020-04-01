@@ -10,7 +10,7 @@ import crystallography as cr
 import umd_process as up
 from subprocess import call
 
-def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings):
+def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings,TimeStep):
     #this functions builds the dictionary with all the clusters
     ###labels = {'',[]}
     ###labels = {'Mg2Si4O9',['4137141516171891929394956979899',start,end,duration]}
@@ -58,13 +58,13 @@ def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings):
     FileAll = FileName + '.r' + str(rings) + '.popul.dat'
     #print ('Population will be written in ',FileAll,' file')
     fa = open(FileAll,'a')
-    newstring = 'Formula\tBegin\tEnd\tLifetime\t[Composition]\n'
+    newstring = 'Formula\tBegin(step)\tEnd(step)\tLifetime(fs)\t[Composition]\n'
     fa.write(newstring)
     #print('Formula - Begin : End : Lifetime - Composition')
     for kk in population.keys():
         #newstring = population[kk]['formula'] + '\t' + str(population[kk]['begin']*Nsteps) + '\t' + str(population[kk]['end']*Nsteps) + '\t' + str(population[kk]['lifetime']*Nsteps) + '\t' + str(population[kk]['composition']) + '\n'
         if population[kk]['lifetime'] > minlife/float(Nsteps):
-            newstring = population[kk]['formula'] + '\t' + str(population[kk]['begin']*Nsteps) + '\t' + str(population[kk]['end']*Nsteps) + '\t' + str(population[kk]['lifetime']*Nsteps) + '\t' + str(population[kk]['composition']) + '\n'
+            newstring = population[kk]['formula'] + '\t' + str(population[kk]['begin']*Nsteps) + '\t' + str(population[kk]['end']*Nsteps) + '\t' + str(population[kk]['lifetime']*Nsteps*TimeStep) + '\t' + str(population[kk]['composition']) + '\n'
     #print(population[kk]['formula'],population[kk]['begin']*Nsteps,population[kk]['end']*Nsteps,population[kk]['lifetime']*Nsteps,population[kk]['composition'])
             fa.write(newstring)
     
@@ -77,13 +77,13 @@ def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings):
         while flagnewclust == 0:
             #print('comparing to cluster',statclusters[ll][0])
             if population[kk]['formula'] == statclusters[ll][0]:
-                statclusters[ll][1] += population[kk]['lifetime']*Nsteps
+                statclusters[ll][1] += population[kk]['lifetime']*Nsteps*TimeStep
                 #print('current population is',statclusters[ll][1])
                 flagnewclust = 1
             else:
                 if ll == len(statclusters)-1:
                     #print('adding new cluster',population[kk]['formula'])
-                    statclusters.append([population[kk]['formula'],population[kk]['lifetime']*Nsteps,len(population[kk]['composition'])])
+                    statclusters.append([population[kk]['formula'],population[kk]['lifetime']*Nsteps*TimeStep,len(population[kk]['composition'])])
                     flagnewclust = 1
                 else:
                     ll +=1
@@ -94,7 +94,7 @@ def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings):
     FileStat = FileName + '.r' + str(rings) + '.stat.dat'
 #print ('Statistics will be written in ',FileStat,' file')
     fs = open(FileStat,'a')
-    newstring = 'Cluster\tTime\tPercent\n'
+    newstring = 'Cluster\tTime(fs)\tPercent\n'
     fs.write(newstring)
     for ll in range(1,len(statclusters)):
         newstring = statclusters[ll][0] + '\t' + str(statclusters[ll][1]) + '\t' + str(float(statclusters[ll][1])/float(totalpop)) + '\t' + str(statclusters[ll][2]) + '\n'
@@ -293,7 +293,8 @@ def main(argv):
     for ii in range(len(Cations)):
         ClusterAtoms.append(Cations[ii])
     for ii in range(len(Anions)):
-        ClusterAtoms.append(Anions[ii])
+        if Anions[ii] not in ClusterAtoms:
+            ClusterAtoms.append(Anions[ii])
     if rings == 0:
         print('searching for cations',Cations)
         print('surrounded by anions ',Anions)
@@ -365,7 +366,7 @@ def main(argv):
         else:
             print ('value of rings = ',rings,' is not allowed. Only 0 (polymers) or 1 (coordinating polyhedra) are allowed',)
             sys.exit()
-    analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,UMDname,rings)
+    analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,UMDname,rings,TimeStep)
 
 #        read_umd(UMDname,Nsteps,maxlength,Cations,Anions,ClusterAtoms,minlife,InputFile,rings)
 #the read_umd function was replaced with the automatic one plus a bunch of separate funtions

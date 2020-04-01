@@ -16,7 +16,7 @@ def print_gofrs(umdfile,MyCrystal,ndivx,discrete,normalization,maxlength,gofr):
     string = 'dist'+' '
     for ii in range(MyCrystal.ntypat):
         for jj in range(MyCrystal.ntypat):
-            string = string + str(MyCrystal.elements[ii])+'-'+MyCrystal.elements[jj]+' Int('+MyCrystal.elements[ii]+'-'+MyCrystal.elements[jj]+') '
+            string = string + str(MyCrystal.elements[ii])+'-'+MyCrystal.elements[jj]+'\t Int('+MyCrystal.elements[ii]+'-'+MyCrystal.elements[jj]+')\t'
     string = string + '\n'
     nf.write(string)
     intgofr = [[0.0 for jatom in range(MyCrystal.ntypat)] for iatom in range (MyCrystal.ntypat)]
@@ -32,7 +32,7 @@ def print_gofrs(umdfile,MyCrystal,ndivx,discrete,normalization,maxlength,gofr):
                 gofr[iatom][jatom][0] = 0 #we delete this element since it correspond to the distance = 0 (iatom with itself) 
                 gofr[iatom][jatom][kk] = float(gofr[iatom][jatom][kk]) * volcell / (volshell * MyCrystal.types[iatom] * MyCrystal.types[jatom] * normalization )
                 intgofr[iatom][jatom] += gofr[iatom][jatom][kk]*smallr**2*discrete*4*numpy.pi * MyCrystal.types[jatom]/volcell #cumulative integral of gofr in spherical coordinates 
-                string = string + str(gofr[iatom][jatom][kk]) + ' ' + str(intgofr[iatom][jatom]) + ' '
+                string = string + str(gofr[iatom][jatom][kk]) + '\t' + str(intgofr[iatom][jatom]) + '\t'
         string = string + '\n'
         nf.write(string)
     nf.close()
@@ -53,8 +53,8 @@ def computeallgofr(MyCrystal,MySnapshot,discrete,maxlength,gofr):
             #if (dx < -maxlength/2): dx = dx + maxlength  #these two lines are replaced by the one below: if |dx|>acell/2 then int(...) gives ± 1 
             #if (dx >  maxlength/2): dx = dx - maxlength
             dx = dx-MyCrystal.acell[0]*int(dx/(0.5*MyCrystal.acell[0]))
-            dy = dy-MyCrystal.acell[0]*int(dy/(0.5*MyCrystal.acell[0]))
-            dz = dz-MyCrystal.acell[0]*int(dz/(0.5*MyCrystal.acell[0]))
+            dy = dy-MyCrystal.acell[1]*int(dy/(0.5*MyCrystal.acell[1]))
+            dz = dz-MyCrystal.acell[2]*int(dz/(0.5*MyCrystal.acell[2]))
             d1 = math.sqrt(dx**2 + dy**2 + dz**2) 
             if (d1 < maxlength/2): #if the distance between the two atoms is below half of the minimum distance of the unit cell, then we use it to compute the gofr
                 gofr[MyCrystal.typat[iatom]][MyCrystal.typat[jatom]][int(d1/discrete)] += 1
