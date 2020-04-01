@@ -323,6 +323,11 @@ def main(argv):
     #print('checks after reading the umd file')
     #print('no of atoms = ',MyCrystal.natom)
 
+    #in order to allow computation of large polymers
+    #we need to set by hand the maximum recursion limit
+    #to avoid python erro crash
+    #12 is a factor f a maximum reasonable limit of a coordination polyhedron
+    sys.setrecursionlimit(12*MyCrystal.natom)
 
 #reading the cutoff radii for the bonds
     BondTable = [[maxlength*maxlength for _ in range(MyCrystal.ntypat)] for _ in range(MyCrystal.ntypat)]
