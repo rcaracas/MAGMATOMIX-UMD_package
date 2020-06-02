@@ -129,16 +129,16 @@ def read_outcar(FileName,InitialStep):
                 jatom = 0                     
                 if (entry[0]=='Total+kin.'):            #reading stress tensor, corrected for the internal kinetic pressure (the term contains it itself0
                     for ii in range(6):
-                        MyCrystal.stress[ii] = float(entry[ii+1])/10.0            #transforms from kbars into GPa
-                    MyCrystal.pressure = (MyCrystal.stress[0] + MyCrystal.stress[1] + MyCrystal.stress[2])/3.0 #takes the trace of the stress tensor
+                        MyCrystal.stress[ii]=float(entry[ii+1])/10.0            #transforms from kbars into GPa
+                    MyCrystal.pressure = (float(entry[1])+float(entry[2])+float(entry[3]))/30.0 #transforms also from kbars into GPa
                 if entry[0] == 'energy':   
                     if entry[2] == 'entropy=': #reading Kohn-Sham energy, contains all the electronic energy without the electronic entropy 
                         MyCrystal.internalenergy=float(entry[3])  #this leads only part of the internal energy, one should add the kinetic energy of ions
                                                                   #the variance of {this energy + kinetic energy of ions}  yields Cv
                 if (entry[0]=='%'):                     
-                    if (entry[1]=='ion-electron'):   #the term T*S_el in the formula F = E - T*S_el, with F = Kohn-Sham energy and E = Kohn-Sham energy without the electronic entropy (S_el)
-                        MyCrystal.electronicentropy = MyCrystal.internalenergy - float(entry[4])
-                if (entry[0] == 'magnetization'):       #reading magnetization of individual atoms, inside the PAW spheres
+                    if (entry[1]=='ion-electron'):   #the term T*Sel in the formula F = E - T*Sel, with F = Kohn-Sham energy and E = Kohn-Sham energy without the electronic entropy 
+                        MyCrystal.electronicentropy=MyCrystal.internalenergy - float(entry[4])
+                if (entry[0] == 'magnetization'):       #reading magnetization of individual atoms
                     #print('reading magnetization')
                     line = ff.readline()
                     line = ff.readline()
@@ -148,7 +148,13 @@ def read_outcar(FileName,InitialStep):
                         line=line.strip()
                         entry=line.split()
                         MyCrystal.atoms[ii].magnet = float(entry[len(entry)-1])
-                if line == 'total charge':           #reading the atomic charges
+                        #print ('for atom ',iatom,' magnetization is ',MyCrystal.atoms[ii].magnet)
+#                if (len(entry) == 6):
+#                    print ('a line of 6 elements: ',entry)
+#                    if (entry[0] == 'number'):
+#                        print ('the line of 6 elements: ',entry)
+#                        MyCrystal.magnetization = float(entry[5])
+                if line == 'total charge':           #reading the atomi charges
                     #print('reading magnetization')
                     line = ff.readline()
                     line = ff.readline()

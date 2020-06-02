@@ -528,7 +528,7 @@ def headerumd():
     print ('please cite as: ')
     print ('    Razvan Caracas, Jean-Alexis Hernandez, Anais Kobsch, Zhi Li, Natalia Solomatova, and Francois Soubiran' )
     print ('    UMD: An open source package for analyzing Molecular Dynamics simulations' )
-    print ('    Computer Physics Communications, vol. XX, pp. XX, (2019)' )
+    print ('    Journal of Visualized Experiments, in press/media prep (2020)' )
     print (' ')
 
 
