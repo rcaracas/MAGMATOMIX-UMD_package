@@ -58,12 +58,12 @@ def main(argv):
     try:
         opts, arg = getopt.getopt(argv,"hf:i:l:s:")
     except getopt.GetoptError:
-        print ('umd2poscar.py -f <umdfile> -i <InitialStep> l <LastStep> -s <Sampling_Frequency>')
+        print ('umd2poscar.py -f <umdfile> -i <InitialStep> -l <LastStep> -s <Sampling_Frequency>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print ('umd2poscar.py program to extract POSCAR snapshots from the umd file')
-            print ('umd2poscar.py -f <umdfile> -i <InitialStep> l <LastStep> -s <Sampling_Frequency>')
+            print ('umd2poscar.py -f <umdfile> -i <InitialStep> -l <LastStep> -s <Sampling_Frequency>')
             print (' default values: -f output.umd.dat -i 0 -l 10000000 -s 1')
             sys.exit()
         elif opt in ("-f"):

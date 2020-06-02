@@ -128,11 +128,10 @@ def main(argv):
     UMDname = ''
     POPname = ''
     RADname = ''
-    Nsteps = 5
-    cubesize = 0.025
-    ClusterMaxSize = 5
+    Nsteps = 1
+    ClusterMaxSize = 20
     AtomicRadius = 1.0
-    Ballistic = 10.0
+    Ballistic = 100
     umd.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:p:s:b:c:",["fUMDfile","pPOPfile","sSampling_Frequency","bBallistic","cClusterMaxSize"])

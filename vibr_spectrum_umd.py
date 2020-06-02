@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
 ###
 ##AUTHORS: Zhi Li, Razvan Caracas
@@ -159,7 +159,7 @@ def main(argv):
     for ii in range(len(fft_correlation)):
         string=str(freq[ii]*33356.41)
         for jj in range(MyCrystal.ntypat):
-            string=string+'    '+str(average_fft_correlation[ii][jj])
+            string=string+'\t'+str(average_fft_correlation[ii][jj])
         string = string + '\t' + str(total_fft_correlation[ii]) + '\n'
         nf.write(string)
     nf.close()
