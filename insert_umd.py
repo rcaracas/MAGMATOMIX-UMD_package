@@ -57,10 +57,6 @@ def ReadMoleculesFile(MoleculesFile):
     return(Multi_read,AllIns_read)
 
            
-def PositionMolecule:
-
-
-
 def BuildEmptyBox(MultiMolecules,AllMolecules,UnitCell,MyUMDStructure,Rcutoff):
     print('building the empty box')
     #MultiMolecules stores how many molecules of each type need to be inserted
