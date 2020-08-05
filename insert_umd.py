@@ -57,23 +57,24 @@ def ReadMoleculesFile(MoleculesFile):
     return(Multi_read,AllIns_read)
 
            
-def BuildEmptyBox(MultiMolecules,AllMolecules,UnitCell,MyUMDStructure,Rcutoff):
-    print('building the empty box')
-    #MultiMolecules stores how many molecules of each type need to be inserted
-    #AllMolecules stores the actual structure of each molecule
-    #TryMolec tries the position and rotation of the new molecule before approving its position
-    #setting up dimensions
-    TotalNoAtoms = 0
-    TryMolec = cr.Lattice()
-    f = open('struct.xyz','w')
-    for imolectype in range(len(MultiMolecules)):
-        TotalNoAtoms = TotalNoAtoms + MultiMolecules[imolectype] * AllMolecules[imolectype].natom
+def BuildEmptyBox(UnitCell,TotalNoAtoms):
     MyNewCrystal = cr.Lattice()
     MyNewCrystal.natom = TotalNoAtoms
     MyNewCrystal.atoms = [cr.Atom() for _ in range(TotalNoAtoms)]
     MyNewCrystal.acell[0] = UnitCell
     MyNewCrystal.acell[1] = UnitCell
     MyNewCrystal.acell[2] = UnitCell
+    return(MyNewCrystal)
+
+
+def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,TotalNoAtoms,Rcutoff):
+    print('building the empty box')
+    #MultiMolecules stores how many molecules of each type need to be inserted
+    #AllMolecules stores the actual structure of each molecule
+    #TryMolec tries the position and rotation of the new molecule before approving its position
+    #setting up dimensions
+    TryMolec = cr.Lattice()
+    f = open('struct.xyz','w')
     NoInsertedAtoms = 0
     print('Inserting ',TotalNoAtoms,' atoms')
     f.write(str(TotalNoAtoms))
@@ -102,7 +103,7 @@ def BuildEmptyBox(MultiMolecules,AllMolecules,UnitCell,MyUMDStructure,Rcutoff):
                     TryMolec.atoms[iatom].xcart = rot.apply(AllMolecules[imolectype].atoms[iatom].xcart)
                     #print ('after rotation :    ',TryMolec.atoms[iatom].xcart)
                     for ii in range(3):
-                        TryMolec.atoms[iatom].xcart[ii] = TryMolec.atoms[iatom].xcart[ii] + OrigMolecule[ii]*UnitCell
+                        TryMolec.atoms[iatom].xcart[ii] = TryMolec.atoms[iatom].xcart[ii] + OrigMolecule[ii]*MyNewCrystal.acell[ii]
                         
                     #checking to previous NoInsertedAtoms atoms
                     #print ('current atom ',iatom ,' after rotation :    ',TryMolec.atoms[iatom].symbol,TryMolec.atoms[iatom].xcart)
@@ -199,6 +200,9 @@ def main(argv):
         AllMolecules = []
         MultiMolecules = []
         (MultiMolecules,AllMolecules) = ReadMoleculesFile(MoleculesFile)
+        TotalNoAtoms = 0
+        for imolectype in range(len(MultiMolecules)):
+            TotalNoAtoms = TotalNoAtoms + MultiMolecules[imolectype] * AllMolecules[imolectype].natom
     else:
         print ('the Molecules File ',MoleculesFile,' does not exist')
         sys.exit()
@@ -210,7 +214,8 @@ def main(argv):
             print('There are ',MultiMolecules[ii],' of molecules no. ',ii,' having no. atoms ',AllMolecules[ii].natom)
             for kk in range(AllMolecules[ii].natom):
                 print(AllMolecules[ii].atoms[kk].symbol)
-        BuildEmptyBox(MultiMolecules,AllMolecules,UnitCell,MyUMDStructure,Rcutoff)
+        MyUMDStructure = BuildEmptyBox(UnitCell,TotalNoAtoms)
+        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,TotalNoAtoms,Rcutoff)
     elif Nsteps ==0:    #inserts molecules in the  last snapshot of the UMD file
         if not os.path.isfile(UMDname):
             print ('the UMD files ',UMDname,' does not exist')
