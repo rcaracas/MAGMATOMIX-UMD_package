@@ -58,6 +58,7 @@ def ReadMoleculesFile(MoleculesFile):
 
            
 def BuildEmptyBox(UnitCell,TotalNoAtoms):
+    print('building the empty box')
     MyNewCrystal = cr.Lattice()
     MyNewCrystal.natom = TotalNoAtoms
     MyNewCrystal.atoms = [cr.Atom() for _ in range(TotalNoAtoms)]
@@ -65,19 +66,34 @@ def BuildEmptyBox(UnitCell,TotalNoAtoms):
     MyNewCrystal.acell[1] = UnitCell
     MyNewCrystal.acell[2] = UnitCell
     return(MyNewCrystal)
+    
+    
+def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
+    print('copying the box from the UMD file')
+    MyNewCrystal = cr.Lattice()
+    MyNewCrystal = MyUMDStructure
+    MyNewCrystal.natom = MyCrystal.natom + TotalNoAtoms
+    print (' initial number of atoms is ',MyCrystal.natom)
+    for iatom in range(MyCrystal.natom):
+        MyNewCrystal.atoms[iatom].symbol = MyCrystal.elements[MyCrystal.typat[iatom]]
+        print (' next atom is ',MyNewCrystal.atoms[iatom].symbol)
+    for iatom in range(TotalNoAtoms):
+        MyNewCrystal.atoms.append(cr.Atom())
+    print ('in all there will be former ',MyCrystal.natom,' + new ',TotalNoAtoms,' = ',MyNewCrystal.natom,' atoms')
+    return(MyNewCrystal)
 
 
-def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,TotalNoAtoms,Rcutoff):
-    print('building the empty box')
+def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,Rcutoff):
+    #places the new molcules in the former structure
     #MultiMolecules stores how many molecules of each type need to be inserted
     #AllMolecules stores the actual structure of each molecule
     #TryMolec tries the position and rotation of the new molecule before approving its position
     #setting up dimensions
     TryMolec = cr.Lattice()
     f = open('struct.xyz','w')
-    NoInsertedAtoms = 0
+    NoInsertedAtoms = MyCrystal.natom
     print('Inserting ',TotalNoAtoms,' atoms')
-    f.write(str(TotalNoAtoms))
+    f.write(str(MyNewCrystal.natom))
     f.write('\n\n')
     string = ''
     for imolectype in range(len(MultiMolecules)):
@@ -127,6 +143,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,TotalNoAtoms,Rcuto
                 if flagpos == 0:
                     print ('adding new molecule ')
                     for iatom in range(TryMolec.natom):
+                        print ('adding new atom no. ',NoInsertedAtoms,TryMolec.atoms[iatom].symbol,' at ',TryMolec.atoms[iatom].xcart)
                         MyNewCrystal.atoms[NoInsertedAtoms] = TryMolec.atoms[iatom]
                         NoInsertedAtoms = NoInsertedAtoms + 1
                         #print ('newly added atom ',MyNewCrystal.atoms[iatom].symbol,' at:    ',MyNewCrystal.atoms[iatom].xcart)
@@ -151,6 +168,8 @@ def main(argv):
     Rcutoff = 2.0
     header = ''
     MyUMDStructure = cr.Lattice()
+    MyCrystal = cr.Lattice()
+    AllSnapshots = [cr.Lattice]
     try:
         opts, arg = getopt.getopt(argv,"hf:s:i:a:r:",["fUMDfile","sSampling_Frequency","iMoleculesFile","aCubicUnitCell","rrCutoff"])
     except getopt.GetoptError:
@@ -193,7 +212,7 @@ def main(argv):
                 print('Will initiate a new structure with the molecules in an empty cubic cell with unit ',UnitCell,' angstroms')
             else:
                 print('Nsteps ',Nsteps,' is undefined so I will use the default value of 1000')
-    print('Parameters: UMDfile MoleculesFile CellUnit Frequency',UMDname, MoleculesFile, UnitCell, Nsteps,Rcutoff)
+    #print('Parameters: UMDfile MoleculesFile CellUnit Frequency',UMDname, MoleculesFile, UnitCell, Nsteps,Rcutoff)
     
     #checks and reads the molecules.dat file
     if (os.path.isfile(MoleculesFile)):
@@ -208,26 +227,41 @@ def main(argv):
         sys.exit()
 
     #insert molecules
-    if Nsteps == -1:    #inserts molecules in an empty box
+    
+    #inserts molecules in an empty box
+    if Nsteps == -1:
         print('There are ',MultiMolecules,' molecules to be inserted in a cube with side ',UnitCell,' angstroms')
         for ii in range(len(MultiMolecules)):
             print('There are ',MultiMolecules[ii],' of molecules no. ',ii,' having no. atoms ',AllMolecules[ii].natom)
             for kk in range(AllMolecules[ii].natom):
                 print(AllMolecules[ii].atoms[kk].symbol)
         MyUMDStructure = BuildEmptyBox(UnitCell,TotalNoAtoms)
-        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,TotalNoAtoms,Rcutoff)
-    elif Nsteps ==0:    #inserts molecules in the  last snapshot of the UMD file
+        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,Rcutoff)
+    
+    #inserts molecules in the last full snapshot
+    elif Nsteps == 0:    #inserts molecules in the  last snapshot of the UMD file
         if not os.path.isfile(UMDname):
             print ('the UMD files ',UMDname,' does not exist')
             sys.exit()
         else:
-            print ('I will insert molecules in ',os.path.isfile(UMDname),' structure every ',Nsteps,' steps')
+            (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(UMDname)
+            print (' there are a total of ',len(AllSnapshots),' snapshots')
+            print ('I will insert molecules in the last snapshot of the ',UMDname,' structure with ',MyCrystal.natom,' atoms')
+            MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
+            PositionMolecule(MultiMolecules,AllMolecules,BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms),MyCrystal,TotalNoAtoms,Rcutoff)
     else:               #inserts molecules in the UMD file
         if not os.path.isfile(UMDname):
             print ('the UMD files ',UMDname,' does not exist')
             sys.exit()
         else:
             print ('I will insert molecules in ',os.path.isfile(UMDname),' structure every ',Nsteps,' steps')
+            (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(UMDname)
+            firststep = 0
+            laststep = len(AllSnapshots)
+            for istep in range(firststep,laststep,iterstep):
+                MyUMDStructure = AllSnapshots[istep]
+                PositionMolecule(MultiMolecules,AllMolecules,BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms),TotalNoAtoms,Rcutoff)
+
 
     
 if __name__ == "__main__":
