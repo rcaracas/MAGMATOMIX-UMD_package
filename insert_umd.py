@@ -80,6 +80,7 @@ def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
     for iatom in range(TotalNoAtoms):
         MyNewCrystal.atoms.append(cr.Atom())
     print ('in all there will be former ',MyCrystal.natom,' + new ',TotalNoAtoms,' = ',MyNewCrystal.natom,' atoms')
+    NoInsertedAtoms = MyCrystal.natom
     return(MyNewCrystal)
 
 
@@ -92,6 +93,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
     TryMolec = cr.Lattice()
     f = open('struct.xyz','w')
     NoInsertedAtoms = MyCrystal.natom
+    print('already inserted', NoInsertedAtoms, '  atoms')
     print('Inserting ',TotalNoAtoms,' atoms')
     f.write(str(MyNewCrystal.natom))
     f.write('\n\n')
@@ -144,7 +146,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                     print ('adding new molecule ')
                     for iatom in range(TryMolec.natom):
                         print ('adding new atom no. ',NoInsertedAtoms,TryMolec.atoms[iatom].symbol,' at ',TryMolec.atoms[iatom].xcart)
-                        MyNewCrystal.atoms[NoInsertedAtoms] = TryMolec.atoms[iatom]
+                        MyNewCrystal.atoms[NoInsertedAtoms-1] = TryMolec.atoms[iatom]
                         NoInsertedAtoms = NoInsertedAtoms + 1
                         #print ('newly added atom ',MyNewCrystal.atoms[iatom].symbol,' at:    ',MyNewCrystal.atoms[iatom].xcart)
                     #print ('updated total number of inserted atoms: ',NoInsertedAtoms)
