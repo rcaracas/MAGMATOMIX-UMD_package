@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import sys,getopt,numpy,math,glob
+import sys,getopt,math,glob
 import crystallography as cr
+import numpy as np
 from subprocess import call
 
 
@@ -519,6 +520,29 @@ def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):
     return(CurrentTime,TimeStep)
 
 
+def sort_umd(MyCrystal):
+    iflag = -1
+    #print ('There are ',MyCrystal.natom,'  atoms to order')
+    notypatoms = 0
+    AtomicOrdering = [-1 for _ in range(MyCrystal.natom)]
+    orderedvector = [-1 for _ in range(MyCrystal.natom)]
+    for iatom in range(MyCrystal.natom):
+        #print('Atom no. ', iatom,' with symbol ',MyCrystal.atoms[iatom].symbol,' and ordering ',AtomicOrdering[iatom])
+        if AtomicOrdering[iatom] == -1:
+            #print ('new atomic type')
+            iflag = iflag + 1
+            notypatoms = notypatoms + 1
+            AtomicOrdering[iatom] = iflag
+            MyCrystal.typat[iatom] = notypatoms
+            #print ('Atomic ordering of iatom ',iatom,' is ',AtomicOrdering[iatom])
+            for jatom in range(iatom+1,MyCrystal.natom):
+                if MyCrystal.atoms[jatom].symbol == MyCrystal.atoms[iatom].symbol:
+                    #print ('small atom no ',jatom,MyCrystal.atoms[jatom].symbol,' same atomic type as big atom ',iatom,MyCrystal.atoms[iatom].symbol)
+                    MyCrystal.typat[jatom] = notypatoms
+                    iflag = iflag + 1
+                    AtomicOrdering[jatom] = iflag
+                    #print ('Atomic ordering of jatom ',jatom,' is ',AtomicOrdering[jatom],MyCrystal.atoms[jatom].symbol)
+    return(np.argsort(AtomicOrdering))
 
 
 def headerumd():
