@@ -157,7 +157,6 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                     TryMolec.natom = AllMolecules[imolectype].natom
                     TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
                     
-    
     AtomicOrdering = umd.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
