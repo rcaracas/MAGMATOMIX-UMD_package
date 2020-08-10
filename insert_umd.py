@@ -61,6 +61,7 @@ def BuildEmptyBox(UnitCell,TotalNoAtoms):
     #print('building the empty box')
     MyNewCrystal = cr.Lattice()
     MyNewCrystal.natom = TotalNoAtoms
+    MyNewCrystal.typat = [-1 for _ in range(MyNewCrystal.natom)]
     MyNewCrystal.atoms = [cr.Atom() for _ in range(TotalNoAtoms)]
     MyNewCrystal.acell[0] = UnitCell
     MyNewCrystal.acell[1] = UnitCell
@@ -74,6 +75,7 @@ def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
     MyNewCrystal = cr.Lattice()
     MyNewCrystal = MyUMDStructure
     MyNewCrystal.natom = MyCrystal.natom + TotalNoAtoms
+    MyNewCrystal.typat = [-1 for _ in range(MyNewCrystal.natom)]
     #print (' initial number of atoms is ',MyCrystal.natom)
     for iatom in range(MyCrystal.natom):
         MyNewCrystal.atoms[iatom].symbol = MyCrystal.elements[MyCrystal.typat[iatom]]
@@ -91,6 +93,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
     #AllMolecules stores the actual structure of each molecule
     #TryMolec tries the position and rotation of the new molecule before approving its position
     #setting up dimensions
+    AtomicOrdering = []
     TryMolec = cr.Lattice()
     filename = 'struct-' + str(CurrStructs) + '.xyz'
     f = open(filename,'w')
@@ -154,11 +157,16 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                     TryMolec.natom = AllMolecules[imolectype].natom
                     TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
                     
+    
+    AtomicOrdering = umd.sort_umd(MyNewCrystal)
+    #print ('Ordered atoms are',AtomicOrdering)
+    #for iatom in range(MyNewCrystal.natom):
+    #    print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
     print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
     for iatom in range(MyNewCrystal.natom):
-        string = string + MyNewCrystal.atoms[iatom].symbol + '  '
+        string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '  '
         for ii in range(3):
-            string = string + str(MyNewCrystal.atoms[iatom].xcart[ii]) + '  '
+            string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
         string = string + '\n'
     f.write(string)
     f.close()
