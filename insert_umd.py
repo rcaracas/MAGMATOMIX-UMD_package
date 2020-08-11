@@ -177,7 +177,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         for iatom in range(MyNewCrystal.natom):
             string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '    '
             for ii in range(3):
-                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
+                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]/MyNewCrystal.acell[ii]) + '  '
             string = string + '\n'
         f.write(string)
         f.close()
