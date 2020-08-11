@@ -149,16 +149,16 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                         break
                         
             if flagpos == 0:
-                print ('adding new molecule no ',jmolec,' of type ',imolectype,' after ',notrials,' trials')
+                #print ('adding new molecule ')
                 for iatom in range(TryMolec.natom):
                     #print ('adding new atom no. ',NoInsertedAtoms,TryMolec.atoms[iatom].symbol,' at ',TryMolec.atoms[iatom].xcart)
                     MyNewCrystal.atoms[NoInsertedAtoms] = TryMolec.atoms[iatom]
                     NoInsertedAtoms = NoInsertedAtoms + 1
                     #print ('newly added atom ',MyNewCrystal.atoms[iatom].symbol,' at:    ',MyNewCrystal.atoms[iatom].xcart)
                     #print ('updated total number of inserted atoms: ',NoInsertedAtoms)
-                TryMolec.natom = AllMolecules[imolectype].natom
-                TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
-            else:
+                    TryMolec.natom = AllMolecules[imolectype].natom
+                    TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
+            if notrials == 1000:
                 print('I could not insert your molecule even after 1000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
                 exit()
@@ -175,7 +175,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         f.write('\n\n')
         print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
         for iatom in range(MyNewCrystal.natom):
-            string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '    '
+            string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '  '
             for ii in range(3):
                 string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]/MyNewCrystal.acell[ii]) + '  '
             string = string + '\n'
