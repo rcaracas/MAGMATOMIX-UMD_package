@@ -95,20 +95,18 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
     #setting up dimensions
     AtomicOrdering = []
     TryMolec = cr.Lattice()
-    filename = 'struct-' + str(CurrStructs) + '.xyz'
-    f = open(filename,'w')
+    string = ''
+    notrials = 0
     #print('already inserted', NoInsertedAtoms, '  atoms')
     #print('Inserting ',TotalNoAtoms,' atoms')
-    f.write(str(MyNewCrystal.natom))
-    f.write('\n\n')
-    string = ''
     for imolectype in range(len(MultiMolecules)):
         TryMolec.natom = AllMolecules[imolectype].natom
         TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
         #print ('molecule no.', imolectype,' with ',TryMolec.natom,' atoms')
         for jmolec in range(MultiMolecules[imolectype]):
             flagpos = 1
-            while flagpos==1:
+            while flagpos>0 and notrials<1000:
+                notrials = notrials + 1
                 #print ('\n\nDEALING with new molecule')
                 OrigMolecule = np.random.rand(3)                #random position of central atom
                 OrigRotationAxis = np.random.rand(3)          #random rotation oaxis f molecule
@@ -134,42 +132,51 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                         #print (MyNewCrystal.atoms[jatom].symbol,'  ',MyNewCrystal.atoms[jatom].xcart)
                         
                     for icheckatom in range(NoInsertedAtoms):
-                        rdist = np.linalg.norm(TryMolec.atoms[iatom].xcart - MyNewCrystal.atoms[icheckatom].xcart)
+                        #print ('comparing with ',NoInsertedAtoms,' previsouly inserted atoms')
+                        for ix in range(-1,2):
+                            for iy in range(-1,2):
+                                for iz in range(-1,2):
+                                    atref = [MyNewCrystal.atoms[icheckatom].xcart[0] + MyNewCrystal.acell[0]*float(ix), MyNewCrystal.atoms[icheckatom].xcart[1] + MyNewCrystal.acell[1]*float(iy), MyNewCrystal.atoms[icheckatom].xcart[2] + MyNewCrystal.acell[2]*float(iz)]
+                                    rdist = np.linalg.norm(TryMolec.atoms[iatom].xcart - atref)
                         #print ('distance to atom ',icheckatom,' at pos: ',MyNewCrystal.atoms[icheckatom].xcart,' = ',rdist)
-                        if rdist < Rcutoff:
-                            #print ('atom ',iatom,' of current molecule is at a distance of ')
-                            flagpos = 1
-                            break
-                        else:
-                            flagpos = 0
+                                    if rdist < float(Rcutoff):
+                                        #print ('atom ',iatom,' of current molecule is at a distance of ',rdist)
+                                        flagpos = flagpos + 1
                         #print ('flagpos is ',flagpos)
-                    if flagpos == 1:
+                    if flagpos >0 :
                         break
                         
-                if flagpos == 0:
-                    #print ('adding new molecule ')
-                    for iatom in range(TryMolec.natom):
-                        #print ('adding new atom no. ',NoInsertedAtoms,TryMolec.atoms[iatom].symbol,' at ',TryMolec.atoms[iatom].xcart)
-                        MyNewCrystal.atoms[NoInsertedAtoms] = TryMolec.atoms[iatom]
-                        NoInsertedAtoms = NoInsertedAtoms + 1
-                        #print ('newly added atom ',MyNewCrystal.atoms[iatom].symbol,' at:    ',MyNewCrystal.atoms[iatom].xcart)
+            if flagpos == 0:
+                #print ('adding new molecule ')
+                for iatom in range(TryMolec.natom):
+                    #print ('adding new atom no. ',NoInsertedAtoms,TryMolec.atoms[iatom].symbol,' at ',TryMolec.atoms[iatom].xcart)
+                    MyNewCrystal.atoms[NoInsertedAtoms] = TryMolec.atoms[iatom]
+                    NoInsertedAtoms = NoInsertedAtoms + 1
+                    #print ('newly added atom ',MyNewCrystal.atoms[iatom].symbol,' at:    ',MyNewCrystal.atoms[iatom].xcart)
                     #print ('updated total number of inserted atoms: ',NoInsertedAtoms)
                     TryMolec.natom = AllMolecules[imolectype].natom
                     TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
-                    
+            else:
+                print('I could not insert your molecule even after 1000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
+                print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
     
     AtomicOrdering = umd.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
     #    print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
-    print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
-    for iatom in range(MyNewCrystal.natom):
-        string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '  '
-        for ii in range(3):
-            string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
-        string = string + '\n'
-    f.write(string)
-    f.close()
+    if notrials < 1000 and flagpos == 0:
+        filename = 'struct-' + str(CurrStructs) + '.xyz'
+        f = open(filename,'w')
+        f.write(str(MyNewCrystal.natom))
+        f.write('\n\n')
+        print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
+        for iatom in range(MyNewCrystal.natom):
+            string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '  '
+            for ii in range(3):
+                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
+            string = string + '\n'
+        f.write(string)
+        f.close()
 
 
 def main(argv):
@@ -257,7 +264,7 @@ def main(argv):
             print ('I will insert molecules in the last snapshot of the ',UMDname,' structure with ',MyCrystal.natom,' atoms')
             MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
             (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
-            CurrStructs = 0
+            CurrStructs = len(AllSnapshots)
             PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs)
     else:               #inserts molecules in the UMD file
         if not os.path.isfile(UMDname):
