@@ -156,10 +156,14 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                     #print ('updated total number of inserted atoms: ',NoInsertedAtoms)
                     TryMolec.natom = AllMolecules[imolectype].natom
                     TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
+<<<<<<< HEAD
             else:
                 print('I could not insert your molecule even after 1000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
     
+=======
+                    
+>>>>>>> 307ee0e37362f6b4bae23b10b52db4132c69e878
     AtomicOrdering = umd.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
