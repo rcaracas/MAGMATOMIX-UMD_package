@@ -105,8 +105,10 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         #print ('molecule no.', imolectype,' with ',TryMolec.natom,' atoms')
         for jmolec in range(MultiMolecules[imolectype]):
             flagpos = 1
+            notrials = 0
             while flagpos>0 and notrials<1000:
                 notrials = notrials + 1
+                #print ('this is trial no. ',notrials,' for molecule no. ',jmolec)
                 #print ('\n\nDEALING with new molecule')
                 OrigMolecule = np.random.rand(3)                #random position of central atom
                 OrigRotationAxis = np.random.rand(3)          #random rotation oaxis f molecule
@@ -156,31 +158,16 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                     #print ('updated total number of inserted atoms: ',NoInsertedAtoms)
                     TryMolec.natom = AllMolecules[imolectype].natom
                     TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
-<<<<<<< HEAD
-            else:
+            if notrials == 1000:
                 print('I could not insert your molecule even after 1000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
+                exit()
     
-=======
-                    
-<<<<<<< HEAD
-=======
->>>>>>> 307ee0e37362f6b4bae23b10b52db4132c69e878
->>>>>>> razvan
     AtomicOrdering = umd.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
     #    print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
-<<<<<<< HEAD
-    print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
-    for iatom in range(MyNewCrystal.natom):
-        string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '  '
-        for ii in range(3):
-            string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
-        string = string + '\n'
-    f.write(string)
-    f.close()
-=======
+    #print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
     if notrials < 1000 and flagpos == 0:
         filename = 'struct-' + str(CurrStructs) + '.xyz'
         f = open(filename,'w')
@@ -194,7 +181,6 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
             string = string + '\n'
         f.write(string)
         f.close()
->>>>>>> razvan
 
 
 def main(argv):
