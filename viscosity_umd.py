@@ -132,7 +132,7 @@ def Stress2Viscosity(StressTensor,firststep,originshift,length,TimeStep,temperat
 
     return autocorr, autocorrsigma, fit, eta, etaerror                 
                 
-def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,temperature):
+def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,temperature,UMDname):
     volume=AllSnapshots[0].cellvolume
     StressTensorXY,StressTensorXZ,StressTensorYZ,StressTensorMean=BuildStressTensor(AllSnapshots,firststep)
     
@@ -152,79 +152,93 @@ def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,tempera
     print('Viscosity from tensor YZ : ', etaYZ, ' +- ', etaerrorYZ,' Pa.s')
     print('Viscosity from average   : ', eta, ' +- ', etaerror,' Pa.s !!!! NOT TO USE')
         
-    matplotlib.rcParams.update({'font.size': 20})
-    mpl.rcParams['xtick.major.size'] = 12
-    mpl.rcParams['xtick.major.width'] = 2
-    mpl.rcParams['xtick.minor.size'] = 6
-    mpl.rcParams['xtick.minor.width'] = 2
-    mpl.rcParams['ytick.major.size'] = 12
-    mpl.rcParams['ytick.major.width'] = 2
-    mpl.rcParams['ytick.minor.size'] = 6
-    mpl.rcParams['ytick.minor.width'] = 2
-    mpl.rcParams['axes.linewidth'] = 2
-    mpl.rcParams['legend.fontsize'] = 18
-    mpl.rcParams['figure.subplot.bottom'] = 0.10    # the bottom of the subplots of the figure
-    mpl.rcParams['figure.subplot.top'] = 0.9    # the bottom of the subplots of the figure
-    mpl.rcParams['figure.subplot.right'] = 0.95    # the bottom of the subplots of the figure
-    mpl.rcParams['figure.subplot.left'] = 0.15    # the bottom of the subplots of the figure
-    mpl.rcParams['figure.subplot.wspace'] = 0.25
-    mpl.rcParams['figure.subplot.hspace'] = 0.25
-    mpl.rcParams['legend.frameon'] = False
-    mpl.rcParams['legend.handlelength'] = 2.5
+#    matplotlib.rcParams.update({'font.size': 20})
+#    mpl.rcParams['xtick.major.size'] = 12
+#    mpl.rcParams['xtick.major.width'] = 2
+#    mpl.rcParams['xtick.minor.size'] = 6
+#    mpl.rcParams['xtick.minor.width'] = 2
+#    mpl.rcParams['ytick.major.size'] = 12
+#    mpl.rcParams['ytick.major.width'] = 2
+#    mpl.rcParams['ytick.minor.size'] = 6
+#    mpl.rcParams['ytick.minor.width'] = 2
+#    mpl.rcParams['axes.linewidth'] = 2
+#    mpl.rcParams['legend.fontsize'] = 18
+#    mpl.rcParams['figure.subplot.bottom'] = 0.10    # the bottom of the subplots of the figure
+#    mpl.rcParams['figure.subplot.top'] = 0.9    # the bottom of the subplots of the figure
+#    mpl.rcParams['figure.subplot.right'] = 0.95    # the bottom of the subplots of the figure
+#    mpl.rcParams['figure.subplot.left'] = 0.15    # the bottom of the subplots of the figure
+#    mpl.rcParams['figure.subplot.wspace'] = 0.25
+#    mpl.rcParams['figure.subplot.hspace'] = 0.25
+#    mpl.rcParams['legend.frameon'] = False
+#    mpl.rcParams['legend.handlelength'] = 2.5
+#
+#    fig=plt.subplot(2,1,1)
+#
+#    plt.plot(np.arange(length)*TimeStep,autocorrXY, color='blue',label='XY') 
+#    plt.fill_between(np.arange(length)*TimeStep,autocorrXY-autocorrsigmaXY, autocorrXY+autocorrsigmaXY ,color='blue', alpha=0.15)
+#    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fitXY[0][0],fitXY[0][1],fitXY[0][2],fitXY[0][3],fitXY[0][4]), color='blue', linestyle='--', linewidth=2)
+#    
+#    plt.plot(np.arange(length)*TimeStep,autocorrXZ, color='green',label='XZ') 
+#    plt.fill_between(np.arange(length)*TimeStep,autocorrXZ-autocorrsigmaXZ, autocorrXZ+autocorrsigmaXZ, color='green', alpha=0.15)
+#    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fitXZ[0][0],fitXZ[0][1],fitXZ[0][2],fitXZ[0][3],fitXZ[0][4]), color='green', linestyle='--', linewidth=2)
+#    
+#    plt.plot(np.arange(length)*TimeStep,autocorrYZ, color='purple',label='YZ') 
+#    plt.fill_between(np.arange(length)*TimeStep,autocorrYZ-autocorrsigmaYZ, autocorrYZ+autocorrsigmaYZ, color='purple', alpha=0.15)
+#    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fitYZ[0][0],fitYZ[0][1],fitYZ[0][2],fitYZ[0][3],fitYZ[0][4]), color='purple', linestyle='--', linewidth=2)
+#    
+#    plt.plot(np.arange(length)*TimeStep,autocorr, color='red',label='Average') 
+#    plt.fill_between(np.arange(length)*TimeStep,autocorr-autocorrsigma,autocorr+autocorrsigma,color='red',alpha=0.15)
+#    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fit[0][0],fit[0][1],fit[0][2],fit[0][3],fit[0][4]), color='red', linestyle='--', linewidth=2)
+#    
+#    fig.set_xlabel("Time [fs]")
+#    fig.set_ylabel('Autocorrelation')
+#
+#
+#
+#    fig=plt.subplot(2,1,2)
+#
+#    plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorrXY)*TimeStep, color='blue',label='XY') 
+#    plt.plot(np.arange(length)*TimeStep, \
+#         intfitfunc(np.arange(length)*TimeStep,fitXY[0][0],fitXY[0][1],fitXY[0][2],fitXY[0][3],fitXY[0][4]) \
+#         - intfitfunc(0,fitXY[0][0],fitXY[0][1],fitXY[0][2],fitXY[0][3],fitXY[0][4]), \
+#         color='blue', linestyle='--', linewidth=2)
+#    
+#    plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorrXZ)*TimeStep, color='green',label='XZ') 
+#    plt.plot(np.arange(length)*TimeStep, \
+#         intfitfunc(np.arange(length)*TimeStep,fitXZ[0][0],fitXZ[0][1],fitXZ[0][2],fitXZ[0][3],fitXZ[0][4]) \
+#         - intfitfunc(0,fitXZ[0][0],fitXZ[0][1],fitXZ[0][2],fitXZ[0][3],fitXZ[0][4]), \
+#         color='green', linestyle='--', linewidth=2)
+#    
+#    plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorrYZ)*TimeStep, color='purple',label='YZ') 
+#    plt.plot(np.arange(length)*TimeStep, \
+#         intfitfunc(np.arange(length)*TimeStep,fitYZ[0][0],fitYZ[0][1],fitYZ[0][2],fitYZ[0][3],fitYZ[0][4]) \
+#         - intfitfunc(0,fitYZ[0][0],fitYZ[0][1],fitYZ[0][2],fitYZ[0][3],fitYZ[0][4]), \
+#         color='purple', linestyle='--', linewidth=2)
+#    
+#            #plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorr)*TimeStep, color='red',label='Average')
+#            #plt.fill_between(np.arange(length)*TimeStep,np.cumsum(autocorr-autocorrsigma), np.cumsum(autocorr+autocorrsigma), color='red', alpha=0.15)
+#            #plt.plot(np.arange(length)*TimeStep,intfitfunc(np.arange(length)*TimeStep,fit[0][0],fit[0][1],fit[0][2],fit[0][3],fit[0][4]), color='red', linestyle='--', linewidth=2)
+#    
+#    fig.set_xlabel("Time [fs]")
+#    fig.set_ylabel('Integrated Autocorrelation')
+#
+#    plotname = UMDname[:-7] + 'pdf'
+#    #print ('\n\nthe name of the umd file ',UMDname,' from which the pdf file is',plotname)
+#    plt.savefig(plotname, bbox_inches='tight')
 
-    fig=plt.subplot(2,1,1)
+    intxy = np.cumsum(autocorrXY)*TimeStep
+    intyz = np.cumsum(autocorrYZ)*TimeStep
+    intxz = np.cumsum(autocorrXZ)*TimeStep
+    Tottime = np.arange(length)*TimeStep
+    dataname = UMDname[:-7] + 'dat'
+    header = 'Time\tautocorrXY\tautocorrYZ\tautocorrXZ\tIntutocorrXY)\tInt(autocorrYZ)\tInt(autocorrXZ)\n'
+    fp = open(dataname,'w')
+    fp.write(header)
+    for itime in range(length):
+        wline = str(itime) + '\t' + str(autocorrXY[itime]) + '\t' + str(autocorrYZ[itime]) + '\t' + str(autocorrXZ[itime]) + '\t' + str(intxy[itime]) + '\t' + str(intyz[itime]) + '\t' + str(intxz[itime]) + '\n'
+        fp.write(wline)
+    fp.close()
 
-    plt.plot(np.arange(length)*TimeStep,autocorrXY, color='blue',label='XY') 
-    plt.fill_between(np.arange(length)*TimeStep,autocorrXY-autocorrsigmaXY, autocorrXY+autocorrsigmaXY ,color='blue', alpha=0.15)
-    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fitXY[0][0],fitXY[0][1],fitXY[0][2],fitXY[0][3],fitXY[0][4]), color='blue', linestyle='--', linewidth=2)
-    
-    plt.plot(np.arange(length)*TimeStep,autocorrXZ, color='green',label='XZ') 
-    plt.fill_between(np.arange(length)*TimeStep,autocorrXZ-autocorrsigmaXZ, autocorrXZ+autocorrsigmaXZ, color='green', alpha=0.15)
-    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fitXZ[0][0],fitXZ[0][1],fitXZ[0][2],fitXZ[0][3],fitXZ[0][4]), color='green', linestyle='--', linewidth=2)
-    
-    plt.plot(np.arange(length)*TimeStep,autocorrYZ, color='purple',label='YZ') 
-    plt.fill_between(np.arange(length)*TimeStep,autocorrYZ-autocorrsigmaYZ, autocorrYZ+autocorrsigmaYZ, color='purple', alpha=0.15)
-    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fitYZ[0][0],fitYZ[0][1],fitYZ[0][2],fitYZ[0][3],fitYZ[0][4]), color='purple', linestyle='--', linewidth=2)
-    
-    plt.plot(np.arange(length)*TimeStep,autocorr, color='red',label='Average') 
-    plt.fill_between(np.arange(length)*TimeStep,autocorr-autocorrsigma,autocorr+autocorrsigma,color='red',alpha=0.15)
-    plt.plot(np.arange(length)*TimeStep,fitfunc(np.arange(length)*TimeStep,fit[0][0],fit[0][1],fit[0][2],fit[0][3],fit[0][4]), color='red', linestyle='--', linewidth=2)
-    
-    fig.set_xlabel("Time [fs]")
-    fig.set_ylabel('Autocorrelation')
-
-
-
-    fig=plt.subplot(2,1,2)
-
-    plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorrXY)*TimeStep, color='blue',label='XY') 
-    plt.plot(np.arange(length)*TimeStep, \
-         intfitfunc(np.arange(length)*TimeStep,fitXY[0][0],fitXY[0][1],fitXY[0][2],fitXY[0][3],fitXY[0][4]) \
-         - intfitfunc(0,fitXY[0][0],fitXY[0][1],fitXY[0][2],fitXY[0][3],fitXY[0][4]), \
-         color='blue', linestyle='--', linewidth=2)
-    
-    plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorrXZ)*TimeStep, color='green',label='XZ') 
-    plt.plot(np.arange(length)*TimeStep, \
-         intfitfunc(np.arange(length)*TimeStep,fitXZ[0][0],fitXZ[0][1],fitXZ[0][2],fitXZ[0][3],fitXZ[0][4]) \
-         - intfitfunc(0,fitXZ[0][0],fitXZ[0][1],fitXZ[0][2],fitXZ[0][3],fitXZ[0][4]), \
-         color='green', linestyle='--', linewidth=2)
-    
-    plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorrYZ)*TimeStep, color='purple',label='YZ') 
-    plt.plot(np.arange(length)*TimeStep, \
-         intfitfunc(np.arange(length)*TimeStep,fitYZ[0][0],fitYZ[0][1],fitYZ[0][2],fitYZ[0][3],fitYZ[0][4]) \
-         - intfitfunc(0,fitYZ[0][0],fitYZ[0][1],fitYZ[0][2],fitYZ[0][3],fitYZ[0][4]), \
-         color='purple', linestyle='--', linewidth=2)
-    
-    #plt.plot(np.arange(length)*TimeStep,np.cumsum(autocorr)*TimeStep, color='red',label='Average') 
-    #plt.fill_between(np.arange(length)*TimeStep,np.cumsum(autocorr-autocorrsigma), np.cumsum(autocorr+autocorrsigma), color='red', alpha=0.15)
-    #plt.plot(np.arange(length)*TimeStep,intfitfunc(np.arange(length)*TimeStep,fit[0][0],fit[0][1],fit[0][2],fit[0][3],fit[0][4]), color='red', linestyle='--', linewidth=2)
-    
-    fig.set_xlabel("Time [fs]")
-    fig.set_ylabel('Integrated Autocorrelation')
-
-
-
-    plt.savefig('Viscosity.pdf', bbox_inches='tight')
     return
 
 
@@ -284,7 +298,7 @@ def main(argv):
             print('The length requested (', length,')  is too long for the whole duration of the trajectory(', len(AllSnapshots),')')
             print('Will impose the length of the trajectory')
             length = len(AllSnapshots)
-        ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,temperature)
+        ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,temperature,UMDname)
     else:
         print ('the umdfile ',umdfile,' does not exist')
         sys.exit()
