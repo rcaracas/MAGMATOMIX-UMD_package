@@ -230,12 +230,12 @@ def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,tempera
     intyz = np.cumsum(autocorrYZ)*TimeStep
     intxz = np.cumsum(autocorrXZ)*TimeStep
     Tottime = np.arange(length)*TimeStep
-    dataname = UMDname[:-7] + 'dat'
-    header = 'Time\tautocorrXY\tautocorrYZ\tautocorrXZ\tIntutocorrXY)\tInt(autocorrYZ)\tInt(autocorrXZ)\n'
+    dataname = UMDname[:-7] + 'visc.dat'
+    header = 'Time\tautocorrXY\tautocorrYZ\tautocorrXZ\tInt_of_AutocorrXY\tInt_of_AutocorrYZ)\tInt_of_autocorrXZ\tAverage_Ints\n'
     fp = open(dataname,'w')
     fp.write(header)
     for itime in range(length):
-        wline = str(itime) + '\t' + str(autocorrXY[itime]) + '\t' + str(autocorrYZ[itime]) + '\t' + str(autocorrXZ[itime]) + '\t' + str(intxy[itime]) + '\t' + str(intyz[itime]) + '\t' + str(intxz[itime]) + '\n'
+        wline = str(itime) + '\t' + str(autocorrXY[itime]) + '\t' + str(autocorrYZ[itime]) + '\t' + str(autocorrXZ[itime]) + '\t' + str(intxy[itime]) + '\t' + str(intyz[itime]) + '\t' + str(intxz[itime]) + '\t' + str( (intxy[itime]+intyz[itime]+intxz[itime])/3 ) + '\n'
         fp.write(wline)
     fp.close()
 
@@ -249,12 +249,12 @@ def main(argv):
     firststep = 0
     UMDname = ''
     originshift=1
-    length=4000
+    length=1000000
     temperature = 1000
     try:
         opts, arg = getopt.getopt(argv,"hf:t:i:s:o:l:")
     except getopt.GetoptError:
-        print ('viscosity_umd.py -f <umdfile> -i <Initial TimeStep>  -s <Sampling_Frequency> -o <frequency of origin shift> -l <correlation timelength>')
+        print ('viscosity_umd.py -f <umdfile> -i <Initial TimeStep>  -s <Sampling_Frequency> -o <frequency of origin shift> -l <correlation timelength> -t <temperature>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -264,7 +264,8 @@ def main(argv):
             print ('Initial TimeStep from umd file. Default = 0')
             print ('Sampling_Frequency = frequency of sampling the trajectory. Default = 1')
             print ('Frequency_of_origin_shift. Default = 1')
-            print ('-l = maximum timelength for the correlation. Default = 4000>')
+            print ('-l = maximum timelength for the correlation. Default = 1,000,000>')
+            print ('-t - temperature. Default = 1000K')
             sys.exit()
         elif opt in ("-f"):
             UMDname = str(arg)
@@ -297,7 +298,7 @@ def main(argv):
         if (length>len(AllSnapshots)):
             print('The length requested (', length,')  is too long for the whole duration of the trajectory(', len(AllSnapshots),')')
             print('Will impose the length of the trajectory')
-            length = len(AllSnapshots)
+            length = int(len(AllSnapshots)/2)
         ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,temperature,UMDname)
     else:
         print ('the umdfile ',umdfile,' does not exist')
