@@ -1,15 +1,12 @@
-#!/usr/bin/env python
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-import sys,getopt,os.path,math,scipy
+import sys,getopt,os.path,math
 import numpy as np
-import crystallography as cr
-import umd_process as umd
 from scipy.spatial.transform import Rotation
+from . import crystallography as cr
+from . import umd_process as umdp
 
 
 
@@ -163,7 +160,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
                 exit()
     
-    AtomicOrdering = umd.sort_umd(MyNewCrystal)
+    AtomicOrdering = umdp.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
     #    print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
@@ -184,7 +181,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
 
 
 def main(argv):
-    umd.headerumd()
+    umdp.headerumd()
     UMDname='output.umd.dat'
     MoleculesFile='molecules.dat'
     Nsteps = -1
@@ -263,7 +260,7 @@ def main(argv):
             print ('the UMD files ',UMDname,' does not exist')
             sys.exit()
         else:
-            (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(UMDname)
+            (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             print ('I will insert molecules in the last snapshot of the ',UMDname,' structure with ',MyCrystal.natom,' atoms')
             MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
@@ -276,7 +273,7 @@ def main(argv):
             sys.exit()
         else:
             print ('I will insert molecules in ',os.path.isfile(UMDname),' structure every ',Nsteps,' steps')
-            (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(UMDname)
+            (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             firststep = 0
             laststep = len(AllSnapshots)

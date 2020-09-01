@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-import sys,getopt,numpy,os.path,math,itertools
-import crystallography as cr
-import umd_process as up
-from subprocess import call
+import sys,getopt,os.path,itertools
+from . import crystallography as cr
+from . import umd_process as umdp
 
 def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings,TimeStep):
     #this functions builds the dictionary with all the clusters
@@ -225,7 +221,7 @@ def read_inputfile(InputFile,MyCrystal,ClusterAtoms):
 
 
 def main(argv):
-    up.headerumd()
+    umdp.headerumd()
     UMDname='output.umd.dat'
     Nsteps = 1
     InitialStep = 0
@@ -319,7 +315,7 @@ def main(argv):
 #reading the xc art coordinates of the atoms from the UMD file. it uses the read_xcart (i.e. only xcart) function from the umd_process library
     MyCrystal = cr.Lattice()
     AllSnapshots = [cr.Lattice]
-    (MyCrystal,AllSnapshots,TimeStep)=up.read_xcart(UMDname)
+    (MyCrystal,AllSnapshots,TimeStep)=umdp.read_xcart(UMDname)
     #print('checks after reading the umd file')
     #print('no of atoms = ',MyCrystal.natom)
 

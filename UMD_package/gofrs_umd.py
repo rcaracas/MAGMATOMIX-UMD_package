@@ -1,13 +1,10 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ###
 #AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH
 ###
 
 import sys,getopt,numpy,os.path,math
-import crystallography as cr
-import umd_process as umd
+from . import crystallography as cr
+from . import umd_process as umdp
 
 def print_gofrs(umdfile,MyCrystal,ndivx,discrete,normalization,maxlength,gofr):
     """Normalize gofr, compute integral, create the new file gofrs.dat and write data in it """
@@ -128,7 +125,7 @@ def read_umd(umdfile,Nsteps,discrete,InitialStep):
         
 
 def main(argv):
-    umd.headerumd()
+    umdp.headerumd()
     umdfile='output.umd.dat'
     Nsteps = 1
     discrete = 0.01            #delta_r  = width of bins in histogram

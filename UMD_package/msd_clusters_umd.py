@@ -1,15 +1,10 @@
-#!/usr/bin/env python3
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-
-import sys,getopt,numpy,os.path,math,re
-import crystallography as cr
-from subprocess import call
-import umd_process as umd
+import sys,getopt,os.path,re
+from . import crystallography as cr
+from . import umd_process as umdp
 
 
 def msd_trajectory(trajectory):
@@ -132,7 +127,7 @@ def main(argv):
     ClusterMaxSize = 20
     AtomicRadius = 1.0
     Ballistic = 100
-    umd.headerumd()
+    umdp.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:p:s:b:c:",["fUMDfile","pPOPfile","sSampling_Frequency","bBallistic","cClusterMaxSize"])
     except getopt.GetoptError:
@@ -181,7 +176,7 @@ def main(argv):
 #read the umd file and allocate structure
     MyCrystal = cr.Lattice()
     AllSnapshots = [cr.Lattice]
-    (MyCrystal,AllSnapshots,TimeStep)=umd.read_absxcart(UMDname)
+    (MyCrystal,AllSnapshots,TimeStep)=umdp.read_absxcart(UMDname)
 
     ana_popul(MyCrystal,AllSnapshots,POPname,Ballistic,ClusterMaxSize,Nsteps)
 

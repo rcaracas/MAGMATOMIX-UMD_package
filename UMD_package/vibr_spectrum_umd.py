@@ -1,15 +1,11 @@
-#!/usr/local/bin/python3
-
 ###
 ##AUTHORS: Zhi Li, Razvan Caracas
 ###
 
-
-import sys,getopt,os.path,time
+import sys, getopt, os.path
 import numpy as np
-import crystallography as cr
-import umd_process as umd
-from scipy.fftpack  import dct,fftfreq
+from scipy.fftpack import dct, fftfreq
+from . import umd_process as umd
 
 def correlation(TimeMatrix,timestep,temperature):
   

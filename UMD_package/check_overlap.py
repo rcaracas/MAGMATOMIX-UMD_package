@@ -1,14 +1,11 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 ###
 #AUTHORS: ANAIS KOBSCH
 ###
 
 import sys,getopt,os.path,math, re
 import numpy as np
-import crystallography as cr
-import umd_process as umd
+from . import crystallography as cr
+from . import umd_process as umdp
 
 
 def print_header(umdfile,MyCrystal,radius):
@@ -149,7 +146,7 @@ def read_radius(radiusfile):
 
 def read_umd(umdfile,radius,Nsteps,InitialStep,level):
     """Read umd file and store data into classes """
-    umd.headerumd()
+    umdp.headerumd()
     niter = 0
     istep = 0
     MyCrystal = cr.Lattice()

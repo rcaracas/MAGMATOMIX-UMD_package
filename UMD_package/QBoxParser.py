@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-import sys,getopt,numpy,os.path,math
-import crystallography as cr
-#import subprocess
+import sys,getopt,os.path,math
+from . import crystallography as cr
 
 def print_umd(FileName,MyCrystal,TimeStep,CurrentTime):
     newfile = FileName + '.umd.dat'
