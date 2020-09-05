@@ -11,10 +11,10 @@ def configuration(parent_package='', top_path=None):
 
     config = Configuration('UMD_package', parent_package, top_path)
 
-    # _distance_wrap
-    config.add_extension('umd_distance',
-                         sources = [join('src', 'umd_dist.c')],
-                         depends = [join('src', 'umd_dist.h')],
+    # gofr wrapper
+    config.add_extension('c_gofr',
+                         sources = [join('src', 'gofr.c')],
+                         depends = [join('src', 'gofr.h')],
                          include_dirs = [get_numpy_include_dirs()],
                          define_macros = [('NPY_NO_DEPRECATED_API',
                                            'NPY_1_7_API_VERSION')]
