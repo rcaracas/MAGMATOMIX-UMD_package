@@ -51,6 +51,42 @@ static PyObject *compute_gofr_wrapper(PyObject *self, PyObject *args,
 }
 
 
+static PyObject *compute_gofrM_wrapper(PyObject *self, PyObject *args, 
+                                      PyObject *kwargs) 
+{
+  PyArrayObject *X_, *res_, *types_;
+  int mx, mt, nr, ntypes;
+  double maxlength, discrete;
+  long int *res;
+  const long int *types;
+  const double *X;
+  static char *kwlist[] = {"X", "res", "types", "maxlength", "discrete",
+  "ntypes", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, 
+            "O!O!O!ddi:compute_gofrM_wrapper", kwlist,
+            &PyArray_Type, &X_,
+            &PyArray_Type, &res_,
+            &PyArray_Type, &types_,
+            &maxlength, &discrete, &ntypes)) {
+    return NULL;
+  }
+  else {
+    NPY_BEGIN_ALLOW_THREADS;
+    X = PyArray_DATA(X_);
+    res = PyArray_DATA(res_);
+    types = PyArray_DATA(types_);
+    mx = PyArray_DIM(X_, 0);
+    mt = PyArray_DIM(types_, 0);
+    nr = PyArray_DIM(res_, 1);
+
+    compute_gofrM(X, res, types, maxlength, discrete, ntypes, mx, mt, nr);
+    NPY_END_ALLOW_THREADS;
+  }
+
+  Py_RETURN_NONE;
+}
+
+
 static PyObject *print_gofr_wrapper(PyObject *self, PyObject *args, 
                                     PyObject *kwargs) 
 {
@@ -128,6 +164,10 @@ static PyMethodDef c_gofr_method[] = {
 
     {"compute_gofr_wrapper",
     (PyCFunction) compute_gofr_wrapper,
+    METH_VARARGS | METH_KEYWORDS,
+    "To be filled."},
+    {"compute_gofrM_wrapper",
+    (PyCFunction) compute_gofrM_wrapper,
     METH_VARARGS | METH_KEYWORDS,
     "To be filled."},
     {"print_gofr_wrapper",

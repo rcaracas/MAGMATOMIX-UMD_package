@@ -72,30 +72,18 @@ def computeallgofrs(MyCrystal, atoms_coords, discrete, maxlength, gofr):
     discrete = np.double(discrete)
     maxlength = np.double(maxlength)
      
-    # if GPU is available
-    if gpu_utils.get_gpu():
-        # compute the upper triangular part of the distance matrix
-        atoms_dist = gpu_utils.gpumd_pdist(atoms_coords, coeffs)
-        # lambda function to convert 2d (i,j) index to 1d k index with or without diagonal
-        def ij_to_k(M, cst):
-            return lambda x: int(M*(M+cst)/2-(M-min(x))*(M-min(x)+cst)/2+
-                             max(x)-min(x)+(cst-1)/2)
-        # get subsets of atoms per type
-        bounds = [MyCrystal.typat.index(typ) for typ in range(MyCrystal.ntypat)]
-        bounds.append(MyCrystal.natom)
-        # loop over subsets
-        for subset in itertools.combinations_with_replacement(range(MyCrystal.ntypat), 2):
-            # handle subset of same types
-            if subset[0] == subset[1]:
-                pairs = itertools.combinations(range(bounds[subset[0]], bounds[subset[0]+1]),2)
-            else:
-                pairs = itertools.product(range(bounds[subset[0]], bounds[subset[0]+1]),
-                                          range(bounds[subset[1]], bounds[subset[1]+1]))
-            dists = atoms_dist[list(map(ij_to_k(MyCrystal.natom,-1), pairs))]
-            bins = np.bincount((dists[dists < (maxlength/2)] / discrete).astype(np.int),
-                               minlength=gofr.shape[1])
-            # only count the pairs whose distances are lower than maxlength/2
-            gofr[(ij_to_k(MyCrystal.ntypat,1))(subset)][:] = bins
+    # if a GPU is available
+    gpu = gpu_utils.get_gpu()
+    if gpu is not None:
+        try:
+            # compute the upper triangular part of the distance matrix through GPU
+            atoms_dist = gpu_utils.gpumd_pdist(atoms_coords, coeffs, gpu)
+            # compute the gofr through C wrapper
+            c_gofr.compute_gofrM_wrapper(atoms_dist, gofr, types, maxlength,
+                                         discrete, MyCrystal.ntypat)
+        except BufferError as err:
+            print(err)
+        
     # or compute gofr directly through C wrapper
     else:
         c_gofr.compute_gofr_wrapper(atoms_coords, gofr, coeffs, types,

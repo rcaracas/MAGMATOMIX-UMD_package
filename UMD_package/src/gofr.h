@@ -4,22 +4,37 @@
  */ 
 
 
-static NPY_INLINE int
+static NPY_INLINE npy_intp
         ij_to_k(const npy_intp M, const npy_intp row, const npy_intp col)
 {
-
         npy_intp pos;
-        
-        if (row <= col){
-            
+        if (row <= col){  
             pos = M * (M + 1) / 2 - (M - row) * (M - row + 1) / 2 + col - row;
         } else {
-        
             pos = M * (M + 1) / 2 - (M - col) * (M - col + 1) / 2 + row - col;
         }
 
         return pos;
 }
+
+
+
+static NPY_INLINE npy_intp*
+        k_to_ij(const npy_intp M, const npy_intp k_index)
+{
+        
+        npy_intp *indexes = malloc(2*sizeof(int));
+        npy_intp k_bis, p_index;
+        
+        // recover the 2d (i,j) index
+        k_bis = M * (M - 1) / 2 - k_index - 1;
+        p_index = floor((sqrt(1.0 + 8.0 * k_bis) - 1.0) / 2.0);
+        indexes[0] = M - 2 - p_index;
+        indexes[1] = k_index + M - M * (M - 1) / 2 + p_index * (p_index + 1) / 2;
+        
+        return indexes;
+}
+
 
 
 static NPY_INLINE double
@@ -88,6 +103,44 @@ compute_gofr(const double *X, npy_intp *res, const double *coeff, const npy_intp
                 }
             }
         }
+    }
+        
+    return 0;
+}
+
+
+static NPY_INLINE int
+compute_gofrM(const double *dist, npy_intp *res, const npy_intp *types, const double maxlength,
+              const double discrete, const npy_intp ntypes, const npy_intp Xrows,
+              const npy_intp Trows, const npy_intp Rcols)
+{
+
+    npy_intp i, j, kk, k_index, bin;
+
+    for (kk = 0; kk < Xrows; ++kk) {
+    
+        // recover the 2d (i,j) index
+        npy_intp* indexes = k_to_ij(Trows, kk);
+        i = *indexes;
+        j = *(indexes + 1);
+    
+        if (*dist < (0.5 * maxlength)) {
+            
+            k_index = ij_to_k(ntypes, types[i], types[j]);
+            bin = *dist / discrete;
+                
+            if (types[i] == types[j]) {
+                
+                // we double since we work only with the upper triangular
+                *(res + Rcols * k_index + bin) += 2;
+            } else {
+                *(res + Rcols * k_index + bin) += 1;
+            }
+        }
+        // free the malloc call in k_to_ij
+        free(indexes);
+        // increment dist pointer
+        ++dist;
     }
         
     return 0;
