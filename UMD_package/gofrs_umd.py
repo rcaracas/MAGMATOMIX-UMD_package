@@ -8,6 +8,7 @@ import itertools
 import getopt
 import sys
 import numpy as np
+from distutils.util import strtobool
 from . import crystallography as cr
 from . import umd_process as umdp
 from . import c_gofr
@@ -27,7 +28,7 @@ def umd_pdist(X, coeff):
                    order='C')
     # call the CPython wrapper
     c_gofr.umd_pdist_wrapper(X, res, coeff)
-    
+
     return res
 
 
@@ -60,41 +61,43 @@ def print_gofrs(umdfile, MyCrystal, discrete, normalization, maxlength, gofr):
 
 
 
-def computeallgofrs(MyCrystal, atoms_coords, discrete, maxlength, gofr):
+def computeallgofrs(MyCrystal, atoms_coords, discrete, maxlength, gofr, dict_flags,
+                    gpu, use_gpu):
     """
     For every pair of atoms, compute the minimal distance betweens atoms
     and add 1 to the corresponding gofr[r, r + delta_r] slot.
     """
-    
+
     # check type arguments
     coeffs = np.array(MyCrystal.acell, dtype=np.double, order='C')
-    types = np.array(MyCrystal.typat, dtype=int, order='C')
+    types = np.array(MyCrystal.typat, dtype=np.int, order='C')
     discrete = np.double(discrete)
     maxlength = np.double(maxlength)
-     
+
     # if a GPU is available
-    gpu = gpu_utils.get_gpu()
-    if gpu is not None:
+    if use_gpu:
         try:
+            print("before")
             # compute the upper triangular part of the distance matrix through GPU
-            atoms_dist = gpu_utils.gpumd_pdist(atoms_coords, coeffs, gpu)
+            atoms_dist = gpu_utils.gpumd_pdist(atoms_coords, coeffs, gpu, dict_flags)
+            print("after")
             # compute the gofr through C wrapper
-            c_gofr.compute_gofrM_wrapper(atoms_dist, gofr, types, maxlength,
-                                         discrete, MyCrystal.ntypat)
+            c_gofr.compute_gofrM_wrapper(atoms_dist.astype(np.double), gofr, types,
+                                         maxlength, discrete, MyCrystal.ntypat)
         except BufferError as err:
             print(err)
-        
+
     # or compute gofr directly through C wrapper
     else:
         c_gofr.compute_gofr_wrapper(atoms_coords, gofr, coeffs, types,
                                     maxlength, discrete, MyCrystal.ntypat)
-    
+
     # empty return
     return None
-        
 
 
-def read_umd(umdfile, Nsteps, discrete, InitialStep):
+
+def read_umd(umdfile, Nsteps, discrete, InitialStep, **kwargs):
     """Read umd file and store data into classes """
 
     # convert str to int if possible
@@ -153,6 +156,18 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep):
         kvals = int(MyCrystal.ntypat * (MyCrystal.ntypat + 1) / 2)
         gofr = np.zeros((kvals, ndivx+1), dtype=np.intp, order='C')
         
+        # check if gpu must be used and get device and flags
+        use_gpu = kwargs["use_gpu"]
+        del kwargs["use_gpu"]
+        if use_gpu:
+            gpu = gpu_utils.get_gpu()
+            if gpu is not None:
+                dict_flags = gpu_utils.get_flags((MyCrystal.natom, 3), gpu.global_mem_size, 
+                                                 gpu.local_mem_size, gpu.extensions, **kwargs)
+            else:
+                dict_flags = None
+            print("dict_flags: ", dict_flags)
+        
         # get the atoms coordinates and calculate gofr for each time step
         niter = 0
         istep = 0
@@ -170,6 +185,7 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep):
                     if istep > InitialStep:
                         # compute gofr only every Nsteps
                         if niter % Nsteps == 0:
+                            print("istep: ", istep)
                             # instantiate array to store atoms coordinates
                             atoms_coords = np.empty((MyCrystal.natom, 3), order='C',
                                                     dtype=np.double)
@@ -180,8 +196,8 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep):
                                 for jj in range(3):
                                     atoms_coords[iatom][jj] = np.double(entry[jj+3])
                             # compute the gofr every Nsteps
-                            computeallgofrs(MyCrystal, atoms_coords, discrete,
-                                            maxlength, gofr)
+                            computeallgofrs(MyCrystal, atoms_coords, discrete, maxlength,
+                                            gofr, dict_flags, gpu, use_gpu)
                         else:
                             # skip exactly natom lines to speed up the process
                             for _ in range(MyCrystal.natom):
@@ -195,7 +211,7 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep):
     # number of time steps actually used in the calculation of gofr
     normalization = niter / Nsteps
     print_gofrs(umdfile, MyCrystal, discrete, normalization, maxlength, gofr)
-    
+
     # empty return
     return None
 
@@ -206,20 +222,36 @@ def main(argv):
     umdfile = 'output.umd.dat'
     Nsteps = 1
     discrete = 0.01            #delta_r  = width of bins in histogram
-    InitialStep = 0            #in case we want to skip additional timesteps
+    InitialStep = 0           #in case we want to skip additional timesteps
+    gpu_options = {"use_gpu": True}
     try:
-        opts, arg = getopt.getopt(argv,"hf:s:d:i:", ["fumdfile", "Sampling_Frequency", "ddiscrete", "iInitialStep"])
+        opts, arg = getopt.getopt(argv,"hf:s:d:i:g:", ["fumdfile", "Sampling_Frequency", "ddiscrete", "iInitialStep",
+                                                       "ggpu_options"])
     except getopt.GetoptError:
-        print ('gofrs_umd.py -f <umdfile>  -s <No.steps>  -d <discretization.interval> -i <InitialStep>')
+        print ('gofrs_umd.py -f <umdfile>  -s <No.steps>  -d <discretization.interval> -i <InitialStep> -g <gpu_options>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print ('gofrs_umd.py program to compute pair-distribution fuctions g(r) and print all the results in one file. Usage:')
-            print ('gofrs_umd.py -f <umdfile> -s <Sampling_Frequency> -d <discretization.interval> -i <InitialStep>')
+            print ('gofrs_umd.py -f <umdfile> -s <Sampling_Frequency> -d <discretization.interval> -i <InitialStep> -b <UseGPU>')
             print ('umdfile = name of the umd file. Default = output.umd.dat')
             print ('Sampling_Frequency = frequency of sampling the trajectory. Default = 1')
             print ('discretization.interval = for plotting the g(r). Default = 0.01 Angstroms')
             print ('InitialStep = number of initial steps of the trajectory to be removed. Default = 0')
+            print ("""
+                   gpu_options = a comma separated list of the following options for the distance calculation by gpu:\n
+                       * use_gpu: a boolean specifying whether to use or not a GPU for the calculation.\n
+                       * FINT: a string in {"ushort", "int"} specifying the type of integer to use.\n
+                       * FREAL: a string in {"double", "float"} specifying the type of floating precision to use.\n
+                       * FREAL_IN: a string in {"double", "float"} specifying the type of floating precision
+                       to use for the tiled version. Will be ignore if FTILED is set to False.\n
+                       * FTILED: a boolean indicating if matrix tiling should be use.\n
+                       * FHALF: a boolean indicating if the half floating point precision should be use
+                       for the inputs and ouput. This option offers a compromise between speed and
+                       precision.\n
+                    By default, only the user_gpu option is used and set to True, the remaining options
+                    are automatically deduced.\n
+                    """)
             sys.exit()
         elif opt in ("-f", "--fumdfile"):
             umdfile = str(arg)
@@ -231,9 +263,31 @@ def main(argv):
             #print('the distance delta_r we use to compute the number of atoms around the central one is ',discrete, 'Angstroms')
         elif opt in ("-i", "--iInitialStep"):
             InitialStep = int(arg)
-                #print('I will skip  ',initial,' timesteps. ')
+            #print('I will skip  ',initial,' timesteps. ')
+        elif opt in ("-g", "--gpu_options"):
+            for string in str(arg).split(","):
+                key, val = string.split("=")
+                if key in ["use_gpu", "FTILED", "FHALF"]:
+                    try:
+                        gpu_options[key] = bool(strtobool(val))
+                    except ValueError:
+                        print("In gpu_options, invalid argument {}.".format(key))
+                        sys.exit()
+                if key == "FINT":
+                    if val in ["ushort", "int"]:
+                        gpu_options[key] = val
+                    else:
+                        raise ValueError("In gpu_options, invalid argument 'INT'.")
+                        sys.exit()
+                if key in ["FREAL", "FREAL_IN"]:
+                    if val in ["double", "float"]:
+                        gpu_options[key] = val
+                    else:
+                        raise ValueError("In gpu_options, invalid argument {}.".format(key))
+                        sys.exit()
+
     if (os.path.isfile(umdfile)): 
-        read_umd(umdfile, Nsteps, discrete, InitialStep)
+        read_umd(umdfile, Nsteps, discrete, InitialStep, **gpu_options)
     else:
         print ('the umd file ',umdfile,' does not exist')
         sys.exit()
