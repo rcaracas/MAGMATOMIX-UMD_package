@@ -19,20 +19,19 @@ static NPY_INLINE npy_intp
 
 
 
-static NPY_INLINE npy_intp*
-        k_to_ij(const npy_intp M, const npy_intp k_index)
+static NPY_INLINE npy_intp
+        k_to_ij(const npy_intp M, const npy_intp k_index, npy_intp* indexes)
 {
-        
-        npy_intp *indexes = malloc(2*sizeof(int));
+
         npy_intp k_bis, p_index;
-        
+
         // recover the 2d (i,j) index
         k_bis = M * (M - 1) / 2 - k_index - 1;
         p_index = floor((sqrt(1.0 + 8.0 * k_bis) - 1.0) / 2.0);
         indexes[0] = M - 2 - p_index;
         indexes[1] = k_index + M - M * (M - 1) / 2 + p_index * (p_index + 1) / 2;
         
-        return indexes;
+        return 0;
 }
 
 
@@ -120,14 +119,15 @@ compute_gofrM(const double *dist, npy_intp *res, const npy_intp *types, const do
     for (kk = 0; kk < Xrows; ++kk) {
     
         // recover the 2d (i,j) index
-        npy_intp* indexes = k_to_ij(Trows, kk);
-        i = *indexes;
-        j = *(indexes + 1);
+        npy_intp indexes[2];
+        k_to_ij(Trows, kk, indexes);
+        i = indexes[0];
+        j = indexes[1];
     
-        if (*dist < (0.5 * maxlength)) {
+        if (dist[kk] < (0.5 * maxlength)) {
             
             k_index = ij_to_k(ntypes, types[i], types[j]);
-            bin = *dist / discrete;
+            bin = dist[kk] / discrete;
                 
             if (types[i] == types[j]) {
                 
@@ -137,12 +137,8 @@ compute_gofrM(const double *dist, npy_intp *res, const npy_intp *types, const do
                 *(res + Rcols * k_index + bin) += 1;
             }
         }
-        // free the malloc call in k_to_ij
-        free(indexes);
-        // increment dist pointer
-        ++dist;
     }
-        
+   
     return 0;
 }
 
