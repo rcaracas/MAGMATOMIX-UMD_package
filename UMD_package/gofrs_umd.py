@@ -44,7 +44,7 @@ def print_gofrs(umdfile, MyCrystal, discrete, normalization, maxlength, gofr):
     # write header
     pairs = itertools.product(MyCrystal.elements, MyCrystal.elements)
     string = ['dist ']
-    string.append("\t".join([elem[0]+'-'+elem[1]+'\t Int('+elem[0]+'-'+elem[1]+')' for elem in pairs]))
+    string.append("\t".join([elem[0]+'-'+elem[1]+'\tInt('+elem[0]+'-'+elem[1]+')' for elem in pairs]))
     string.append('\n')
     nf.write("".join(string))
     nf.close()
@@ -152,7 +152,7 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep, **kwargs):
         del kwargs["use_gpu"]
         if use_gpu:
             gpu = gpu_utils.gpu((MyCrystal.natom, 3), custom_flags = kwargs)
-            print(gpu.build_flags)
+            print("The following build flags will be used:\n{}".format(gpu.build_flags))
             if gpu.device is None: # catch if gpu memory is not large enough
                 gpu = None
         else:

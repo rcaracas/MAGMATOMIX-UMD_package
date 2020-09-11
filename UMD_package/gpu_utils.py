@@ -81,7 +81,7 @@ class gpu():
             warnings.warn("""
             Pyopencl found no GPU, the distance calculation will default to use the C extension.\n
             Please consult the installation page of pyopencl to make sure that all
-            additional softwares have been installed:
+            additional softwares have been correctly installed:
             \thttps://documen.tician.de/pyopencl/misc.html\n
             Additionally, you should check that your GPU is compatible with OpenCL:
             \thttps://www.khronos.org/conformance/adopters/conformant-products/opencl\n
