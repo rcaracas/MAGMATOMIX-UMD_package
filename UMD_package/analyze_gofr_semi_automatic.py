@@ -55,12 +55,12 @@ def headerfile(firstfile, dirpath):
         for i in range(0,4):
             firstline.append(couple)
         secondline.extend(['xmax','ymax','xmin','coord'])
-    newfilename = dirpath+'_gofrs.txt' 
+    newfilename = dirpath+'_gofrs.txt'
     print('The file ',newfilename,' is created')
     f = open(newfilename,'w')
     f.write("\t".join(x for x in firstline)+ "\n")
     f.write("\t".join(x for x in secondline)+ "\n")
-    return f, header      #I return the newly created files f along with the list of element couples
+    return f, header[0:-2:3]      #I return the newly created files f along with the list of element couples
 
 def atoms_columns(firstfile):
     """creation of the newfile for bonds"""
@@ -266,9 +266,6 @@ def analyze_gofrs_interactive(data,file,couples, guess_xmax, guess_xmin, atoms):
 
 
 
-
-
-
 def analyze_gofrs_automatic(data,file,couples, guess_xmax, guess_xmin, atoms):
     """ extraction of the min, max and coordination number using fits and previous values as initial guesses """
     distance = np.loadtxt(file, usecols=(0,), skiprows = 1, unpack=True)
@@ -387,19 +384,19 @@ def main(argv):
             print(' ')
             sys.exit()
         elif opt in ("-a", "--atoms"):
-            atoms = arg.split(',')                      #list of atom couples we want to analyze here
+            atoms = arg.split(',') #list of atom couples we want to analyze here
     for dirpath, dirnames, filenames in os.walk(os.curdir):
         files = sorted(glob.glob(dirpath+'/*.gofr.dat')) #I list every gofr files in alphabetic order
         if files != []:
-            f, couples = headerfile(files[0], dirpath)                          #I create the first newfile for gofr and save the list of element couples 
+            f, couples = headerfile(files[0], dirpath) #I create the first newfile for gofr and save the list of element couples 
             if atoms == []:
                 atoms = couples[:]
             interactive = 0
-            guess_xmax = {}                                                     #dictionnaries for initial guesses (key = couple of atoms, value = xmin or max value)
+            guess_xmax = {} #dictionnaries for initial guesses (key = couple of atoms, value = xmin or max value)
             guess_xmin = {}
             for file in files:
                 data = [file]
-                b, atom1, atom2 = atoms_columns(file)                            #I create the newfile for bonds
+                b, atom1, atom2 = atoms_columns(file) #I create the newfile for bonds
                 if file == files[0]:
                     interactive = 1
                 if interactive == 1:
@@ -407,9 +404,9 @@ def main(argv):
                     interactive = 0
                 else:
                     data, bonds, guess_xmax, guess_xmin = analyze_gofrs_automatic(data,file,couples, guess_xmax, guess_xmin, atoms)       #we compute the min,max etc. from the gofr and int using fit and interactive plot
-                f.write("\t".join(x for x in data)+ "\n")                  #we write in the file the result line
+                f.write("\t".join(x for x in data)+ "\n") #we write in the file the result line
                 writer = csv.writer(b, delimiter = '\t')  
-                writer.writerows(zip(atom1, atom2, bonds))    #we write all our bonds.inp file
+                writer.writerows(zip(atom1, atom2, bonds)) #we write all our bonds.inp file
                 b.close()
                 print(b) 
             f.close
