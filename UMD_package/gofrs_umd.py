@@ -43,8 +43,8 @@ def print_gofrs(umdfile, MyCrystal, discrete, normalization, maxlength, gofr):
     nf = open(filename, 'w')
     # write header
     pairs = itertools.product(MyCrystal.elements, MyCrystal.elements)
-    string = ['dist ']
-    string.append("\t".join([elem[0]+'-'+elem[1]+'\t Int('+elem[0]+'-'+elem[1]+')' for elem in pairs]))
+    string = ['dist\t']
+    string.append("\t".join([elem[0]+'-'+elem[1]+'\tInt('+elem[0]+'-'+elem[1]+')' for elem in pairs]))
     string.append('\n')
     nf.write("".join(string))
     nf.close()
