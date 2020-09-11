@@ -152,7 +152,7 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep, **kwargs):
         del kwargs["use_gpu"]
         if use_gpu:
             gpu = gpu_utils.gpu((MyCrystal.natom, 3), custom_flags = kwargs)
-            print(gpu.build_flags)
+            print("The following build flags will be used:\n{}".format(gpu.build_flags))
             if gpu.device is None: # catch if gpu memory is not large enough
                 gpu = None
         else:
