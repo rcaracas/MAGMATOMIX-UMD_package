@@ -52,7 +52,6 @@ class gpu():
         if self.device is not None:
             self.set_flags()
             if self.device is not None:
-                self.check_tiling()
                 self.set_custom_flags(custom_flags)
                 self.build_program()
                 self.create_memory_pools()
@@ -124,27 +123,6 @@ class gpu():
 
 
 
-    def check_tiling(self):
-        """
-        Check if tiling is possible and with which floating type.
-        """
-        float_types = [64, 32]
-        TS = int(np.sqrt(self.device.max_work_group_size))
-        sizes = np.array(list(map(lambda x: int(2*TS*3*x), float_types[:2])))
-        choice = (self.device.local_mem_size / sizes) > 0.5
-        # set tiling flags
-        self.build_flags["TS"] = TS
-        self.build_flags["FREAL_IN"] = "float"
-        self.build_flags["FTILED"] = True
-        if choice[0] and "cl_khr_fp64" in self.device.extensions:
-            self.build_flags["FREAL_IN"] = "double"
-        elif choice[1]:
-            pass
-        else:
-            self.build_flags["FTILED"] = False
-
-
-
     def set_custom_flags(self, custom_flags):
         """
         Check if user flags can be used.
@@ -156,12 +134,6 @@ class gpu():
                         self.build_flags[key] = value
                 if key == "FREAL":
                     if (value == "float") and self.build_flags[key] == "double":
-                        self.build_flags[key] = value
-                if key == "FREAL_IN":
-                    if (value == "float") and self.build_flags[key] == "double":
-                        self.build_flags[key] = value
-                if key == "FTILED":
-                    if not value and self.build_flags[key]:
                         self.build_flags[key] = value
                 if key == "FHALF":
                     if value and not self.build_flags[key]:
@@ -182,12 +154,14 @@ class gpu():
         kernelsource = kernelfile.read()
         kernelfile.close()
         # build the program
+        
         flags = ["FINT={}".format(self.build_flags["FINT"]),
                  "FREAL={}".format(self.build_flags["FREAL"]),
-                 "FREAL_IN={}".format(self.build_flags["FREAL_IN"]),
-                 "TS={}".format(self.build_flags["TS"]), "K=3"]
+                 "K=3"]
         flags = ["-D"+ele for ele in flags]
-        flags += ["-cl-fast-relaxed-math"]
+        flags += ["-cl-fast-relaxed-math",
+                  "-cl-denorms-are-zero",
+                  "-cl-finite-math-only"]
         self.program = cl.Program(self.context, kernelsource).build(options=flags)
 
 
@@ -229,22 +203,16 @@ class gpu():
         """
         # select the kernel to use
         if self.build_flags["FHALF"]:
-            if self.build_flags["FTILED"]:
-                self.kernel = self.program.half_tiled_pdist
-            else:
-                self.kernel = self.program.half_pdist
+            self.kernel = self.program.half_pdist
         else:
-            if self.build_flags["FTILED"]:
-                self.kernel = self.program.tiled_pdist
-            else:
-                self.kernel = self.program.pdist
+            self.kernel = self.program.pdist
         # set kernel arguments
         cl_flags= {"int": cl.cltypes.int, "ushort": cl.cltypes.ushort}
         self.kernel.set_scalar_arg_dtypes([cl_flags[self.build_flags["FINT"]],
                                            None, None, None])
         self.global_grid = tuple([int(2**closest_two_pow(self.input_shape[0], 1))]*2)
         if self.global_grid[0] > 16:
-            self.local_grid = tuple([self.build_flags["TS"]]*2)
+            self.local_grid = tuple([int(np.sqrt(self.device.max_work_group_size))]*2)
         else:
             self.local_grid = None
 

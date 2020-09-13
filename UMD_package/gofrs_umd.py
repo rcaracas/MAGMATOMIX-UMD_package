@@ -237,9 +237,6 @@ def main(argv):
                        * use_gpu: a boolean specifying whether to use or not a GPU for the calculation.\n
                        * FINT: a string in {"ushort", "int"} specifying the type of integer to use.\n
                        * FREAL: a string in {"double", "float"} specifying the type of floating precision to use.\n
-                       * FREAL_IN: a string in {"double", "float"} specifying the type of floating precision
-                       to use for the tiled version. Will be ignore if FTILED is set to False.\n
-                       * FTILED: a boolean indicating if matrix tiling should be use.\n
                        * FHALF: a boolean indicating if the half floating point precision should be use
                        for the inputs and ouput. This option offers a compromise between speed and
                        precision.\n
@@ -261,7 +258,7 @@ def main(argv):
         elif opt in ("-g", "--gpu_options"):
             for string in str(arg).split(","):
                 key, val = string.split("=")
-                if key in ["use_gpu", "FTILED", "FHALF"]:
+                if key in ["use_gpu", "FHALF"]:
                     try:
                         gpu_options[key] = bool(strtobool(val))
                     except ValueError:
@@ -271,13 +268,13 @@ def main(argv):
                     if val in ["ushort", "int"]:
                         gpu_options[key] = val
                     else:
-                        raise ValueError("In gpu_options, invalid argument 'INT'.")
+                        raise ValueError("In gpu_options, invalid argument 'FINT'.")
                         sys.exit()
-                if key in ["FREAL", "FREAL_IN"]:
+                if key == "FREAL":
                     if val in ["double", "float"]:
                         gpu_options[key] = val
                     else:
-                        raise ValueError("In gpu_options, invalid argument {}.".format(key))
+                        raise ValueError("In gpu_options, invalid argument 'FREAL'.")
                         sys.exit()
 
     if (os.path.isfile(umdfile)): 
