@@ -103,23 +103,20 @@ def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings,T
 
 def neighboring(BooleanMap,ligands,iatom,newcluster):
     newcluster.append(ligands[iatom])
-    if iatom < len(ligands):
-        #        for jatom in range(ligands[iatom+1],len(ligands)):
-        for jatom in range(len(ligands)):
-            if BooleanMap[ligands[iatom]][ligands[jatom]]==1:
-                #print('bond between',ligands[iatom],ligands[jatom])
-                BooleanMap[ligands[iatom]][ligands[jatom]]=0
-                BooleanMap[ligands[jatom]][ligands[iatom]]=0
-                #print ('next atom',ligands[jatom])
-                newcluster=neighboring(BooleanMap,ligands,jatom,newcluster)
+    for jatom in range(len(ligands)):
+        if BooleanMap[ligands[iatom]][ligands[jatom]]==1:
+            #print('bond between',ligands[iatom],ligands[jatom])
+            BooleanMap[ligands[iatom]][ligands[jatom]]=0
+            BooleanMap[ligands[jatom]][ligands[iatom]]=0
+            #print ('next atom',ligands[jatom])
+            newcluster=neighboring(BooleanMap,ligands,jatom,newcluster)
     return newcluster
 def clustering(BooleanMap,ligands):
     #print('     clustering: start')
     #print ('ligands:',ligands)
-    icluster = -1
     neighbors = []
+    totNbonds = 0
     i=[]
-    monogas = []
     for iatom in range(len(ligands)):
         #print('sum of bonds for atom ',iatom,ligands[iatom],sum(BooleanMap[ligands[iatom]]))
         #for jatom in range(len(ligands)):
@@ -128,8 +125,10 @@ def clustering(BooleanMap,ligands):
         if sum(BooleanMap[ligands[iatom]]) == 0:            #this part has to be treated first, as after clustering a lot of bonds are removed from BooleanMap
                                                             # in the neiboring routine
                                                             # and atoms that are bonded would appear as a monoatomic gas
-#            monogas.append(ligands[iatom])
             neighbors.append([ligands[iatom]])
+        totNbonds+=sum(BooleanMap[ligands[iatom]])
+    #print("TOTAL #bonds",totNbonds/2)
+    sys.setrecursionlimit(int(totNbonds/2)) #change the recursion limi
     for iatom in range(len(ligands)):
         if sum(BooleanMap[ligands[iatom]]) > 0:
             #print('current atom',iatom,ligands[iatom],BooleanMap[ligands[iatom]],sum(BooleanMap[ligands[iatom]]))
@@ -144,7 +143,6 @@ def clustering(BooleanMap,ligands):
     return neighbors
 def clusteringnorings(BooleanMap,centralatoms,outeratoms):
     #print ('ligands:',ligands)
-    icluster = -1
     neighbors = []
     for iatom in range(len(centralatoms)):
         newcluster = [centralatoms[iatom]]
@@ -264,11 +262,11 @@ def main(argv):
         elif opt in ("-m","--mMinlife"):
             minlife = float(arg)
         elif opt in ("-c","--Cations"):
-            header = header + arg
+            header = header + ' -c=' + arg
             Cations = arg.split(",")
             #print ('Cation list is: ',Cations)
         elif opt in ("-a","--Anions"):
-            header = header + arg
+            header = header + ' -a=' + arg
             Anions= arg.split(",")
             #print ('Anion list is: ',Anions)
         elif opt in ("-i", "--iInputFile"):
@@ -327,7 +325,7 @@ def main(argv):
     #we need to set by hand the maximum recursion limit
     #to avoid python erro crash
     #12 is a factor f a maximum reasonable limit of a coordination polyhedron
-    sys.setrecursionlimit(12*MyCrystal.natom)
+    #sys.setrecursionlimit(12*MyCrystal.natom)
 
 #reading the cutoff radii for the bonds
     BondTable = [[maxlength*maxlength for _ in range(MyCrystal.ntypat)] for _ in range(MyCrystal.ntypat)]

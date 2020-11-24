@@ -87,7 +87,7 @@ def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
     return(MyNewCrystal,NoInsertedAtoms)
 
 
-def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs):
+def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header):
     #places the new molcules in the former structure
     #MultiMolecules stores how many molecules of each type need to be inserted
     #AllMolecules stores the actual structure of each molecule
@@ -181,7 +181,18 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
             string = string + '\n'
         f.write(string)
         f.close()
-
+#        filename = 'struct-' + str(CurrStructs) + '.POSCAR'
+#        f = open(filename,'w')
+#        string = header + '  No. ' + str(CurrStructs) + '\n'
+#        f.write(string)
+#        f.write('  1.0\n')
+#        string = '    ' + MyNewCrystal.acell[0]) + '0.0  0.0 \n'
+#        f.write(string)
+#        string = '    0.0 + ' + MyNewCrystal.acell[1]) + ' 0.0 \n'
+#        f.write(string)
+#        string = '    0.0  0.0' + MyNewCrystal.acell[02) + ' \n'
+#        f.write(string)
+#        for ii in range(MyNewCrystal.
 
 def main(argv):
     umd.headerumd()
@@ -255,7 +266,7 @@ def main(argv):
                 #print(AllMolecules[ii].atoms[kk].symbol)
         (MyUMDStructure,NoInsertedAtoms) = BuildEmptyBox(UnitCell,TotalNoAtoms)
         CurrStructs = 0
-        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs)
+        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header)
     
     #inserts molecules in the last full snapshot
     elif Nsteps == 0:    #inserts molecules in the  last snapshot of the UMD file
@@ -269,7 +280,7 @@ def main(argv):
             MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
             (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
             CurrStructs = len(AllSnapshots)
-            PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs)
+            PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header)
     else:               #inserts molecules in the UMD file
         if not os.path.isfile(UMDname):
             print ('the UMD files ',UMDname,' does not exist')
@@ -283,7 +294,7 @@ def main(argv):
             for istep in range(firststep,laststep,Nsteps):
                 MyUMDStructure = AllSnapshots[istep]
                 (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
-                PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,istep)
+                PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,istep,header)
 
 
     
