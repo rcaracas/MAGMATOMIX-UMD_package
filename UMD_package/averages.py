@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 #authors: Razvan Caracas, Znais Kobsch
 
 import numpy as np 
@@ -9,7 +6,7 @@ import getopt
 import os
 import subprocess
 import matplotlib.pyplot as plt
-import umd_process as up
+from . import umd_process as umdp
 
 
 def is_number(s):
@@ -65,7 +62,7 @@ def plot_function(name,ax,data,average,stdev):
 def main(argv):
     FileName = ''
     SkipSteps=0
-    up.headerumd()
+    umdp.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:i:",["fFileName,iInitialStep"])
     except getopt.GetoptError:

@@ -1,13 +1,9 @@
-#!/usr/bin/env python
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-
-import sys,getopt,math,glob
+import math
 import numpy as np
-from subprocess import call
 
 class Atom(object):
     def __init__(self, name = 'XXX', symbol='X', znucl = 1, mass=0.0, magnet=0.0, charge=0.0, xred = None, xcart = None, absxcart = None, vels = None, forces = None, diffcoords = None):
@@ -100,7 +96,7 @@ class Lattice(object):
                 for jj in range(3):
                     self.atoms[iatom].xred[ii] = self.atoms[iatom].xred[ii]  + self.gprimd[ii][jj]*self.atoms[iatom].xcart[ii]
         #        print 'xred coordinate of atom is ',red
-        return red
+        #return red
     def xcart2xred(self,cart):
         self.makerprimd()
         self.makegprimd()

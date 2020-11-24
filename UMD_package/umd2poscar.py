@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-
 import sys,getopt,os
-import crystallography as cr
-import umd_process as up
-
+from . import crystallography as cr
+from . import umd_process as umdp
 
 def print_poscar(MyCrystal,AllSnapshots,UMDname,firststep,laststep,iterstep):
     for istep in range(firststep,laststep,iterstep):
@@ -54,7 +49,7 @@ def main(argv):
     firststep = 0
     laststep = 10000000
     UMDname = 'output.umd.dat'
-    up.headerumd()
+    umdp.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:i:l:s:")
     except getopt.GetoptError:
@@ -79,7 +74,7 @@ def main(argv):
         print('The POSCAR file contains every ',iterstep,' timesteps')
         MyCrystal = cr.Lattice()
         AllSnapshots = [cr.Lattice]
-        (MyCrystal,AllSnapshots,TimeStep)=up.readumd(UMDname)
+        (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
         if laststep > len(AllSnapshots):
             laststep = len(AllSnapshots)
         print_poscar(MyCrystal,AllSnapshots,UMDname,firststep,laststep,iterstep)

@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-
-import sys,getopt,numpy,os.path,math,glob,re
-import crystallography as cr
-from subprocess import call
-
+import sys,getopt,glob
 
 def concatstatfile(FileName,population,iround,clusterlength,lifetime):
     print(' ++++ reading file ++++',FileName)

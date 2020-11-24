@@ -5,11 +5,11 @@
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-import sys,getopt,os.path,math,scipy
+import sys,getopt,os.path,math
 import numpy as np
-import crystallography as cr
-import umd_process as umd
 from scipy.spatial.transform import Rotation
+from . import crystallography as cr
+from . import umd_process as umdp
 
 
 
@@ -87,7 +87,7 @@ def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
     return(MyNewCrystal,NoInsertedAtoms)
 
 
-def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header):
+def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs):
     #places the new molcules in the former structure
     #MultiMolecules stores how many molecules of each type need to be inserted
     #AllMolecules stores the actual structure of each molecule
@@ -149,21 +149,21 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                         break
                         
             if flagpos == 0:
-                print ('adding new molecule no ',jmolec,' of type ',imolectype,' after ',notrials,' trials')
+                #print ('adding new molecule ')
                 for iatom in range(TryMolec.natom):
                     #print ('adding new atom no. ',NoInsertedAtoms,TryMolec.atoms[iatom].symbol,' at ',TryMolec.atoms[iatom].xcart)
                     MyNewCrystal.atoms[NoInsertedAtoms] = TryMolec.atoms[iatom]
                     NoInsertedAtoms = NoInsertedAtoms + 1
                     #print ('newly added atom ',MyNewCrystal.atoms[iatom].symbol,' at:    ',MyNewCrystal.atoms[iatom].xcart)
                     #print ('updated total number of inserted atoms: ',NoInsertedAtoms)
-                TryMolec.natom = AllMolecules[imolectype].natom
-                TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
-            else:
+                    TryMolec.natom = AllMolecules[imolectype].natom
+                    TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
+            if notrials == 1000:
                 print('I could not insert your molecule even after 1000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
                 exit()
     
-    AtomicOrdering = umd.sort_umd(MyNewCrystal)
+    AtomicOrdering = umdp.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
     #    print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
@@ -175,27 +175,16 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         f.write('\n\n')
         print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
         for iatom in range(MyNewCrystal.natom):
-            string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '    '
+            string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '  '
             for ii in range(3):
                 string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]/MyNewCrystal.acell[ii]) + '  '
             string = string + '\n'
         f.write(string)
         f.close()
-#        filename = 'struct-' + str(CurrStructs) + '.POSCAR'
-#        f = open(filename,'w')
-#        string = header + '  No. ' + str(CurrStructs) + '\n'
-#        f.write(string)
-#        f.write('  1.0\n')
-#        string = '    ' + MyNewCrystal.acell[0]) + '0.0  0.0 \n'
-#        f.write(string)
-#        string = '    0.0 + ' + MyNewCrystal.acell[1]) + ' 0.0 \n'
-#        f.write(string)
-#        string = '    0.0  0.0' + MyNewCrystal.acell[02) + ' \n'
-#        f.write(string)
-#        for ii in range(MyNewCrystal.
+
 
 def main(argv):
-    umd.headerumd()
+    umdp.headerumd()
     UMDname='output.umd.dat'
     MoleculesFile='molecules.dat'
     Nsteps = -1
@@ -266,7 +255,7 @@ def main(argv):
                 #print(AllMolecules[ii].atoms[kk].symbol)
         (MyUMDStructure,NoInsertedAtoms) = BuildEmptyBox(UnitCell,TotalNoAtoms)
         CurrStructs = 0
-        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header)
+        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs)
     
     #inserts molecules in the last full snapshot
     elif Nsteps == 0:    #inserts molecules in the  last snapshot of the UMD file
@@ -274,27 +263,27 @@ def main(argv):
             print ('the UMD files ',UMDname,' does not exist')
             sys.exit()
         else:
-            (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(UMDname)
+            (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             print ('I will insert molecules in the last snapshot of the ',UMDname,' structure with ',MyCrystal.natom,' atoms')
             MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
             (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
             CurrStructs = len(AllSnapshots)
-            PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header)
+            PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs)
     else:               #inserts molecules in the UMD file
         if not os.path.isfile(UMDname):
             print ('the UMD files ',UMDname,' does not exist')
             sys.exit()
         else:
             print ('I will insert molecules in ',os.path.isfile(UMDname),' structure every ',Nsteps,' steps')
-            (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(UMDname)
+            (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             firststep = 0
             laststep = len(AllSnapshots)
             for istep in range(firststep,laststep,Nsteps):
                 MyUMDStructure = AllSnapshots[istep]
                 (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
-                PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,istep,header)
+                PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,istep)
 
 
     

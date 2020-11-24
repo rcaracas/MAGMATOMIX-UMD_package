@@ -1,13 +1,10 @@
-#!/usr/bin/env python
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
 import sys,getopt,os
-import crystallography as cr
-import umd_process as up
+from . import crystallography as cr
+from . import umd_process as umdp
 
 def print_xyz(MyCrystal,AllSnapshots,UMDname,firststep,iterstep):
     xyzfile = UMDname[:-7] + 'xyz'
@@ -29,7 +26,7 @@ def main(argv):
     firststep = 0
     UMDname = 'output.umd.dat'
     UMDname = ''
-    up.headerumd()
+    umdp.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:i:n:")
     except getopt.GetoptError:
@@ -52,7 +49,7 @@ def main(argv):
         print('The XYZ file contains every ',iterstep,' timesteps')
         MyCrystal = cr.Lattice()
         AllSnapshots = [cr.Lattice]
-        (MyCrystal,AllSnapshots,TimeStep)=up.readumd(UMDname)
+        (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
         print_xyz(MyCrystal,AllSnapshots,UMDname,firststep,iterstep)
     else:
         print ('the umdfile ',umdfile,' does not exist')

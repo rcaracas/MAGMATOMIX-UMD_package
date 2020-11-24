@@ -1,23 +1,10 @@
-#!/usr/bin/env python
-
-
 # This script is to compute autocorrelations of the stress tensor
 # to extract the viscosity of a LIQUID
 
-import crystallography as cr
-import umd_process as umd
-import sys,getopt,os.path,math
-
-
-import matplotlib.pyplot as plt
-import matplotlib.colors
+import sys, getopt, os.path
 import numpy as np
-from pylab import *
-from matplotlib.collections import LineCollection
-#from math import log10
-from scipy.interpolate import griddata,UnivariateSpline,splrep,splev
 from scipy.optimize import curve_fit
-import scipy.constants as cst
+from . import umd_process as umdp
 
 HaeV = 27.21138505
 bohrAng = 0.52917721092
@@ -88,7 +75,7 @@ def errviscosity(b1,b2,tau1,tau2,w,cov_mat):
     for i in np.arange(5):
         for j in np.arange(5):
             error=error+(vec[i]*vec[j]*cov_mat[i,j])
-    error = sqrt(error)
+    error = np.sqrt(error)
     return error
 
 #This function builds the complete stress tensor including the kinetic
@@ -114,7 +101,7 @@ def Stress2Viscosity(StressTensor,firststep,originshift,length,TimeStep,temperat
     # First guess of the parameters
     a0=autocorr[0]
     a0dot=(autocorr[1]-autocorr[0])/TimeStep
-    ind=find_nearest(autocorr,a0*exp(-1.))
+    ind=find_nearest(autocorr,a0*np.exp(-1.))
     tau1=ind*TimeStep
     tau2=tau1*2
     b1=tau2/(tau2-tau1)*(a0+a0dot*tau2)
@@ -244,7 +231,7 @@ def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,tempera
 
         
 def main(argv):
-    umd.headerumd()
+    umdp.headerumd()
     iterstep = 1
     firststep = 0
     UMDname = ''
@@ -284,7 +271,7 @@ def main(argv):
         print('The umd.dat file is read every ',iterstep,' timesteps')
 #        AllSnapshots = [cr.Lattice]
         AllSnapshots = []
-        (AllSnapshots,TimeStep)=umd.read_stresses_4visc(UMDname)
+        (AllSnapshots,TimeStep)=umdp.read_stresses_4visc(UMDname)
         
         print('Len(allsnapshots),timestep : ',len(AllSnapshots),TimeStep)
         volume=AllSnapshots[0].cellvolume

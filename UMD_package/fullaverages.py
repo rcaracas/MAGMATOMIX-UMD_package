@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-## -*- coding: utf-8 -*-
-
 ###
 ##AUTHORS: ANAIS KOBSCH, RAZVAN CARACAS
 ###
@@ -11,9 +8,8 @@ import sys
 import getopt
 import subprocess
 import numpy as np
-import random as rand
-import crystallography as cr
-import umd_process as umd
+from . import crystallography as cr
+from . import umd_process as umdp
 
 
 
@@ -171,7 +167,7 @@ def main(argv):
     eVtoJ = 1.6e-19        #1eV = 1.6e-19 J
     KtoeV = 0.000086173324 #1K = 8.62E-5 eV
     kb = 1.38064852e-23    #boltzmann constant
-    umd.headerumd()
+    umdp.headerumd()
     try:
         options, arg = getopt.getopt(argv,"hs:u:",["sSkipSteps","units"])
     except getopt.GetoptError:
@@ -279,7 +275,7 @@ def main(argv):
         
         #**** For the calculation of Cv and conversions we need the mass of the cell and natoms
         #--> we read the header of the umd file using umd_process store the elements information in the class MyCrystal
-        (MyCrystal,TimeStep) = umd.read_bigheader_umd(file)
+        (MyCrystal,TimeStep) = umdp.read_bigheader_umd(file)
         natom = MyCrystal.natom
         #***** Calculation of Cv and statistical error using the bootstrap method
         #*** The calculation of Cv depends on the data we have (E, KE)
@@ -323,7 +319,7 @@ def main(argv):
         #****** Write result line
         #**** For the conversions we need the mass of the cell 
         #--> we read the header of the umd file using umd_process store the elements information in the class MyCrystal
-        (MyCrystal,TimeStep) = umd.read_bigheader_umd(file)
+        (MyCrystal,TimeStep) = umdp.read_bigheader_umd(file)
         mass = 0
         for itypat in range(MyCrystal.ntypat):
             (atomicname,atomicsymbol, atomicnumber,MyCrystal.masses[itypat])=cr.Elements2rest(MyCrystal.elements[itypat])

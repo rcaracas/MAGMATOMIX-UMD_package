@@ -1,16 +1,10 @@
-#!/usr/bin/env python
-
-
 ###
 ##AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH
 ###
 
-import sys,getopt,numpy,os.path,math,itertools
-import crystallography as cr
-import umd_process as umd
-import datetime
-from subprocess import call
-
+import sys,getopt,os.path
+from . import crystallography as cr
+from . import umd_process as umdp
 
 
 def msd(MyCrystal,AllSnapshots,TimeStep,hh,vv,ballistic,umdfile):
@@ -22,7 +16,7 @@ def msd(MyCrystal,AllSnapshots,TimeStep,hh,vv,ballistic,umdfile):
     niter = len(AllSnapshots)
     msd = [[0.0 for x in range(niter-ballistic+1)] for x in range(MyCrystal.ntypat+1)]
     weight = [0 for x in range(niter)]
-    counter = [0 for x in range(niter-ballistic)]
+#    counter = [0 for x in range(niter-ballistic)]
     ref = [0.0 for x in range(3)]
     currZ = 0
     for iatom in range(MyCrystal.natom):
@@ -78,7 +72,7 @@ def main(argv):
     Elements = []
     ballistic = 0
     TimeStep = 1
-    umd.headerumd()
+    umdp.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:z:v:b:",["fumdfile","zHorizontalJump","vVerticalJump","bBallistic"])
     except getopt.GetoptError:
@@ -108,7 +102,7 @@ def main(argv):
 #        initstruct(XYZfile)
         MyCrystal = cr.Lattice()
         AllSnapshots = [cr.Lattice]
-        (MyCrystal,AllSnapshots,TimeStep)=umd.read_absxcart(umdfile)
+        (MyCrystal,AllSnapshots,TimeStep)=umdp.read_absxcart(umdfile)
 #        (MyCrystal,AllSnapshots,TimeStep)=up.readumd(umdfile)
 #        print 'Elements are ',elem
         print ('Number of atoms of each type is ',MyCrystal.types)
