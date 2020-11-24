@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ###
 ##AUTHORS: ANAIS KOBSCH, RAZVAN CARACAS
 ###

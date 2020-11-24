@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Created on Wed Aug 26 10:33:25 2020
 

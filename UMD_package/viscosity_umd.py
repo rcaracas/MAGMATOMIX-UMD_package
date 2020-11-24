@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # This script is to compute autocorrelations of the stress tensor
 # to extract the viscosity of a LIQUID
 
