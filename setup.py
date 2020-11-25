@@ -299,8 +299,8 @@ def setup_package():
     scripts_l = ["analyze_1gofr", "analyze_gofr_semi_automatic", "analyze_msd",
                  "averages", "check_overlap", "fullaverages", "gofrs_umd",
                  "insert_umd_xred", "insert_umd", "msd_all_umd", "msd_clusters_umd",
-                 "msd_umd", "QBoxParser", "speciation_umd", "stat<dash>concentrate", "umd2poscar",
-                 "umd2xyz", "vibr_spectrum_umd", "viscosity_umd"]
+                 "msd_umd", "QBoxParser", "speciation_umd", "stat_concentrate", "umd2poscar",
+                 "umd2xyz", "VaspParser", "vibr_spectrum_umd", "viscosity_umd"]
     entry_points = dict(
             console_scripts = ["{}=UMD_package.{}:main".format(*[scr]*2) for scr in scripts_l],
             )
