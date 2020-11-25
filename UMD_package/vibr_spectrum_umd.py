@@ -41,7 +41,8 @@ def correlation(TimeMatrix,timestep,temperature):
            
     return autocorrelation,fft_correlation,freq                	
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     umd.headerumd()
     umdfile = 'output.umd.dat'
     temperature = 5000
@@ -166,4 +167,4 @@ def main(argv):
 #    print('it takes ',(end_time-start_time)/60, 'mins to finish this job!')
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   main()

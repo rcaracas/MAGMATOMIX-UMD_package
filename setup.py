@@ -295,6 +295,16 @@ def setup_package():
         python_requires= '>=3.0',
     )
 
+    ## define entry points
+    scripts_l = ["analyze_1gofr", "analyze_gofr_semi_automatic", "analyze_msd",
+                 "averages", "check_overlap", "fullaverages", "gofrs_umd",
+                 "insert_umd_xred", "insert_umd", "msd_all_umd", "msd_clusters_umd",
+                 "msd_umd", "QBoxParser", "speciation_umd", "stat<dash>concentrate", "umd2poscar",
+                 "umd2xyz", "vibr_spectrum_umd", "viscosity_umd"]
+    entry_points = dict(
+            console_scripts = ["{}=UMD_package.{}:main".format(*[scr]*2) for scr in scripts_l],
+            )
+
     # Raise errors for unsupported commands, improve help output, etc.
     run_build = parse_setuppy_commands()
 
@@ -311,7 +321,7 @@ def setup_package():
         metadata['configuration'] = configuration
         metadata['zip_safe'] = False
 
-    setup(**metadata)
+    setup(**{**metadata, **{'entry_points':entry_points}})
 
 
 if __name__ == '__main__':

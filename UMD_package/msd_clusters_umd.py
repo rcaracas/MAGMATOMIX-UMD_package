@@ -120,7 +120,8 @@ def printfiles(population,POPname,Nsteps,maxtime):
 
 
                                  
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     UMDname = ''
     POPname = ''
     RADname = ''
@@ -184,7 +185,4 @@ def main(argv):
  
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
-
-
+   main()

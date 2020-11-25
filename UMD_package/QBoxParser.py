@@ -267,7 +267,8 @@ def read_qbox(FileName,InitialStep,SYSfile):
 
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     OUTCARname='Qbox.out'
     SYSfile = 'sys.struct'
     Nsteps = 1
@@ -303,10 +304,7 @@ def main(argv):
         print ('the outcar files ',OUTCARname,' does not exist')
         sys.exit()
 
- 
+
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
-
-
+   main()

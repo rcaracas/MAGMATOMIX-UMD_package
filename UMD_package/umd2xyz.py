@@ -26,7 +26,8 @@ def print_xyz(MyCrystal,AllSnapshots,UMDname,firststep,iterstep):
             ff.write(string)
     ff.close()
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     iterstep = 1
     firststep = 0
     UMDname = 'output.umd.dat'
@@ -60,5 +61,7 @@ def main(argv):
         print ('the umdfile ',umdfile,' does not exist')
         sys.exit()
 
+
+
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   main()

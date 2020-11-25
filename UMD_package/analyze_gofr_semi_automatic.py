@@ -357,7 +357,8 @@ def analyze_gofrs_automatic(data,file,couples, guess_xmax, guess_xmin, atoms):
 
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     """     ********* Main program *********     """
     atoms = []
     try:
@@ -410,10 +411,8 @@ def main(argv):
                 b.close()
                 print(b) 
             f.close
-    
-#    ********* Execution *********  
+
+
+            
 if __name__ == "__main__":
-    main(sys.argv[1:])
-
-
-
+   main()

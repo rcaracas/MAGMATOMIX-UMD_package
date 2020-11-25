@@ -211,8 +211,8 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep, **kwargs):
     return None
 
 
-
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     umdp.headerumd()
     umdfile = 'output.umd.dat'
     Nsteps = 1
@@ -285,5 +285,6 @@ def main(argv):
         sys.exit()
 
 
+
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   main()

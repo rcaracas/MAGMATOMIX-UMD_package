@@ -232,7 +232,8 @@ def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,tempera
 
 
         
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     umdp.headerumd()
     iterstep = 1
     firststep = 0
@@ -294,5 +295,4 @@ def main(argv):
         sys.exit()
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-                
+   main()

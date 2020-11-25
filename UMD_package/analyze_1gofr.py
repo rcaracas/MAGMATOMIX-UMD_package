@@ -242,7 +242,8 @@ def analyze_gofrs_interactive(data,data2,file,couples, atoms):
 
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     """     ********* Main program *********     """
     try:
         options,arg = getopt.getopt(argv,"hf:a:",["fgofrfile","atoms"])
@@ -281,10 +282,7 @@ def main(argv):
     f.write("\t".join(x for x in data2)+ "\n")                  #we write in the file the very last line
     f.close()
 
-        
-#    ********* Execution *********  
+
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
-
-
-
+   main()

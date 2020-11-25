@@ -210,7 +210,8 @@ def read_umd(umdfile,radius,Nsteps,InitialStep,level):
     
         
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     umdfile='output.umd.dat'
     radiusfile = 'radius.inp' #file containing 3 columns: the element symbol, the value of RCORE and the unit (Angstrom or Bohr) for each element in the simu
     Nsteps = 1
@@ -255,5 +256,6 @@ def main(argv):
         sys.exit()
 
 
+
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   main()
