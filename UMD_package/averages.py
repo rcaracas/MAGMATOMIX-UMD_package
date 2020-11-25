@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #authors: Razvan Caracas, Znais Kobsch
 
 import numpy as np 
@@ -11,6 +12,7 @@ from . import umd_process as umdp
 
 def is_number(s):
     try:
+        
         float(s)
         return True
     except ValueError:

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 ###
 ##AUTHORS: Zhi Li, Razvan Caracas
 ###

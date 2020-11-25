@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys,getopt,glob
 
 def concatstatfile(FileName,population,iround,clusterlength,lifetime):

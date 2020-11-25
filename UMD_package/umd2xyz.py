@@ -1,3 +1,8 @@
+<<<<<<< HEAD:UMD_package/umd2xyz.py
+=======
+#!/usr/bin/env python3
+
+>>>>>>> 6ded64591473d4d8dfb3366d252319dd0c7c22e6:UMD_package/umd2xyz.py
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
