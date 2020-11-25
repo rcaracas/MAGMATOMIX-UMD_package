@@ -218,7 +218,7 @@ def main(argv):
     Nsteps = 1
     discrete = 0.01            #delta_r  = width of bins in histogram
     InitialStep = 0           #in case we want to skip additional timesteps
-    gpu_options = {"use_gpu": True}
+    gpu_options = {"use_gpu": False}
     try:
         opts, arg = getopt.getopt(argv,"hf:s:d:i:g:", ["fumdfile", "Sampling_Frequency", "ddiscrete", "iInitialStep",
                                                        "ggpu_options"])
