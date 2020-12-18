@@ -46,7 +46,8 @@ def print_poscar(MyCrystal,AllSnapshots,UMDname,firststep,laststep,iterstep):
         ff.write(string)
         ff.close()
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     iterstep = 1
     firststep = 0
     laststep = 10000000
@@ -85,4 +86,4 @@ def main(argv):
         sys.exit()
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   main()

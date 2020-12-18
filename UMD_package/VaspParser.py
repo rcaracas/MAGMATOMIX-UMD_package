@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 ###
 ##AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH, NATALIA SOLOMATOVA
 ###
@@ -241,7 +240,8 @@ def read_outcar(FileName,InitialStep):
 
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     OUTCARname='OUTCAR'
     Nsteps = 1
     InitialStep = 0
@@ -275,7 +275,4 @@ def main(argv):
  
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
-
-
+   main()

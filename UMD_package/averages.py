@@ -61,7 +61,8 @@ def plot_function(name,ax,data,average,stdev):
     ax.autoscale(enable=True,axis='both',tight=True)
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     FileName = ''
     SkipSteps=0
     umdp.headerumd()
@@ -93,9 +94,6 @@ def main(argv):
         sys.exit()
 
 
+
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
-
-
-
+   main()

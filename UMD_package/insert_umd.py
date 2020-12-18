@@ -192,7 +192,8 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
 #        f.write(string)
 #        for ii in range(MyNewCrystal.
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     umdp.headerumd()
     UMDname='output.umd.dat'
     MoleculesFile='molecules.dat'
@@ -297,4 +298,4 @@ def main(argv):
 
     
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

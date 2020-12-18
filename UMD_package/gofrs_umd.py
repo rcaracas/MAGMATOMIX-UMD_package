@@ -211,14 +211,14 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep, **kwargs):
     return None
 
 
-
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     umdp.headerumd()
     umdfile = 'output.umd.dat'
     Nsteps = 1
     discrete = 0.01            #delta_r  = width of bins in histogram
     InitialStep = 0           #in case we want to skip additional timesteps
-    gpu_options = {"use_gpu": True}
+    gpu_options = {"use_gpu": False}
     try:
         opts, arg = getopt.getopt(argv,"hf:s:d:i:g:", ["fumdfile", "Sampling_Frequency", "ddiscrete", "iInitialStep",
                                                        "ggpu_options"])
@@ -285,5 +285,6 @@ def main(argv):
         sys.exit()
 
 
+
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   main()

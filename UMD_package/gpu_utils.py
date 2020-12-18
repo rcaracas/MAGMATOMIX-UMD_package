@@ -158,7 +158,7 @@ class gpu():
         
         flags = ["FINT={}".format(self.build_flags["FINT"]),
                  "FREAL={}".format(self.build_flags["FREAL"]),
-                 "K=3"]
+                 "LCK=3"]
         flags = ["-D"+ele for ele in flags]
         flags += ["-cl-fast-relaxed-math",
                   "-cl-denorms-are-zero",

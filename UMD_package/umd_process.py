@@ -550,6 +550,3 @@ def headerumd():
     print ('    UMD: An open source package for analyzing Molecular Dynamics simulations' )
     print ('    Journal of Visualized Experiments, in press/media prep (2020)' )
     print (' ')
-
-
-

@@ -53,7 +53,8 @@ def calculation_diffusivities(t,data,steps):
 
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     """     ********* Main program *********     """
     SkipTemps = 0
     headfile = ''
@@ -97,11 +98,6 @@ def main(argv):
             f.close
 
 
-#     ********* Execution *********
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
-
-
-
-
-
+   main()

@@ -78,7 +78,8 @@ def msd(MyCrystal,AllSnapshots,TimeStep,hh,vv,ballistic,umdfile):
 #        print numpy.mean(diffcoeff[jj][:]),'\t',numpy.std(diffcoeff[jj][:])
     print ('MSDs printed in file ',msdfile)
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     XYZfile='file.xyz'
     hh = 1
     vv = 1
@@ -130,5 +131,4 @@ def main(argv):
  
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
+   main()

@@ -150,7 +150,8 @@ def relativespecies(FileName,population,header):
 
 
 
-def main(argv):
+def main():
+    argv = sys.argv[1:]
     logfile = 'cond.spec.'
     lifetime = 0
     clusterlength = 50
@@ -214,5 +215,7 @@ def main(argv):
     #relativespecies(percfile,population[1:len(population)],header)
     relativespecies(percfile,population,header)
 
+
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
+   main()
