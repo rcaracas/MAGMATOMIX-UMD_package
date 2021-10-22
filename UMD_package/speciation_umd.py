@@ -4,8 +4,8 @@
 ###
 
 import sys,getopt,os.path,itertools
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 def analysis_clusters(clusters,MyCrystal,ligands,minlife,Nsteps,FileName,rings,TimeStep):
     #this functions builds the dictionary with all the clusters
@@ -219,8 +219,7 @@ def read_inputfile(InputFile,MyCrystal,ClusterAtoms):
     return BondTable
 
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     umdp.headerumd()
     UMDname='output.umd.dat'
     Nsteps = 1
@@ -376,4 +375,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
+
+

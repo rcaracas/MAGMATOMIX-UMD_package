@@ -5,8 +5,8 @@
 ###
 
 import sys,getopt,os
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 def print_poscar(MyCrystal,AllSnapshots,UMDname,firststep,laststep,iterstep):
     for istep in range(firststep,laststep,iterstep):
@@ -46,8 +46,7 @@ def print_poscar(MyCrystal,AllSnapshots,UMDname,firststep,laststep,iterstep):
         ff.write(string)
         ff.close()
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     iterstep = 1
     firststep = 0
     laststep = 10000000
@@ -86,4 +85,4 @@ def main():
         sys.exit()
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])

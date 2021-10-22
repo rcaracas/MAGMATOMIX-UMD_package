@@ -7,7 +7,7 @@
 import sys, getopt, os.path
 import numpy as np
 from scipy.fftpack import dct, fftfreq
-from . import umd_process as umd
+import umd_process as umd
 
 def correlation(TimeMatrix,timestep,temperature):
   
@@ -41,8 +41,7 @@ def correlation(TimeMatrix,timestep,temperature):
            
     return autocorrelation,fft_correlation,freq                	
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     umd.headerumd()
     umdfile = 'output.umd.dat'
     temperature = 5000
@@ -167,4 +166,4 @@ def main():
 #    print('it takes ',(end_time-start_time)/60, 'mins to finish this job!')
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])

@@ -7,8 +7,8 @@
 import sys,getopt,os.path,math
 import numpy as np
 from scipy.spatial.transform import Rotation
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 
 
@@ -182,8 +182,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         f.close()
 
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     umdp.headerumd()
     UMDname='output.umd.dat'
     MoleculesFile='molecules.dat'
@@ -288,4 +287,4 @@ def main():
 
     
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

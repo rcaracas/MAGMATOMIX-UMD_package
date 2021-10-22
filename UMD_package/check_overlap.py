@@ -5,8 +5,8 @@
 
 import sys,getopt,os.path,math, re
 import numpy as np
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 
 def print_header(umdfile,MyCrystal,radius):
@@ -210,8 +210,7 @@ def read_umd(umdfile,radius,Nsteps,InitialStep,level):
     
         
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     umdfile='output.umd.dat'
     radiusfile = 'radius.inp' #file containing 3 columns: the element symbol, the value of RCORE and the unit (Angstrom or Bohr) for each element in the simu
     Nsteps = 1
@@ -256,6 +255,5 @@ def main():
         sys.exit()
 
 
-
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])

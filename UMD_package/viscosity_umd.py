@@ -6,7 +6,7 @@
 import sys, getopt, os.path
 import numpy as np
 from scipy.optimize import curve_fit
-from . import umd_process as umdp
+import umd_process as umdp
 
 HaeV = 27.21138505
 bohrAng = 0.52917721092
@@ -232,8 +232,7 @@ def ViscosityAnalysis(AllSnapshots,TimeStep,firststep,originshift,length,tempera
 
 
         
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     umdp.headerumd()
     iterstep = 1
     firststep = 0
@@ -295,4 +294,5 @@ def main():
         sys.exit()
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])
+                

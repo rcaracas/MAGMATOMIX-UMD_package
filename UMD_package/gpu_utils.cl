@@ -12,7 +12,7 @@ __kernel void half_pdist(const FINT M, const __global half* X,
                          globalCol - globalRow - 1;
 
     // store coeffs in local memory
-    __local FREAL lcoeff[LCK];
+    __local FREAL lcoeff[K];
     lcoeff[0] = vload_half(0, coeff);
     lcoeff[1] = vload_half(1, coeff);
     lcoeff[2] = vload_half(2, coeff);
@@ -22,17 +22,17 @@ __kernel void half_pdist(const FINT M, const __global half* X,
     if ((globalRow < globalCol) && (globalRow < M) && (globalCol < M)) {
 
         // dimension-wise discrepancy 
-        dist = vload_half(globalRow * LCK, X) - vload_half(globalCol * LCK, X);
+        dist = vload_half(globalRow * K, X) - vload_half(globalCol * K, X);
         shift = CST * dist / lcoeff[0];
         dist += - shift * lcoeff[0];
         acc += dist * dist;
         // dimension-wise discrepancy 
-        dist = vload_half(globalRow * LCK + 1, X) - vload_half(globalCol * LCK + 1, X);
+        dist = vload_half(globalRow * K + 1, X) - vload_half(globalCol * K + 1, X);
         shift = CST * dist / lcoeff[1];
         dist += - shift * lcoeff[1];
         acc += dist * dist;
         // dimension-wise discrepancy 
-        dist = vload_half(globalRow * LCK + 2, X) - vload_half(globalCol * LCK + 2, X);
+        dist = vload_half(globalRow * K + 2, X) - vload_half(globalCol * K + 2, X);
         shift = CST * dist / lcoeff[2];
         dist += - shift * lcoeff[2]; 
         acc += dist * dist;
@@ -55,7 +55,7 @@ __kernel void pdist(const FINT M, const __global FREAL* X,
                          globalCol - globalRow - 1;
                          
     // store coeffs in local memory
-    __local FREAL lcoeff[LCK];
+    __local FREAL lcoeff[K];
     lcoeff[0] = coeff[0];
     lcoeff[1] = coeff[1];
     lcoeff[2] = coeff[2];
@@ -65,17 +65,17 @@ __kernel void pdist(const FINT M, const __global FREAL* X,
     if ((globalRow < globalCol) && (globalRow < M) && (globalCol < M)) {
 
         // dimension-wise discrepancy
-        dist = X[globalRow * LCK] - X[globalCol * LCK];
+        dist = X[globalRow * K] - X[globalCol * K ];
         shift = CST * dist / lcoeff[0];
         dist += - shift * lcoeff[0];
         acc += dist * dist;
         // dimension-wise discrepancy 
-        dist = X[globalRow * LCK + 1] - X[globalCol * LCK + 1];
+        dist = X[globalRow * K + 1] - X[globalCol * K + 1];
         shift = CST * dist / lcoeff[1];
         dist += - shift * lcoeff[1];
         acc += dist * dist;
         // dimension-wise discrepancy 
-        dist = X[globalRow * LCK + 2] - X[globalCol * LCK + 2];
+        dist = X[globalRow * K + 2] - X[globalCol * K + 2];
         shift = CST * dist / lcoeff[2];
         dist += - shift * lcoeff[2]; 
         acc += dist * dist;

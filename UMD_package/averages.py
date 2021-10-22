@@ -7,7 +7,7 @@ import getopt
 import os
 import subprocess
 import matplotlib.pyplot as plt
-from . import umd_process as umdp
+import umd_process as umdp
 
 
 def is_number(s):
@@ -61,8 +61,7 @@ def plot_function(name,ax,data,average,stdev):
     ax.autoscale(enable=True,axis='both',tight=True)
 
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     FileName = ''
     SkipSteps=0
     umdp.headerumd()
@@ -94,6 +93,9 @@ def main():
         sys.exit()
 
 
-
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])
+
+
+
+

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
+
 ###
 ##AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH, NATALIA SOLOMATOVA
 ###
 
 import sys,getopt,os.path,math
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 def read_outcar(FileName,InitialStep):
     #read poscar file
@@ -240,8 +241,7 @@ def read_outcar(FileName,InitialStep):
 
 
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     OUTCARname='OUTCAR'
     Nsteps = 1
     InitialStep = 0
@@ -275,4 +275,7 @@ def main():
  
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])
+
+
+

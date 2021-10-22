@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from . import crystallography as cr
+import crystallography as cr
 
 ##
 ## UMD READING FUNCTIONS
@@ -550,3 +550,6 @@ def headerumd():
     print ('    UMD: An open source package for analyzing Molecular Dynamics simulations' )
     print ('    Journal of Visualized Experiments, in press/media prep (2020)' )
     print (' ')
+
+
+

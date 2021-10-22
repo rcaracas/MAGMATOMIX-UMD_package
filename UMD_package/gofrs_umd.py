@@ -10,10 +10,14 @@ import getopt
 import sys
 import numpy as np
 from distutils.util import strtobool
-from . import crystallography as cr
-from . import umd_process as umdp
-from . import c_gofr
-from . import gpu_utils
+#from . import crystallography as cr
+#from . import umd_process as umdp
+#from . import c_gofr
+#from . import gpu_utils
+import crystallography as cr
+import umd_process as umdp
+import c_gofr
+import gpu_utils
 
 
 def umd_pdist(X, coeff):
@@ -211,14 +215,14 @@ def read_umd(umdfile, Nsteps, discrete, InitialStep, **kwargs):
     return None
 
 
-def main():
-    argv = sys.argv[1:]
+
+def main(argv):
     umdp.headerumd()
     umdfile = 'output.umd.dat'
     Nsteps = 1
     discrete = 0.01            #delta_r  = width of bins in histogram
     InitialStep = 0           #in case we want to skip additional timesteps
-    gpu_options = {"use_gpu": False}
+    gpu_options = {"use_gpu": True}
     try:
         opts, arg = getopt.getopt(argv,"hf:s:d:i:g:", ["fumdfile", "Sampling_Frequency", "ddiscrete", "iInitialStep",
                                                        "ggpu_options"])
@@ -285,6 +289,5 @@ def main():
         sys.exit()
 
 
-
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])

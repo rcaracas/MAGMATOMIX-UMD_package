@@ -4,8 +4,8 @@
 ###
 
 import sys,getopt,os.path
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 
 def msd(MyCrystal,AllSnapshots,TimeStep,hh,vv,ballistic,umdfile):
@@ -63,8 +63,7 @@ def msd(MyCrystal,AllSnapshots,TimeStep,hh,vv,ballistic,umdfile):
 #        print numpy.mean(diffcoeff[jj][:]),'\t',numpy.std(diffcoeff[jj][:])
     print ('MSDs printed in file ',msdfile)
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     XYZfile='file.xyz'
     hh = 1
     vv = 1
@@ -113,8 +112,8 @@ def main():
     else:
         print ('umd file ',umdfile,'does not exist')
         sys.exit()
-
-
+ 
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])
+

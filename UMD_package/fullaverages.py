@@ -9,8 +9,8 @@ import sys
 import getopt
 import subprocess
 import numpy as np
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 
 
@@ -159,8 +159,7 @@ def headerfile(firstfile,units):
     return f, natom      #I return the newly created files f along with natom
 
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     """     ********* Main program *********     """
     SkipSteps=0
     units = 0
@@ -351,8 +350,9 @@ def main():
             results.extend([str(nsteps_P),'{:1.2f}'.format(Average_rho), '{:1.1e}'.format(stdev_rho), str(final_sigma_rho),'{:1.2e}'.format(Average_P),'{:1.1e}'.format(stdev_P),str(final_sigma_P), '{:1.0f}'.format(Average_T), '{:1.0f}'.format(stdev_T), str(final_sigma_T), '{:1.2e}'.format(Average_T*KtoeV), '{:1.1e}'.format(stdev_T*KtoeV), str(final_sigma_T_conv), '{:1.2e}'.format(Average_E/natom), '{:1.1e}'.format(stdev_E/natom), str(final_sigma_E_conv),   '{:1.3e}'.format(Average_E), '{:1.1e}'.format(stdev_E), str(final_sigma_E),   '{:1.3e}'.format(Average_E_mass), '{:1.1e}'.format(stdev_E_mass), str(final_sigma_E_mass),   '{:1.2f}'.format(Cvm_Nkb), '{:1.1e}'.format(Cvm_Nkb_stdev),   '{:1.2e}'.format(Cvm), '{:1.1e}'.format(Cvm_stdev),  '{:1.2e}'.format(Cvm_mass), '{:1.1e}'.format(Cvm_mass_stdev), '{:1.2e}'.format(Cv), '{:1.1e}'.format(Cv_stdev)])
         f.write("\t".join(x for x in results)+ "\n")
     f.close()
+    
 
-
-
+#   ********* Execution *********   
 if __name__ == "__main__":
-   main()
+    main(sys.argv[1:])
+

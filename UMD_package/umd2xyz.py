@@ -1,15 +1,12 @@
-<<<<<<< HEAD:UMD_package/umd2xyz.py
-=======
 #!/usr/bin/env python3
 
->>>>>>> 6ded64591473d4d8dfb3366d252319dd0c7c22e6:UMD_package/umd2xyz.py
 ###
 ##AUTHORS: RAZVAN CARACAS
 ###
 
 import sys,getopt,os
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 def print_xyz(MyCrystal,AllSnapshots,UMDname,firststep,iterstep):
     xyzfile = UMDname[:-7] + 'xyz'
@@ -26,8 +23,7 @@ def print_xyz(MyCrystal,AllSnapshots,UMDname,firststep,iterstep):
             ff.write(string)
     ff.close()
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     iterstep = 1
     firststep = 0
     UMDname = 'output.umd.dat'
@@ -61,7 +57,5 @@ def main():
         print ('the umdfile ',umdfile,' does not exist')
         sys.exit()
 
-
-
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])

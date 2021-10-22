@@ -4,7 +4,7 @@
 ###
 
 import sys,getopt,os.path,math
-from . import crystallography as cr
+import crystallography as cr
 
 def print_umd(FileName,MyCrystal,TimeStep,CurrentTime):
     newfile = FileName + '.umd.dat'
@@ -267,8 +267,7 @@ def read_qbox(FileName,InitialStep,SYSfile):
 
 
 
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     OUTCARname='Qbox.out'
     SYSfile = 'sys.struct'
     Nsteps = 1
@@ -304,7 +303,10 @@ def main():
         print ('the outcar files ',OUTCARname,' does not exist')
         sys.exit()
 
-
+ 
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])
+
+
+

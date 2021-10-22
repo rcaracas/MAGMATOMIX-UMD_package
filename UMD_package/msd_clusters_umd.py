@@ -4,8 +4,8 @@
 ###
 
 import sys,getopt,os.path,re
-from . import crystallography as cr
-from . import umd_process as umdp
+import crystallography as cr
+import umd_process as umdp
 
 
 def msd_trajectory(trajectory):
@@ -120,8 +120,7 @@ def printfiles(population,POPname,Nsteps,maxtime):
 
 
                                  
-def main():
-    argv = sys.argv[1:]
+def main(argv):
     UMDname = ''
     POPname = ''
     RADname = ''
@@ -185,4 +184,7 @@ def main():
  
 
 if __name__ == "__main__":
-   main()
+   main(sys.argv[1:])
+
+
+
