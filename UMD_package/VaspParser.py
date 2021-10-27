@@ -139,7 +139,7 @@ def read_outcar(FileName,InitialStep):
 #                        MyCrystal.internalenergy=float(entry[3])  #this leads only part of the internal energy, one should add the kinetic energy of ions
                                                                   #the variance of {this energy + kinetic energy of ions}  yields Cv
                         flagscalee += 1
-                        print('reading energy withtout entropy, energy, lambda,flagscalee = ',MyCrystal.lambda_ThermoInt,entry[3],flagscalee)
+#                        print('reading energy withtout entropy, energy, lambda,flagscalee = ',MyCrystal.lambda_ThermoInt,entry[3],flagscalee)
                         if MyCrystal.lambda_ThermoInt < 1.0:
                             if flagscalee == 0:
                                 MyCrystal.internalenergy=float(entry[3])
