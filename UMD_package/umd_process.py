@@ -454,6 +454,9 @@ def print_header(FileName,MyCrystal):
         string = string + str(MyCrystal.typat[ii]) + ' '
     string = string + '\n\n'
     nf.write(string)
+    string = 'lambda_ThermoInt' + ' ' +  str(MyCrystal.lambda_ThermoInt)
+    string = string + '\n\n'
+    nf.write(string)
     nf.close()
 
 

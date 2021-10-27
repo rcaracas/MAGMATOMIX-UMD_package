@@ -23,6 +23,7 @@ def read_outcar(FileName,InitialStep):
     atomictype = 0
     CurrentTime = 0.0
     TimeStep = 0.0
+    flagscalee = -1
     with open(FileName,'r') as ff:
         while True:
             line = ff.readline()
@@ -101,6 +102,9 @@ def read_outcar(FileName,InitialStep):
 #                    flagmass=1
                 if (entry[0]=='NELECT'):
                     MyCrystal.noelectrons = float(entry[2])
+                if (entry[0]=='SCALEE'):
+                    MyCrystal.lambda_ThermoInt = float(entry[2])
+
 
 
     ff.close()
@@ -132,9 +136,20 @@ def read_outcar(FileName,InitialStep):
                     MyCrystal.pressure = (float(entry[1])+float(entry[2])+float(entry[3]))/30.0 #transforms also from kbars into GPa
                 if entry[0] == 'energy':   
                     if entry[2] == 'entropy=': #reading Kohn-Sham energy, contains all the electronic energy without the electronic entropy 
-                        MyCrystal.internalenergy=float(entry[3])  #this leads only part of the internal energy, one should add the kinetic energy of ions
+#                        MyCrystal.internalenergy=float(entry[3])  #this leads only part of the internal energy, one should add the kinetic energy of ions
                                                                   #the variance of {this energy + kinetic energy of ions}  yields Cv
-                if (entry[0]=='%'):                     
+                        flagscalee += 1
+                        print('reading energy withtout entropy, energy, lambda,flagscalee = ',MyCrystal.lambda_ThermoInt,entry[3],flagscalee)
+                        if MyCrystal.lambda_ThermoInt < 1.0:
+                            if flagscalee == 0:
+                                MyCrystal.internalenergy=float(entry[3])
+#                            if flagscalee == 1:
+                            else:
+                              
+                              
+                              
+                                flagscalee = -1
+                if (entry[0]=='%'):
                     if (entry[1]=='ion-electron'):   #the term T*Sel in the formula F = E - T*Sel, with F = Kohn-Sham energy and E = Kohn-Sham energy without the electronic entropy 
                         MyCrystal.electronicentropy=MyCrystal.internalenergy - float(entry[4])
                 if (entry[0] == 'magnetization'):       #reading magnetization of individual atoms
