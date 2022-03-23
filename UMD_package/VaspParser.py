@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 ###
 ##AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH, NATALIA SOLOMATOVA
 ###
@@ -142,15 +141,16 @@ def read_outcar(FileName,InitialStep):
 #                        print('reading energy withtout entropy, energy, lambda,flagscalee = ',MyCrystal.lambda_ThermoInt,entry[3],flagscalee)
                         if MyCrystal.lambda_ThermoInt < 1.0:
                             if flagscalee == 0:
-                                MyCrystal.internalenergy=float(entry[3])
+                                MyCrystal.internalenergy = float(entry[3])
 #                            if flagscalee == 1:
                             else:
                                 flagscalee = -1
                         else:
-                            MyCrystal.internalenergy=float(entry[3])
+                            MyCrystal.internalenergy = float(entry[3])
                 if (entry[0]=='%'):
                     if (entry[1]=='ion-electron'):   #the term T*Sel in the formula F = E - T*Sel, with F = Kohn-Sham energy and E = Kohn-Sham energy without the electronic entropy 
                         MyCrystal.electronicentropy=MyCrystal.internalenergy - float(entry[4])
+                        MyCrystal.freeenergy = float(entry[4])
                 if (entry[0] == 'magnetization'):       #reading magnetization of individual atoms
                     #print('reading magnetization')
                     line = ff.readline()
@@ -181,6 +181,7 @@ def read_outcar(FileName,InitialStep):
                     if (len(entry) > 2):
                         if (entry[2] == 'EKIN'):
                             MyCrystal.kineticenergy = float(entry[4])
+                            MyCrystal.internalenergy = MyCrystal.internalenergy + MyCrystal.kineticenergy
                 if (entry[0] == 'total'):               #reading energy
                                                         #KS energy + thermostat + ion-kinetic terms
                                                         #used to check the drift in energy over a simulation 

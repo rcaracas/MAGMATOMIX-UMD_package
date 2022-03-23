@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+import sys,getopt,math,glob
 import numpy as np
 import crystallography as cr
+from subprocess import call
+
 
 ##
 ## UMD READING FUNCTIONS
@@ -9,6 +12,7 @@ import crystallography as cr
 ## one function reads the entire umd
 ## then a series of functions can read several parts of the umd (like the main header, the info of each snapshot, the atomic positions, the atomic velocities, the forces, etc
 ##
+
 
 def readumd(umdfile, short=0):
     niter = 0
