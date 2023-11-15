@@ -1,8 +1,8 @@
 __version__ = ‘1.0’
 __author__ = ‘See AUTHORS’
-__copyright__ = ‘Copyright 2019, the Centre National de la Recherche Scientifique (CNRS), Ecole Normale Superieure de Lyon, France & the Center for Earth Evolution and Dynamics (CEED), University of Oslo, Norway’
+__copyright__ = ‘Copyright 2019-2023 the Centre National de la Recherche Scientifique (CNRS), Institut de Physique du Globe de Paris, Universite Paris Cite, Paris, France & the Center for Planetary Habitability (PHAB), University of Oslo, Norway’
 __credits__ = ‘See CREDITS’
 __license__ = ‘GNU GPL v3, CeCILLv2’
 __maintainer__ = ‘Razvan Caracas’
-__email__ = ‘razvan.caracas@gmail.com’
+__email__ = ‘caracas@ipgp.fr’
 __status__ = ‘Production’
