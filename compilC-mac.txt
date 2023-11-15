@@ -1,0 +1,21 @@
+gcc -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
+gcc -dynamiclib -o c_autocorrelation_vib.dylib c_autocorrelation_vib.c
+gcc -dynamiclib -o c_bonds_full.dylib c_bonds_full.c
+gcc -dynamiclib -o c_clusters.dylib c_clusters.c
+gcc -dynamiclib -o c_msd.dylib c_msd.c
+gcc -dynamiclib -o c_gofr_new_alt.dylib c_gofr_new_alt.c
+
+gcc -fPIC -c  c_UMDprocess.c
+gcc -fPIC -c  c_autocorrelation_vib.c
+gcc -fPIC -c  c_bonds_full.c
+gcc -fPIC -c  c_clusters.c
+gcc -fPIC -c  c_msd.c
+gcc -fPIC -c  c_gofr_new_alt.c
+
+gcc -shared -o c_UMDprocess.so c_UMDprocess.o
+gcc -shared -o c_autocorrelation_vib.so c_autocorrelation_vib.o
+gcc -shared -o c_bonds_full.so c_bonds_full.o
+gcc -shared -o c_clusters.so c_clusters.o
+gcc -shared -o c_msd.so c_msd.o
+gcc -shared -o c_gofr_new_alt.so c_gofr_new_alt.o
+
