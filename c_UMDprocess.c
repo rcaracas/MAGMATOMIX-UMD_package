@@ -169,7 +169,7 @@ int* defineBonds(const char *lines,int len,int *CentIndexes,int *OutIndexes, int
 	numOut = num_atoms(OutIndexes,nOut);
 
 	//Max possible sizes
-	BondsList = calloc((numCent+numOut)*(numCent+numOut+2),sizeof(int));
+	BondsList = calloc((long long int)(numCent+numOut)*(numCent+numOut+2),sizeof(int));
 	BondIndexes = calloc(natom+3,sizeof(int));
 	
 	BondIndexes[0]=1;
