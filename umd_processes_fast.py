@@ -312,7 +312,6 @@ def read_values(UMDfile,key,mode="line",Nsteps=1,firststep = 0,laststep = None,c
     print("Values extracted in ",(time.time()-t)," s")
     return MyCrystal, SnapshotsValuesList, TimeStep, len(OctIndexes)-1
 
-
 def data_type(SnapshotsValuesList,natom,mode="line",datatype="list"):
 
     if mode=="atoms":
@@ -498,7 +497,7 @@ def headerumd():
     print ('\n * * * * * ')
     print ('    UMD package for analyzing Molecular Dynamics simulations.')
     print ('distributed under GNU-GNU General Public License 3')
-    print ('authors: Razvan Caracas, Kevin Jiguet-Covex, Tim Bögels, Anne Davis, Xi Zhu, Emma Stoutenbourg')
+    print ('authors: Razvan Caracas, Kevin Jiguet-Covex, Tim Bögels, Anne Davis, Adrien Saurety, Xi Zhu, Emma Stoutenbourg')
     print ('please cite as: ')
     print ('    cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534,doi:10.3791/61534 (2021)' )
     print (' ')
@@ -536,6 +535,27 @@ def print_header(FileName,MyCrystal):
     for ii in range(MyCrystal.natom):
         string = string + str(MyCrystal.typat[ii]) + ' '
     string = string + '\n\n'
+    nf.write(string)
+    string = 'lambda_ThermoInt' + ' ' +  str(MyCrystal.lambda_ThermoInt)
+    string = string + '\n\n'
+    nf.write(string)
+    nf.close()
+
+def print_atomic_header(FileName,MyCrystal,iatom):
+    nf = open(FileName,'w')
+    string = 'natom  1\n'
+    nf.write(string)
+    string = 'ntypat 1\n'
+    nf.write(string)
+    string = 'types 1\n'
+    nf.write(string)
+    string = 'elements ' + str(MyCrystal.elements[MyCrystal.typat[iatom]]) + '\n'
+    nf.write(string)
+    string = 'masses ' + str(MyCrystal.masses[MyCrystal.typat[iatom]]) + '\n'
+    nf.write(string)
+    string = 'Zelectrons ' + str(MyCrystal.zelec[MyCrystal.typat[iatom]]) + '\n'
+    nf.write(string)
+    string = 'typat ' + str(MyCrystal.typat[iatom]) + '\n\n'
     nf.write(string)
     string = 'lambda_ThermoInt' + ' ' +  str(MyCrystal.lambda_ThermoInt)
     string = string + '\n\n'
@@ -595,6 +615,43 @@ def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):
         string = string + str(round(MyCrystal.atoms[iatom].forces[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[2],5)) + ' '
         string = string + str(MyCrystal.atoms[iatom].charge) + ' ' + str(MyCrystal.atoms[iatom].magnet) + '\n'
         nf.write(string)
+    string='\n'
+    nf.write(string)
+    nf.close()
+    return(CurrentTime,TimeStep)
+
+def print_atomic_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords,iatom):
+    newfile = FileName + '.umd.dat'
+    nf = open(newfile,'a')
+    string = 'timestep ' + str(TimeStep) + ' fs\n' + 'time ' + str(CurrentTime) + ' fs\n'
+    nf.write(string)
+    string = 'Temperature ' + str(round(MyCrystal.temperature,1)) + ' K\n'
+    nf.write(string)
+    string = 'Pressure ' + str(round(MyCrystal.pressure,4)) + ' GPa\n'
+    nf.write(string)
+    string = 'acell ' + str(MyCrystal.acell[0]) + ' ' + str(MyCrystal.acell[1]) + ' ' + str(MyCrystal.acell[2]) + ' A\n'
+    nf.write(string)
+    string = 'rprim_a ' + str(MyCrystal.rprimd[0][0]/MyCrystal.acell[0]) + '  ' +str(MyCrystal.rprimd[0][1]/MyCrystal.acell[0]) + '  ' +str(MyCrystal.rprimd[0][2]/MyCrystal.acell[0]) + '\n'
+    nf.write(string)
+    string = 'rprim_b ' + str(MyCrystal.rprimd[1][0]/MyCrystal.acell[1]) + '  ' +str(MyCrystal.rprimd[1][1]/MyCrystal.acell[1]) + '  ' +str(MyCrystal.rprimd[1][2]/MyCrystal.acell[1]) + '\n'
+    nf.write(string)
+    string = 'rprim_c ' + str(MyCrystal.rprimd[2][0]/MyCrystal.acell[2]) + '  ' +str(MyCrystal.rprimd[2][1]/MyCrystal.acell[2]) + '  ' +str(MyCrystal.rprimd[2][2]/MyCrystal.acell[2]) + '\n'
+    nf.write(string)
+    string = 'rprimd_a ' + str(MyCrystal.rprimd[0][0]) + '  ' +str(MyCrystal.rprimd[0][1]) + '  ' +str(MyCrystal.rprimd[0][2]) + ' A\n'
+    nf.write(string)
+    string = 'rprimd_b ' + str(MyCrystal.rprimd[1][0]) + '  ' +str(MyCrystal.rprimd[1][1]) + '  ' +str(MyCrystal.rprimd[1][2]) + ' A\n'
+    nf.write(string)
+    string = 'rprimd_c ' + str(MyCrystal.rprimd[2][0]) + '  ' +str(MyCrystal.rprimd[2][1]) + '  ' +str(MyCrystal.rprimd[2][2]) + ' A\n'
+    nf.write(string)
+    string = 'atoms: reduced*3 cartesian*3(A) abs.diff.*3(A) velocity*3(A/fs) force*3(eV/A) charge(no.elec) magnetization(magneton-Bohr) \n'
+    nf.write(string)
+    string = str(round(MyCrystal.atoms[iatom].xred[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xred[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xred[2],5)) + ' '
+    string = string + str(round(MyCrystal.atoms[iatom].xcart[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xcart[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xcart[2],5)) + ' '
+    string = string + str(round(diffcoords[iatom][0],5)) + ' ' + str(round(diffcoords[iatom][1],5)) + ' ' + str(round(diffcoords[iatom][2],5)) + ' '
+    string = string + str(round(MyCrystal.atoms[iatom].vels[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].vels[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].vels[2],5)) + ' '
+    string = string + str(round(MyCrystal.atoms[iatom].forces[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[2],5)) + ' '
+    string = string + str(MyCrystal.atoms[iatom].charge) + ' ' + str(MyCrystal.atoms[iatom].magnet) + '\n'
+    nf.write(string)
     string='\n'
     nf.write(string)
     nf.close()

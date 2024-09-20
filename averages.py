@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-@author: Razvan Caracas, Znais Kobsch
+@author: Razvan Caracas, Anais Kobsch
 """
 
 import numpy as np 
