@@ -1436,7 +1436,7 @@ class MainWindow(QMainWindow):
             self.U2Lmessage.setText("ERROR : UMD file "+self.U2Lfile.text()+" is displaced or missing. Please check the path or the file name.")        
         else:
             argv=["-f",self.U2Lfile.text(),"-s",self.sampFreqU2Lammps.text()]
-            result = usefunction(umd_to_lammps,argv,self.U2Lmessage)
+            result = usefunction(umd_to_lammps, argv, self.U2Lmessage)
             if result :
                 Name = self.U2Lfile.text().split("/")
                 name = Name[-1][:-8]+".lammps"

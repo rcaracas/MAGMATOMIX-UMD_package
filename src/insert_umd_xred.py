@@ -8,7 +8,7 @@ import sys,getopt,os.path,math
 import numpy as np
 from scipy.spatial.transform import Rotation
 import crystallography as cr
-import umd_process as umdp
+import umd_processes_fast as umdpf
 
 
 
@@ -262,7 +262,7 @@ def main(argv):
             print ('the UMD files ',UMDname,' does not exist')
             sys.exit()
         else:
-            (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
+            (MyCrystal,AllSnapshots,TimeStep)=umdpf.readumd(UMDname)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             print ('I will insert molecules in the last snapshot of the ',UMDname,' structure with ',MyCrystal.natom,' atoms')
             MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
@@ -275,7 +275,7 @@ def main(argv):
             sys.exit()
         else:
             print ('I will insert molecules in ',os.path.isfile(UMDname),' structure every ',Nsteps,' steps')
-            (MyCrystal,AllSnapshots,TimeStep)=umdp.readumd(UMDname)
+            (MyCrystal,AllSnapshots,TimeStep)=umdpf.readumd(UMDname)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             firststep = 0
             laststep = len(AllSnapshots)

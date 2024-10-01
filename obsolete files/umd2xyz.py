@@ -27,15 +27,18 @@ def main(argv):
     UMDname = ''
     umdpf.headerumd()
     try:
-        opts, arg = getopt.getopt(argv,"hf:i:s:")
+        opts, arg = getopt.getopt(argv,"hf:i:s:o:r:")
     except getopt.GetoptError:
-        print ('umd2xyz.py -f <umdfile> -i <InitialStep> -s <Sampling_Frequency>')
+        print ('umd2out.py -f <umdfile> -i <InitialStep> -s <Sampling_Frequency> -j <> -o <outputfile> -r <output_option>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('umd2xyz.py program to write an xyz file with the atomic trajectories from the umd file')
-            print ('umd2xyz.py -f <umdfile> -i <InitialStep> -s <Sampling_Frequency>')
-            print (' default values: -f output.umd.dat -i 0 -s 1')
+            print ('umd2out.py program to extract various files from the umd file')
+            print ('umd2out.py  -f <umdfile> -i <InitialStep> -s <Sampling_Frequency> -o <outputfile> -r <output_option>')
+            print (' default values: -f output.umd.dat -i 0 -s 1 -o output.xyz -r 1')
+            print('output options: ')
+            print('   -r 1 = xyz file')
+            print('   -r 2 = poscar file')
             sys.exit()
         elif opt in ("-f"):
             UMDname = str(arg)

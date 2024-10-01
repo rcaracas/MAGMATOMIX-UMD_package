@@ -7,7 +7,7 @@
 import sys, getopt, os.path
 import numpy as np
 from scipy.fftpack import dct, fftfreq
-import umd_process as umd
+import umd_processes_fast as umdpf
 
 def correlation(TimeMatrix,timestep,temperature):
   
@@ -81,7 +81,7 @@ def main(argv):
     kB_T = temperature * Boltzmann
 
     # read umdfile
-    (MyCrystal,AllSnapshots,TimeStep)=umd.readumd(umdfile,0)
+    (MyCrystal,AllSnapshots,TimeStep)=umdpf.readumd(umdfile,0)
     # make TimeMatrix file
     TimeMatrix = np.empty((len(AllSnapshots),3*MyCrystal.natom))
     for ii in range(len(AllSnapshots)):

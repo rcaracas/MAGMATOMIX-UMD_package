@@ -54,6 +54,7 @@ def main(argv):
     iterstep = 1
     firststep = 0
     laststep = 10000000
+    Timestep = 1.0
     UMDname = 'output.umd.dat'
     umdpf.headerumd()
     try:

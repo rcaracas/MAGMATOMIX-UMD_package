@@ -51,6 +51,7 @@ read_lib.free_memory.restype = None
 def read_snapshot_values_C(octettop,octetbot,step,natom,File,X,mode,maxStep):#Extracts the coordinates from a snapshot 
                                                                 #whose data is contained between the octets "octettop" and "octetbot" in the umd file (thus the prep_read_coord function)
                                                                 #The parameter X is the first index of the relevant 3 coordinate on each line in the umd file
+#    print(octettop," ",octetbot," ",step," ",natom," ",File," ",X," ",mode," ",maxStep)
     if(100*step//maxStep!=100*(step-1)//maxStep):
         sys.stdout.write("\rReading coordinates. Progress : "+str(100*step//maxStep)+"%\t")
         sys.stdout.flush()
@@ -265,12 +266,15 @@ def read_values(UMDfile,key,mode="line",Nsteps=1,firststep = 0,laststep = None,c
     OctIndexes=OctIndexesRaw[:cutoff+1]
 
     if laststep == None :
+        print(" extracting all steps starting with ",firststep)
         OctIndexes = OctIndexes[firststep:]
     else :
+        print(" extracting all steps between ", firststep, " and ", laststep)
         OctIndexes = OctIndexes[firststep:laststep+1]
     
     OctTop = [OctIndexes[i*Nsteps] for i in range(int((len(OctIndexes)-1)/Nsteps))]#Indicates the beginning of each relevant snapshot
     OctBot = [OctIndexes[i*Nsteps+1] for i in range(int((len(OctIndexes)-1)/Nsteps))]#Indicates it's end
+#    print("will read umd between octets: ",OctTop," and ",OctBot)
 
     if key == "xred":
         X=0
@@ -300,7 +304,8 @@ def read_values(UMDfile,key,mode="line",Nsteps=1,firststep = 0,laststep = None,c
     
         
     
-    readvalues = partial(read_snapshot_values_C,natom=MyCrystal.natom,File=UMDfile,X=X,mode=mode,maxStep=len(OctTop)-1)
+#    readvalues = partial(read_snapshot_values_C,natom=MyCrystal.natom,File=UMDfile,X=X,mode=mode,maxStep=len(OctTop-1))
+    readvalues = partial(read_snapshot_values_C,natom=MyCrystal.natom,File=UMDfile,X=X,mode=mode,maxStep=len(OctTop))
     if nCores != None :
         with concurrent.futures.ProcessPoolExecutor(max_workers = nCores) as executor :
             SnapshotsValuesList = list(executor.map(readvalues,OctTop,OctBot,[step for step in range(len(OctTop))]))        
