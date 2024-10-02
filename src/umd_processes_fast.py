@@ -560,7 +560,7 @@ def print_atomic_header(FileName,MyCrystal,iatom):
     nf.write(string)
     string = 'Zelectrons ' + str(MyCrystal.zelec[MyCrystal.typat[iatom]]) + '\n'
     nf.write(string)
-    string = 'typat ' + str(MyCrystal.typat[iatom]) + '\n\n'
+    string = 'typat 0' + '\n\n'
     nf.write(string)
     string = 'lambda_ThermoInt' + ' ' +  str(MyCrystal.lambda_ThermoInt)
     string = string + '\n\n'

@@ -11,32 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def extract_data(MyStructure, entity):
-    """
-    Extract necessary data from MyStructure.
-
-    Parameters:
-    - MyStructure: List of snapshot data
-    - entity: Entity to extract data for (e.g., 'atoms', 'pressure', 'volume', 'stress')
-
-    Returns:
-    - extracted_data: List of extracted data for the specified entity
-    """
-    extracted_data = []
-    for snapshot in MyStructure:
-        if entity == 'atoms':
-            extracted_data.append(snapshot.atoms)
-        elif entity == 'pressure':
-            extracted_data.append(snapshot.pressure)
-        elif entity == 'volume':
-            extracted_data.append(snapshot.volume)
-        elif entity == 'stress':
-            extracted_data.append(snapshot.stress)
-        else:
-            raise ValueError("Invalid entity. Choose from 'atoms', 'pressure', 'volume', or 'stress'.")
-    return extracted_data
-
-def autocorrelation(x):
+def autocorrelation(MyCrystal,AllSnapshots,TimeStep,firststep,WindowSize):
     """
     Compute the autocorrelation of each array in a 6D matrix.
 
@@ -81,21 +56,20 @@ def main():
     umdpf.headerumd()
     firststep = 0
     WindowSize = 1000
-    Property = 0            # 0=visosity, 1=vibr from vels, 2=vibr from pos
+    Property = 1            # 1=vibrations from velocities, 2=vibrations from positions
     try:
         opts, arg = getopt.getopt(argv,"hf:i:t:w:r:)
     except getopt.GetoptError:
-        print ('autocorr_umd.py -f <umdfile> -i <InitialStep> -t <Temperature> -w <WindowSize>')
+        print ('vibrations_umd.py -f <umdfile> -i <InitialStep> -t <Temperature> -w <WindowSize>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('autocorr_umd.py program to compute the auto-correlation function of various time-dependent values')
-            print ('autocorr_umd.py -f <umdfile> -i <InitialStep> -t <Temperature> -w <WindowSize> -r <Property>')
-            print (' default values: -f OUTCAR.umd.dat -i 0 -t 300 -w 1000')
+            print ('vibrations_umd.py program to compute the auto-correlation function of various time-dependent values')
+            print ('vibrations_umd.py -f <umdfile> -i <InitialStep> -t <Temperature> -w <WindowSize> -r <Property>')
+            print (' default values: -f OUTCAR.umd.dat -i 0 -w 1000 -t 300 -r 1')
             print('-r options:')
-            print('0 : viscosity')
-            print('1 : vibrational spectrum from atomic velocities')
-            print('1 : vibrational spectrum from atomic positions')
+            print('1 : vibrational spectrum from atomic velocities (Default)')
+            print('2 : vibrational spectrum from atomic positions')
             sys.exit()
         elif opt in ("-f"):
             UMDfile = str(arg)
@@ -109,20 +83,19 @@ def main():
         print('The first ',firststep, 'timesteps will be discarded')
         MyCrystal = cr.Lattice()
         AllSnapshots = [cr.Lattice]
-        if Property == 0:
-            (MyCrystal,AllSnapshots,TimeStep,length)=umdpf.read_values(UMDfile,"StressTensor","line",1,firststep,laststep=None,cutoff="all",nCores=None )
+        if Property == 1:     #vibrational spectrum from atomic velocities
+            (MyCrystal,AllSnapshots,TimeStep,length)=umdpf.read_values(UMDfile,"velocity","line",1,firststep,laststep=None,cutoff="all",nCores=None )
+
+        elif Property == 2:     #vibrational spectrum from atomic positions
+            (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDfile, "xcart", "line", 1, firststep,laststep=None, cutoff="all", nCores=None)
+        else:
+            print("Only options 1 and 2 are valid for computing the vibrational spectrum")
+            sys.exit()
 
     else:
         print ('the umdfile ',UMDname,' does not exist')
         sys.exit()
 
-
-
-    # Example structure
-    MyStructure = [...]  # Fill this with your actual data
-
-    # Extract necessary data from MyStructure for different entities
-    entity = 'atoms'  # Change this to 'pressure', 'volume', 'stress', or 'atoms'
     extracted_data = extract_data(MyStructure, entity)
 
     # Perform autocorrelation on the extracted data

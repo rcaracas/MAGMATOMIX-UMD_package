@@ -182,9 +182,11 @@ def main(argv):
         #Separation of the algorithm's path in accordance with the parameters who have been provided by the user
         
         if Axes !=None :
-            msdAtomRed=partial(msdAtom_CAxes_multi,numsteps=numsteps,hh=hh,vv=vv,ballistic=ballistic,Axes=Axes,nAxes=nAxes,natom=MyCrystal.natom-1)
+#            msdAtomRed=partial(msdAtom_CAxes_multi,numsteps=numsteps,hh=hh,vv=vv,ballistic=ballistic,Axes=Axes,nAxes=nAxes,natom=MyCrystal.natom-1)
+            msdAtomRed=partial(msdAtom_CAxes_multi,numsteps=numsteps,hh=hh,vv=vv,ballistic=ballistic,Axes=Axes,nAxes=nAxes,natom=MyCrystal.natom)
         else :
-            msdAtomRed=partial(msdAtom_C,numsteps=numsteps,hh=hh,vv=vv,ballistic=ballistic,natom=MyCrystal.natom-1)
+#            msdAtomRed=partial(msdAtom_C,numsteps=numsteps,hh=hh,vv=vv,ballistic=ballistic,natom=MyCrystal.natom-1)
+            msdAtomRed=partial(msdAtom_C,numsteps=numsteps,hh=hh,vv=vv,ballistic=ballistic,natom=MyCrystal.natom)
 
         if nCores!=None:
             with concurrent.futures.ProcessPoolExecutor(max_workers=nCores) as executor:

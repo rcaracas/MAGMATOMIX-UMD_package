@@ -20,7 +20,7 @@ import gofr_umd
 import val_extract_umd
 #import analyze_gofr_forGUI
 import msd_umd
-import viscosity_new
+import viscosity_umd
 import averages_forGUI
 import umd2poscar
 import umd2xyz
