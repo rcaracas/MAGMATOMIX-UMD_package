@@ -6,16 +6,14 @@
 import sys,getopt,os.path,re
 import crystallography as cr
 import umd_process as umdp
+import os
 
-
-def msd_trajectory(trajectory):
-    #print('trajectory size ',len(trajectory))
+def msd_trajectory(trajectory):# partialmsd[x] will contain the mean square difference of the distance between a position i and the position i+x.
     partialmsd = [0.0 for _ in range(int(len(trajectory)/2))]
     for ii in range(int(len(trajectory)/2)):
         ref = [0.0 for _ in range(3)]
         for kk in range(3):
             ref = trajectory[ii]
-        #print('reference center of mass ',ref)
         for jj in range(int(len(trajectory)/2)):
             partialmsd[jj] = partialmsd[jj] + (trajectory[ii+jj][0]-ref[0])**2 + (trajectory[ii+jj][1]-ref[1])**2 + (trajectory[ii+jj][2]-ref[2])**2
     for ii in range(int(len(trajectory)/2)):
@@ -39,47 +37,36 @@ def ana_popul(MyCrystal,AllSnapshots,POPname,Ballistic,ClusterMaxSize,Nsteps):
         line = re.sub('[\[,\]]', '',line)
         line = line.strip()
         entry = line.split()
-        #print
-        #print ('treating current line ',entry)
         sizeofentry = len(entry)
         if sizeofentry -4 <= ClusterMaxSize :
-            #print ('reading line with ', entry[0],' living for ',int(entry[3]),' steps')
-            if int(entry[3]) >= Ballistic :
+            if (int(entry[2]) - int(entry[1])) >= Ballistic :
                 partialmsd = []
-                newmsd = []
                 clustername = entry[0]
-                timediff = int(entry[3])
-                enddiff = int(entry[2])
+                timediff = int(entry[2]) - int(entry[1])
                 begindiff = int(entry[1])
                 if timediff > maxtime:
                     maxtime = timediff
-                    #print('current maximum time is ',maxtime)
-                #print('Cluster ok. Analyzing cluster with name ',clustername, ' living for ',timediff,' total steps')
                 trajectory = [ [0.0,0.0,0.0] for _ in range(int(timediff/Nsteps)) ]                 #stores the coordinates of the center of mass for current cluster
-                #print ('trajectory will have ',len(trajectory),' instances')
                 for itime in range(int(timediff/Nsteps)):
-                    #print('current trajectory instance is ',itime,' at actual time ',begindiff + itime*Nsteps)
                     for iatom in range(4,sizeofentry):
-                        for kk in range(3):                                                         #computes the coordinates of the center of mass for the current cluster at each timestep
-                            trajectory[itime][kk] = trajectory[itime][kk] + AllSnapshots[begindiff + itime*Nsteps].atoms[int(entry[iatom])].xcart[kk]
-                #print('trajectory array is',trajectory)
+                        
+                        for kk in range(3):   
+                            trajectory[itime][kk] = trajectory[itime][kk] + AllSnapshots[begindiff + itime*Nsteps].atoms[int(entry[iatom])].absxcart[kk]
                 partialmsd = msd_trajectory(trajectory)                                             #calls the MSD on the trajectory
-                #print('corresponding msd is ',partialmsd)
+
                 if len(partialmsd)> 1:                                                              #there must be at least two steps for diffusion to be added
-                    flagalive = 0                                                                   #flag to check for previous existence of the cluster
-                    for ll in population.keys():                                                    #runs over the ewntire dictionary looking for the current cluster
-                        #print ('comparing current cluster ',clustername,' with existent clusters:',population[ll]['clustername']) #,' with ',population[kk][clustername])
+                    flagalive = 0                    
+                    for ll in population.keys():
                         if clustername == population[ll]['clustername']:                            #cluaster already exists
-#                            newmsd = population[ll]['diffusion'] + [partialmsd]                     #appends the msd of the current cluster to the bigger family
                             population[ll]['diffusion'].append(partialmsd)
-                            #print('new msd array, after last assignement',newmsd)
-                            #population[ll] = {'clustername':clustername,'diffusion':newmsd}         #updates the dictionary
                             flagalive = 1                                                           #resets the flag
                     if flagalive == 0:                                                              #cluster is new
                         population[clusterindex] = {'clustername':clustername,'diffusion':[partialmsd]}       #adds the new cluster and its msd to the dictionary
                         clusterindex = clusterindex + 1                                             #index over the totla number of entries, i.e. clusters, from the dictionary
     ff.close()
-    #print(population)
+    if population=={}:
+        print("No existing cluster in",POPname, "is smaller than the limit size -c. Therefore, no output file was produced.")
+        sys.exit()
     printfiles(population,POPname,Nsteps,maxtime)
 
 
@@ -88,7 +75,6 @@ def printfiles(population,POPname,Nsteps,maxtime):
         filename = POPname[:-9] + '__' + population[ii]['clustername'] + '.msd.dat'                 #each one will go into a seprate file
         print(filename)
         ff = open(filename,'w')
-        #print('clusters size ',len(population[ii]['diffusion']))
         header = 'time(fs)'
         for jj in range(len(population[ii]['diffusion'])+1):                                           #loop over all the individsual clusters
             header = header + 'cl' + str(jj) + '\t'
@@ -113,21 +99,17 @@ def printfiles(population,POPname,Nsteps,maxtime):
             else:
                 row = row + '\t'
             row = row + '\n'
-            ff.write(row)
+            ff.write(row)        
+            
     ff.close()
-
-
-
 
                                  
 def main(argv):
     UMDname = ''
     POPname = ''
-    RADname = ''
     Nsteps = 1
     ClusterMaxSize = 20
-    AtomicRadius = 1.0
-    Ballistic = 100
+    Ballistic = 20
     umdp.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:p:s:b:c:",["fUMDfile","pPOPfile","sSampling_Frequency","bBallistic","cClusterMaxSize"])
@@ -153,7 +135,7 @@ def main(argv):
         elif opt in ("-s", "--sNsteps"):
             Nsteps = int(arg)
             print ('Density of sampling: every ',Nsteps,' steps')
-        elif opt in ("-s", "--bBallistic"):
+        elif opt in ("-b", "--bBallistic"):
             Ballistic = int(arg)
             print ('Ballistic threshold: ',Ballistic,' steps')
         elif opt in ("-c", "--cClusterMaxSize"):
@@ -178,13 +160,9 @@ def main(argv):
     MyCrystal = cr.Lattice()
     AllSnapshots = [cr.Lattice]
     (MyCrystal,AllSnapshots,TimeStep)=umdp.read_absxcart(UMDname)
-
     ana_popul(MyCrystal,AllSnapshots,POPname,Ballistic,ClusterMaxSize,Nsteps)
 
  
 
 if __name__ == "__main__":
    main(sys.argv[1:])
-
-
-

@@ -17,7 +17,7 @@ import LAMMPSParser2umd
 import vibr_spectrum_umd_fast
 import umd_to_lammps
 import gofr_umd
-import Extract_umd
+import val_extract_umd
 #import analyze_gofr_forGUI
 import msd_umd
 import viscosity_new
@@ -875,7 +875,7 @@ class MainWindow(QMainWindow):
            
             argv+=["-p",arg]
             if arg!=None:
-                res=usefunction(Extract_umd, argv, self.displaymessage)        
+                res=usefunction(val_extract_umd, argv, self.displaymessage)
                 if res !=False:
 #                self.create_display_layout()
                     [Var,Times,unit,tunit,timestep]=res
@@ -1398,7 +1398,7 @@ class MainWindow(QMainWindow):
             self.VASPmessage.setText("ERROR : the VASP file "+self.VASPfile.text()+ " is displaced or missing. Please check the path or filename.")        
         else:
             argv=["-f",self.VASPfile.text(),"-i",self.istepVasp.text()]
-            result = usefunction(VaspParser2umd,argv,self.VASPmessage)
+            result = usefunction(VaspParser2umd, argv, self.VASPmessage)
             if result :
                 Name = self.VASPfile.text().split("/")
                 name = Name[-1]+".umd.dat"

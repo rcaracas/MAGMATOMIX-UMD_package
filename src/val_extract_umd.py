@@ -15,13 +15,13 @@ def main(argv):
     try:
         opts, arg = getopt.getopt(argv,"hf:p:",["fUMDfile","pParameter"])
     except getopt.GetoptError:
-        print ('Extract_umd.py -f <UMD_filename> -p <pParameter>')
+        print ('val_extract_umd.py -f <UMD_filename> -p <pParameter>')
         sys.exit(2)
     if opts == [] :
         opts = [('-h','')]
     for opt, arg in opts:
         if opt == "-h":
-          print("Extract_umd.py to extract the list of values taken by a parameter snapshot by snapshot")
+          print("val_extract_umd.py to extract the list of values taken by a parameter snapshot by snapshot")
           print("-f : name of the umd file")
           print("-p : name of the parameter (Temperature, Pressure, InternalEnergy...)")
         elif opt == "-f":
