@@ -17,6 +17,8 @@ import numpy as np
 import time
 import platform
 
+#from src.crystallography import Lattice
+
 OS = platform.system()
 LibraryName =""
 
@@ -458,12 +460,15 @@ def read_bonds(BondFile,centEls,adjEls,Nsteps=1,mode="Indexes",nCores = None):
         return CentIndexes, AdjIndexes, MyCrystal, BondDicos, TimeStep*Nsteps
 
 def read_stresses_4visc(UMDfile):
+    print(' in read_stresses_4visc')
+    MyCrystal = cr.Lattice()
+    TimeStep = 1.0
+    (MyCrystal,TimeStep) = Crystallization(UMDfile)
+
     ff=open(UMDfile,"r")
     AllSnapshots=[]
-    
     line = ff.readline().strip().split()
     natom=int(line[1])
-    TimeStep=0
     
     while True : 
         SnapshotCrystal = cr.Lattice()
@@ -474,7 +479,7 @@ def read_stresses_4visc(UMDfile):
                 l=ff.readline()
                 if not l :#If we encounter two empty lines in a row, we're at the end of the file
                     print('len of allsnapshots is',len(AllSnapshots))
-                    return AllSnapshots,TimeStep
+                    return MyCrystal, AllSnapshots,TimeStep
             line = l.strip().split()
             if len(line)>0 :
                 if line[0]=='timestep':
@@ -490,7 +495,7 @@ def read_stresses_4visc(UMDfile):
                 elif line[0]=='StressTensor':
                     SnapshotCrystal.stress=[float(line[i]) for i in range(1,7)]
                 elif line[0]=='Temperature':
-                    SnapshotCrystal.temperature=float(line[1])
+                     SnapshotCrystal.temperature=float(line[1])
  
         SnapshotCrystal.cellvolume = SnapshotCrystal.makevolume()
         AllSnapshots.append(SnapshotCrystal)

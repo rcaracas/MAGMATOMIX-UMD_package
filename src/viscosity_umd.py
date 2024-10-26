@@ -131,13 +131,13 @@ def autocor_int_eta(AllSnapshots, step_initial, T, volume, UMDname, lagn):
 
     # for viscosity calc: V in m3, kb in J/K, T in K, P in Pa and dividing by 1e15 for fs -> s to get Pa*s
 
-    eta_xy = (volume / (3 * kb * T * (1e15))) * np.asarray(intvaluesxy)
+    eta_xy = (volume / (kb * T * (1e15))) * np.asarray(intvaluesxy)
 
-    eta_xz = (volume / (3 * kb * T * (1e15))) * np.asarray(intvaluesxz)
+    eta_xz = (volume / (kb * T * (1e15))) * np.asarray(intvaluesxz)
 
-    eta_yz = (volume / (3 * kb * T * (1e15))) * np.asarray(intvaluesyz)
+    eta_yz = (volume / (kb * T * (1e15))) * np.asarray(intvaluesyz)
 
-    eta_avg = (volume / (3 * kb * T * (1e15))) * np.asarray(intvalavg)
+    eta_avg = (volume / (kb * T * (1e15))) * np.asarray(intvalavg)
 
     viscdf = pd.DataFrame({'tau': tau, 'autocorxy_Pa**2':corxy, 'autocorxz_Pa**2':corxz, 'autocoryz_Pa**2': coryz,
 

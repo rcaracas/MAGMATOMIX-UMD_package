@@ -161,7 +161,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
                 exit()
     
-    AtomicOrdering = umdp.sort_umd(MyNewCrystal)
+    AtomicOrdering = umdpf.sort_umd(MyNewCrystal)
     #print ('Ordered atoms are',AtomicOrdering)
     #for iatom in range(MyNewCrystal.natom):
     #    print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
@@ -193,7 +193,7 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
 #        for ii in range(MyNewCrystal.
 
 def main(argv):
-    umdp.headerumd()
+    umdpf.headerumd()
     UMDname='output.umd.dat'
     MoleculesFile='molecules.dat'
     Nsteps = -1
