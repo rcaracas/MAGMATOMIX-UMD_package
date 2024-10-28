@@ -5,7 +5,7 @@
 
 import sys,getopt,os.path
 import crystallography as cr
-import umd_process as umdp
+import umd_processes_fast as umdpf
 
 
 def msd(MyCrystal,AllSnapshots,TimeStep,hh,vv,ballistic,umdfile):
@@ -88,7 +88,7 @@ def main(argv):
     Elements = []
     ballistic = 0
     TimeStep = 1
-    umdp.headerumd()
+    umdpf.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:z:v:b:",["fumdfile","zHorizontalJump","vVerticalJump","bBallistic"])
     except getopt.GetoptError:
@@ -118,7 +118,7 @@ def main(argv):
 #        initstruct(XYZfile)
         MyCrystal = cr.Lattice()
         AllSnapshots = [cr.Lattice]
-        (MyCrystal,AllSnapshots,TimeStep)=umdp.read_absxcart(umdfile)
+        (MyCrystal,AllSnapshots,TimeStep)=umdpf.read_absxcart(umdfile)
 #        print 'Elements are ',elem
         print ('Number of atoms of each type is ',MyCrystal.types)
 #        print 'Atomic types are ',znucl

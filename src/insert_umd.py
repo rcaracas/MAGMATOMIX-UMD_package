@@ -170,12 +170,14 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         filename = 'struct-' + str(CurrStructs) + '.xyz'
         f = open(filename,'w')
         f.write(str(MyNewCrystal.natom))
-        f.write('\n\n')
-        print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
+        string = '\nWriting ' + str(MyNewCrystal.natom) + ' with unit cell ' + str(MyNewCrystal.acell[0]) + ' ' + str(MyNewCrystal.acell[1]) + ' ' + str(MyNewCrystal.acell[2]) + '\n'
+        f.write(string)
+        string = ''
+        print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file with unit cell ',MyNewCrystal.acell[0],' ',MyNewCrystal.acell[1],' ',MyNewCrystal.acell[2])
         for iatom in range(MyNewCrystal.natom):
             string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '    '
             for ii in range(3):
-                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]/MyNewCrystal.acell[ii]) + '  '
+                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
             string = string + '\n'
         f.write(string)
         f.close()

@@ -8,7 +8,7 @@ Created on Tue May  2 14:54:47 2023
 
 import sys,getopt,os.path
 import crystallography as cr
-import umd_process as umdp
+import umd_processes as umdpf
 import time
 import numpy as np
 import concurrent.futures

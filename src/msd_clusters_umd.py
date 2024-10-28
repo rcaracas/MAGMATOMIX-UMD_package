@@ -5,7 +5,7 @@
 
 import sys,getopt,os.path,re
 import crystallography as cr
-import umd_process as umdp
+import umd_processes_fast as umdpf
 import os
 
 def msd_trajectory(trajectory):# partialmsd[x] will contain the mean square difference of the distance between a position i and the position i+x.
@@ -110,7 +110,7 @@ def main(argv):
     Nsteps = 1
     ClusterMaxSize = 20
     Ballistic = 20
-    umdp.headerumd()
+    umdpf.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:p:s:b:c:",["fUMDfile","pPOPfile","sSampling_Frequency","bBallistic","cClusterMaxSize"])
     except getopt.GetoptError:
@@ -159,7 +159,7 @@ def main(argv):
 #read the umd file and allocate structure
     MyCrystal = cr.Lattice()
     AllSnapshots = [cr.Lattice]
-    (MyCrystal,AllSnapshots,TimeStep)=umdp.read_absxcart(UMDname)
+    (MyCrystal,AllSnapshots,TimeStep)=umdpf.read_absxcart(UMDname)
     ana_popul(MyCrystal,AllSnapshots,POPname,Ballistic,ClusterMaxSize,Nsteps)
 
  

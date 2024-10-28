@@ -6,7 +6,7 @@
 import sys,getopt,os.path,math, re
 import numpy as np
 import crystallography as cr
-import umd_process as umdp
+import umd_processes_fast as umdpf
 
 
 def print_header(umdfile,MyCrystal,radius):
@@ -147,7 +147,7 @@ def read_radius(radiusfile):
 
 def read_umd(umdfile,radius,Nsteps,InitialStep,level):
     """Read umd file and store data into classes """
-    umdp.headerumd()
+    umdpf.headerumd()
     niter = 0
     istep = 0
     MyCrystal = cr.Lattice()

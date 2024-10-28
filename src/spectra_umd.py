@@ -26,7 +26,7 @@ def _compute_autocorrelation(arr, max_window_size=None):
     """
     nsteps = len(arr)
     correlation = np.zeros(nsteps)
-    print('In compute_autocorrelation with arr of size', nsteps,' and window size', max_window_size)
+    #print('In compute_autocorrelation with arr of size', nsteps,' and window size', max_window_size)
     # Loop over each time lag
     for lag in range(nsteps):
         if max_window_size is not None and lag >= max_window_size:
@@ -35,7 +35,7 @@ def _compute_autocorrelation(arr, max_window_size=None):
         correlation[lag] = np.mean(arr[:nsteps - lag] * arr[lag:nsteps])
     if max_window_size is not None:
         correlation = correlation[:max_window_size]
-    print('size of correlation is ', len(correlation))
+    #print('size of correlation is ', len(correlation))
     return correlation
 
 def perform_fft(autocorr_byatoms,pref):
@@ -239,13 +239,20 @@ def main():
             print("Spectra from velocities: size of AllSnapshots", len(AllSnapshots), " by ", len(AllSnapshots[0]), " where the number of atoms is ", MyCrystal.natom)
 
             autocorr_byatomsx, autocorr_byatomsy, autocorr_byatomsz = process_velocity_data(AllSnapshots, MyCrystal, property, window_size, pref)
+            autocorr_byatomsx = np.array(autocorr_byatomsx)
+            autocorr_byatomsy = np.array(autocorr_byatomsy)
+            autocorr_byatomsz = np.array(autocorr_byatomsz)
             pref = prefactor(property, 1.0, mean_temperature, TimeStep)
             print(' prefactor for velocities is ', pref)
 
             if property == 10:  # separated by atomic types
                 autocorr_bytypex, autocorr_bytypey, autocorr_bytypez = process_atomic_type_data(autocorr_byatomsx, autocorr_byatomsy, autocorr_byatomsz, MyCrystal)
-                combined_autocorr = [np.sum([autocorr_bytypex[i], autocorr_bytypey[i], autocorr_bytypez[i]], axis=0) for i in range(len(autocorr_bytypex))]
+                print('size of autocorr_bytypex is ', len(autocorr_bytypex[0]))
+                print('size of autocorr_bytypey is ', len(autocorr_bytypey[0]))
+                print('size of autocorr_bytypez is ', len(autocorr_bytypez[0]))
 
+                combined_autocorr = [np.sum([autocorr_bytypex[i], autocorr_bytypey[i], autocorr_bytypez[i]], axis=0) for i in range(len(autocorr_bytypex))]
+                print(' size of combined_autocorr is ', len(combined_autocorr), ' by ', len(combined_autocorr[0]))
                 fft_combined = [np.sum([fft_valuesx[i], fft_valuesy[i], fft_valuesz[i]], axis=0) for i in range(len(autocorr_bytypex))]
                 plotaurocorrelation(combined_autocorr, fft_combined)
             elif property == 11:  # separated by atomic types and directions

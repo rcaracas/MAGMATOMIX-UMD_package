@@ -5,7 +5,7 @@
 
 import sys,getopt,os.path,math
 import crystallography as cr
-import umd_process as umdp
+import umd_processes_fast as umdpf
 
 def read_outcar(FileName,InitialStep):
     #read poscar file
@@ -107,7 +107,7 @@ def read_outcar(FileName,InitialStep):
 
 
     ff.close()
-    umdp.print_header(FileName,MyCrystal)
+    umdpf.print_header(FileName,MyCrystal)
     with open(FileName,'r') as ff:
         while True:
             line = ff.readline()
