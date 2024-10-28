@@ -512,7 +512,6 @@ def headerumd():
     print ('    cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534,doi:10.3791/61534 (2021)' )
     print (' ')
 
-
 def sort_umd(MyCrystal):
     iflag = -1
     #print ('There are ',MyCrystal.natom,'  atoms to order')
@@ -536,7 +535,6 @@ def sort_umd(MyCrystal):
                     AtomicOrdering[jatom] = iflag
                     #print ('Atomic ordering of jatom ',jatom,' is ',AtomicOrdering[jatom],MyCrystal.atoms[jatom].symbol)
     return(np.argsort(AtomicOrdering))
-
 
 def print_header(FileName,MyCrystal):
     newfile = FileName + '.umd.dat'
@@ -604,6 +602,8 @@ def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):
     string = 'timestep ' + str(TimeStep) + ' fs\n' + 'time ' + str(CurrentTime) + ' fs\n'
     nf.write(string)
     string = 'InternalEnergy ' + str(round(MyCrystal.internalenergy,6)) + ' eV\n'
+    nf.write(string)
+    string = 'TotalElectronicEnergy ' + str(round(MyCrystal.toten, 6)) + ' eV\n'  #needed for thermo int
     nf.write(string)
     string = 'ElectronicEntropy ' + str(round(MyCrystal.electronicentropy,6)) + ' eV\n'
     nf.write(string)
@@ -753,3 +753,4 @@ def copyhead(Target,File,Nsteps):
                 fa.close()
                 break                
         fa.write(line)
+

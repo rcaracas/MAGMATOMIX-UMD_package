@@ -133,7 +133,10 @@ def read_outcar(FileName,InitialStep):
                     for ii in range(6):
                         MyCrystal.stress[ii]=float(entry[ii+1])/10.0            #transforms from kbars into GPa
                     MyCrystal.pressure = (float(entry[1])+float(entry[2])+float(entry[3]))/30.0 #transforms also from kbars into GPa
-                if entry[0] == 'energy':   
+                if entry[0] == 'free':
+                    if entry[2] == 'TOTEN':
+                        MyCrystal.toten = float(entry[4]) * (1 / MyCrystal.lambda_ThermoInt)
+                if entry[0] == 'energy':
                     if entry[2] == 'entropy=': #reading Kohn-Sham energy, contains all the electronic energy without the electronic entropy 
 #                        MyCrystal.internalenergy=float(entry[3])  #this leads only part of the internal energy, one should add the kinetic energy of ions
                                                                   #the variance of {this energy + kinetic energy of ions}  yields Cv

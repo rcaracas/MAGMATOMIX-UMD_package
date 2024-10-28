@@ -42,7 +42,7 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
     def __init__(self, name='crystal', acell=[0.0 for x in range(3)], angles=[0.0 for x in range(3)],
                  rprim=[[0.0 for x in range(3)] for y in range(3)], rprimd=[[0.0 for x in range(3)] for y in range(3)],
                  gprimd=[[0.0 for x in range(3)] for y in range(3)], stress=[0.0 for x in range(6)],
-                 typat=[],elements=[],masses=[],zelec=[],ntypat=1, natom=1, density=0.0, atoms=[],cellvolume=1.0,enthalpy=0.0,internalenergy=0.0,electronicentropy = 0.0,kineticenergy=0.0,energywithdrift=0.0,gibbsfreeenergy=0.0,cv=0.0,pressure=0.0,temperature=0.0,magnetization=0.0,elecgap=0.0,noelectrons=0.0,lambda_ThermoInt=1.0):
+                 typat=[],elements=[],masses=[],zelec=[],ntypat=1, natom=1, density=0.0, atoms=[],cellvolume=1.0,enthalpy=0.0,toten=0.0,internalenergy=0.0,electronicentropy = 0.0,kineticenergy=0.0,energywithdrift=0.0,gibbsfreeenergy=0.0,cv=0.0,pressure=0.0,temperature=0.0,magnetization=0.0,elecgap=0.0,noelectrons=0.0,lambda_ThermoInt=1.0):
         self.name = name
         self.acell = acell
         self.rprim = rprim
@@ -69,6 +69,7 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         self.pressure = pressure
         self.elecgap = elecgap
         self.stress=stress
+        self.toten=toten
         self.temperature=temperature
         self.magnetization=magnetization
         self.elecgap=elecgap
