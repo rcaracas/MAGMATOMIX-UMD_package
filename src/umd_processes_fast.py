@@ -534,6 +534,7 @@ def sort_umd(MyCrystal):
                     iflag = iflag + 1
                     AtomicOrdering[jatom] = iflag
                     #print ('Atomic ordering of jatom ',jatom,' is ',AtomicOrdering[jatom],MyCrystal.atoms[jatom].symbol)
+        #print ('Atomic ordering is ',AtomicOrdering)
     return(np.argsort(AtomicOrdering))
 
 def print_header(FileName,MyCrystal):

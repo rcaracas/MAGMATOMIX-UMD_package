@@ -20,7 +20,6 @@ import gofr_umd
 import val_extract_umd
 #import analyze_gofr_forGUI
 import msd_umd
-import viscosity_umd
 import averages_forGUI
 import umd2poscar
 import umd2xyz
@@ -1306,7 +1305,7 @@ class MainWindow(QMainWindow):
                     types = [int(line[i]) for i in range (1,len(line))]
                     break
             ff.close()
-            result=usefunction(vibr_spectrum_umd_fast,argv,self.messageVib)
+            result=usefunction(vibr_spectrum_umd_fast, argv, self.messageVib)
             if result and self.displayVib.isChecked() :
                 self.messageVib.setText("Vibrational spectrum successfully calculated. Files created under the names "+self.UMDfileVib_edit.text()[:-8]+".vels.scf.dat and "+self.UMDfileVib_edit.text()[:-8]+".vibr.dat\nDOS showed in graphs (see the tab <Visual Display> above)")
                 DOS,Freq,Elements = read_vibr_allEls(self.UMDfileVib_edit.text()[:-8]+".vibr.dat")

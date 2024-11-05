@@ -217,7 +217,7 @@ def read_outcar(FileName,InitialStep):
                                             MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] + MyCrystal.gprimd[ii][jj]*MyCrystal.atoms[jatom].xcart[ii]
                                             while MyCrystal.atoms[jatom].xred[ii] >=1.0:
                                                 MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] - 1.0
-                                (CurrentTime,TimeStep) = umdp.print_snapshots(FileName,MyCrystal,TimeStep,(istep-InitialStep)*TimeStep,diffcoords)
+                                (CurrentTime,TimeStep) = umdpf.print_snapshots(FileName,MyCrystal,TimeStep,(istep-InitialStep)*TimeStep,diffcoords)
                 if (entry[0]=='kin.'):          #reading the temperature
                     if len(entry) == 7:
                         MyCrystal.temperature = float(entry[5])
@@ -266,7 +266,7 @@ def main(argv):
     CurrentTime = 0.0
     TimeStep = 0.0
     string = ''
-    umdp.headerumd()
+    umdpf.headerumd()
     try:
         opts, arg = getopt.getopt(argv,"hf:i:",["fOUTCARfile","iInitialStep"])
     except getopt.GetoptError:
