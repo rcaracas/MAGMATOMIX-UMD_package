@@ -74,8 +74,9 @@ def compute_vibrational_spectrum(combined_autocorr, dt):
 
     # Extract positive frequencies
     positive_indices = frequencies >= 0
-    print('one of the positive indeices is ', positive_indices[123])
+    print('some of the positive indices are ', positive_indices[120:129])
     positive_wavenumbers = wavenumbers[positive_indices]
+    print('some of the positive wavenumbers are ', positive_wavenumbers[120:129])
     print('numer of positive wavenumbers is ', len(positive_wavenumbers))
 
     # Perform FFT on each autocorrelation function and extract the real part
@@ -96,7 +97,7 @@ def compute_vibrational_spectrum(combined_autocorr, dt):
     result = np.array(spectra)
     print('size of result is ', result.shape)
 
-    return result
+    return positive_wavenumbers,spectra
 
 def plotaurocorrelation(autocorr_byatoms, fft_values):
     autocorr_byatoms = np.array(autocorr_byatoms)
@@ -166,15 +167,17 @@ def process_atomic_type_data(autocorr_byatomsx, autocorr_byatomsy, autocorr_byat
     autocorr_bytypex = []
     autocorr_bytypey = []
     autocorr_bytypez = []
-#    print('in process atomic_type_data, with natoms', MyCrystal.natom)
-#    print('in process atomic_type_data, with ntypat', MyCrystal.ntypat)
-#    print('in process atomic_type_data, with typat', MyCrystal.typat)
+    print('\nin process atomic_type_data, with natoms', MyCrystal.natom)
+    print('in process atomic_type_data, with ntypat', MyCrystal.ntypat)
+    print('in process atomic_type_data, with typat', MyCrystal.typat)
 
     for itype in range(MyCrystal.ntypat):
         type_indices = [i for i in range(MyCrystal.natom) if MyCrystal.typat[i] == itype]
         autocorr_bytypex.append(np.mean([autocorr_byatomsx[i] for i in type_indices], axis=0))
         autocorr_bytypey.append(np.mean([autocorr_byatomsy[i] for i in type_indices], axis=0))
         autocorr_bytypez.append(np.mean([autocorr_byatomsz[i] for i in type_indices], axis=0))
+        print("finished computing autocorrelation for atomic type ", itype)
+    print("finished with process_atomic_type_data")
     return autocorr_bytypex, autocorr_bytypey, autocorr_bytypez
 
 
@@ -196,7 +199,7 @@ def main():
     """
     UMDfile = 'OUTCAR.umd.dat'
     firststep = 0
-    window_size = 100000
+    window_size = 10000
     property = 0  # 0=viscosity; 1x=vibrations from velocities, 2x=vibrations from positions
     flaggraph = 0
     mean_volume = 1.0
@@ -267,6 +270,7 @@ def main():
             #print("shears as ",stresses_xy[1:10])
 
             # Compute autocorrelations
+            window_size = min(window_size,int(len(stresses_xy)/2))
             autocorr_xy = _compute_autocorrelation(stresses_xy, window_size)
             autocorr_yz = _compute_autocorrelation(stresses_yz, window_size)
             autocorr_zx = _compute_autocorrelation(stresses_zx, window_size)
@@ -289,6 +293,7 @@ def main():
             viscfile = UMDfile[:-7] + 'visc.dat'
             write_to_files(autocorr_stresses, viscosity_integrals, TimeStep, viscfile)
         elif property in [10, 11, 12, 13]:  # vibrational spectrum from atomic velocities
+            fftforprinting = []
             (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDfile, "velocity", "line", 1, firststep, laststep=None, cutoff="all", nCores=None)
             print("Spectra from velocities: size of AllSnapshots", len(AllSnapshots), " by ", len(AllSnapshots[0]), " where the number of atoms is ", MyCrystal.natom)
 
@@ -302,19 +307,30 @@ def main():
 
             if property == 10:  # separated by atomic types
                 autocorr_bytypex, autocorr_bytypey, autocorr_bytypez = process_atomic_type_data(autocorr_byatomsx, autocorr_byatomsy, autocorr_byatomsz, MyCrystal)
-                #print('size of autocorr_bytypex is ', len(autocorr_bytypex)),' by ',len(autocorr_bytypex[0])
-                #print('size of autocorr_bytypey is ', len(autocorr_bytypez)),' by ',len(autocorr_bytypey[0])
-                #print('size of autocorr_bytypez is ', len(autocorr_bytypex)),' by ',len(autocorr_bytypez[0])
+                print('size of autocorr_bytypex is ', len(autocorr_bytypex),' by ',len(autocorr_bytypex[0]))
+                print('size of autocorr_bytypey is ', len(autocorr_bytypez),' by ',len(autocorr_bytypey[0]))
+                print('size of autocorr_bytypez is ', len(autocorr_bytypex),' by ',len(autocorr_bytypez[0]))
 
-                correlforprinting = np.stack(autocorr_bytypex, autocorr_bytypey, autocorr_bytypez)
+                correlforprinting = [autocorr_bytypex, autocorr_bytypey, autocorr_bytypez]
                 combined_autocorr = [np.sum([autocorr_bytypex[i], autocorr_bytypey[i], autocorr_bytypez[i]], axis=0) for i in range(len(autocorr_bytypex))]
-                print(' size of combined_autocorr is ', len(combined_autocorr), ' by ', len(combined_autocorr[0]))
-                spectrum = compute_vibrational_spectrum(combined_autocorr,TimeStep)
-                plotaurocorrelation(combined_autocorr, spectrum)
+                print('size of combined_autocorr is ', len(combined_autocorr), ' by ', len(combined_autocorr[0]))
+                wavevectors,spectrum = compute_vibrational_spectrum(combined_autocorr,TimeStep)
+                print('size of wavevectors is ', len(wavevectors))
+                print('some of the wavevectors are ', wavevectors[120:129])
+                print('size of spectrum is ', len(spectrum), ' by ', len(spectrum[0]))
+                combined_autocorr = np.array(combined_autocorr)
+                correlforprinting = combined_autocorr[:combined_autocorr.shape[0] // 2, :]
+                #waves_reshaped = wavevectors.reshape(-1,1)
+                fftforprinting = np.stack((wavevectors, correlforprinting), axis=0)
+                #fftforprinting = np.array(wavevectors)
+                #fftforprinting.append(spectrum)
+                print("sizes for printing are ",correlforprinting.shape, ' and ', fftforprinting.shape)
+                #plotaurocorrelation(combined_autocorr, spectrum)
+                plotaurocorrelation(correlforprinting,fftforprinting)
 
                 spectrumfile = UMDfile[:-7] + 'vibr_spec.dat'
-                #write_to_files(combined_autocorr, spectrum, TimeStep, spectrumfile)
-                write_to_files(correlforprinting, spectrum, TimeStep, spectrumfile)
+                write_to_files(combined_autocorr, spectrum, TimeStep, spectrumfile)
+                #write_to_files(correlforprinting, spectrum, TimeStep, spectr umfile)
             elif property == 11:  # separated by atomic types and directions
                 autocorr_bytypex, autocorr_bytypey, autocorr_bytypez = process_atomic_type_data(autocorr_byatomsx, autocorr_byatomsy, autocorr_byatomsz, MyCrystal)
                 autocorr_bytypex = np.array(autocorr_bytypex)
