@@ -316,7 +316,7 @@ def main():
                 print('size of combined_autocorr is ', len(combined_autocorr), ' by ', len(combined_autocorr[0]))
                 wavevectors,spectrum = compute_vibrational_spectrum(combined_autocorr,TimeStep)
                 print('size of wavevectors is ', len(wavevectors))
-                print('some of the wavevectors are ', wavevectors[120:129])
+                #print('some of the wavevectors are ', wavevectors[120:129])
                 print('size of spectrum is ', len(spectrum), ' by ', len(spectrum[0]))
                 combined_autocorr = np.array(combined_autocorr)
                 correlforprinting = combined_autocorr[:combined_autocorr.shape[0] // 2, :]
