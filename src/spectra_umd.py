@@ -313,7 +313,7 @@ def main():
 
                 correlforprinting = [autocorr_bytypex, autocorr_bytypey, autocorr_bytypez]
                 combined_autocorr = [np.sum([autocorr_bytypex[i], autocorr_bytypey[i], autocorr_bytypez[i]], axis=0) for i in range(len(autocorr_bytypex))]
-                print('size of combined_autocorr is ', len(combined_autocorr), ' by ', len(combined_autocorr[0]))
+                #print('size of combined_autocorr is ', len(combined_autocorr), ' by ', len(combined_autocorr[0]))
                 wavevectors,spectrum = compute_vibrational_spectrum(combined_autocorr,TimeStep)
                 print('size of wavevectors is ', len(wavevectors))
                 #print('some of the wavevectors are ', wavevectors[120:129])
