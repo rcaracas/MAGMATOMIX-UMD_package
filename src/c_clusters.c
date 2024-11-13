@@ -87,7 +87,7 @@ double* angles(int *polyhedras, int nPol, int M, double *MySnapshot, int *CentIn
 
 	if(CoordList == NULL || OutList == NULL || AnglesList == NULL){
 		printf("Memory Allocation failure for CoordList (length %d), OutList (length %d) or AnglesList (length %d) in function 'angles'",3*M,M,(M+1)*M/2*numCent+numCent);
-		return EXIT_FAILURE;
+		// return EXIT_FAILURE;
 	}
 	AnglesList[0]=1;//Index of the next angle to write in the tab
 	while(ncent<=nPol){//We parse the polyhedras central atom by central atom
@@ -235,7 +235,7 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 		if (CentAts == NULL||OutAts == NULL)
 		{
 		    printf("Memory Allocation failure for CentAts (length %d) or Outats (length %d)\n,",natom,natom);
-		    return EXIT_FAILURE;
+		    // return EXIT_FAILURE;
 		}
 
 		for(int i=0 ; i<natom ; i++){
@@ -252,7 +252,7 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 		if (AllAts == NULL)
 		{
 		    printf("Memory Allocation failure for AllAts : len is %d\n",len);
-		    return EXIT_FAILURE;
+		    // return EXIT_FAILURE;
 		}
 		for(int i=0 ; i<natom ; i++){
 			AllAts[i]=-1;
@@ -265,7 +265,7 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 	if (neighbors == NULL)
 	{
 	    printf("Memory Allocation failure for neighbors : len is %d\n",len);
-	    return EXIT_FAILURE;
+	    // return EXIT_FAILURE;
 	}
 
 
@@ -306,7 +306,8 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 				
 				int *neighborstemp = (int *)realloc(neighbors,(len+2*maxClustSize+1)*sizeof(int));
 
-				if(neighborstemp == NULL){printf("Memory allocation failure for neighbors \n");return EXIT_FAILURE;}
+				if(neighborstemp == NULL){printf("Memory allocation failure for neighbors \n");}
+				// if(neighborstemp == NULL){printf("Memory allocation failure for neighbors \n");return EXIT_FAILURE;}
 
 				neighbors = neighborstemp;
 				len = len + 2*maxClustSize +1;
