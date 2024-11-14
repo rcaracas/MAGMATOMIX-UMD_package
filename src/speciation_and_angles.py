@@ -377,7 +377,7 @@ def main(argv):
  
     if t==0 and p==0 :
         return True#For the GUI
-    if t==1 and p==0 :
+    if t==1 and p==1 :
         if len(Centrals)==1 and len(Adjacents)==1:
             CentIndexes,AdjIndexes,MyCrystal,Bonds,TimeStep = umdpf.read_bonds(BondFile,Centrals,Adjacents,Nsteps,"Dictionary")
             if CentIndexes == -1 :#For the GUI to display an error message whenever an element is missing
