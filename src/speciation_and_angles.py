@@ -111,6 +111,7 @@ def analysis_subtab(Clusters,Step):#Creates a dictionnary whose keys are the ind
     return population
     
 def compute_angles(Bonds,MyCrystal,AllSnapshots,CentMin,CentMax,OutMin,OutMax,fa,TimeStep,Nsteps):#Calculates and writes the angles in a file.
+    print('In compute angles')
     acell=MyCrystal.acell
     TotMean=0
     TotNangles=0
