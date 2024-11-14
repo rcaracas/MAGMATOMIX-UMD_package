@@ -392,7 +392,7 @@ def main(argv):
             AdjMin = AdjIndexes[0]
             AdjMax = AdjIndexes[1]
         
-            File=str(UMDFile)+".angles_umdpf.dat"
+            File=str(UMDFile)+".angles.dat"
         
             fa=open(File,'w')
             fa.write(header)
