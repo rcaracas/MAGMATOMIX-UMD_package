@@ -460,7 +460,7 @@ def read_bonds(BondFile,centEls,adjEls,Nsteps=1,mode="Indexes",nCores = None):
         return CentIndexes, AdjIndexes, MyCrystal, BondDicos, TimeStep*Nsteps
 
 def read_stresses_4visc(UMDfile):
-    print(' in read_stresses_4visc')
+    #print(' in read_stresses_4visc')
     MyCrystal = cr.Lattice()
     TimeStep = 1.0
     (MyCrystal,TimeStep) = Crystallization(UMDfile)
@@ -478,7 +478,7 @@ def read_stresses_4visc(UMDfile):
             if not l :
                 l=ff.readline()
                 if not l :#If we encounter two empty lines in a row, we're at the end of the file
-                    print('len of allsnapshots is',len(AllSnapshots))
+                    #print('len of allsnapshots is',len(AllSnapshots))
                     return MyCrystal, AllSnapshots,TimeStep
             line = l.strip().split()
             if len(line)>0 :
