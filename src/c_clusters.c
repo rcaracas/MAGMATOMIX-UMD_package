@@ -191,9 +191,11 @@ void clusteringall(int *neighbors,const int *SnapshotBonds, const int *indBonds,
 void clusteringrec(int *neighbors,const int *SnapshotBonds, const int *indBonds, int *OutAts, int *OutIndexes, const int nOut, const int atom, const int r){	//
 
 	int at=0;
+	//printf("in clusteringrec, with rflag = %d that has indBonds[atom] %d\n",r,indBonds[atom]);
 	if(r>0){	//The recursion stops when r becomes 0
 		for(int i = indBonds[atom]; i<indBonds[atom+1]; i++){	//We loop over the coordinated atoms
 			at = SnapshotBonds[i];
+			//printf(" next bonded atom is: %d\n",at);
 			if(is_in(at,OutIndexes,nOut)){	//If, of course, the coordinated atom is in the list of the outer atoms
 				if(OutAts[at]!=-1){	//If at has not been count yet
 					OutAts[at]=-1;	//We retire at from the OutAts
@@ -225,8 +227,11 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 
 	int meanClustSize = indBonds[nAts]/(nAts);
 
+    //printf("Starting the c function fullclustering \n");
+
 	if(r>0){
 		maxClustSize = min(pow(M,r)+1,numOut+2);	//The maximum size of a cluster, used as an estimation unit to increase the size of neighbors
+		//printf("maxClustSize is %d\n",maxClustSize);
 		len = indBonds[nAts]+2*nAts+1 ;
 		CentAts = calloc(natom,sizeof(int));
 		OutAts = calloc(natom,sizeof(int));
@@ -234,8 +239,8 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 
 		if (CentAts == NULL||OutAts == NULL)
 		{
-		    printf("Memory Allocation failure for CentAts (length %d) or Outats (length %d)\n,",natom,natom);
-		    // return EXIT_FAILURE;
+		    printf("Memory Allocation failure for CentAts (length %d) or OutAts (length %d)\n,",natom,natom);
+		    //return EXIT_FAILURE;
 		}
 
 		for(int i=0 ; i<natom ; i++){
@@ -252,7 +257,7 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 		if (AllAts == NULL)
 		{
 		    printf("Memory Allocation failure for AllAts : len is %d\n",len);
-		    // return EXIT_FAILURE;
+		    //return EXIT_FAILURE;
 		}
 		for(int i=0 ; i<natom ; i++){
 			AllAts[i]=-1;
@@ -261,12 +266,21 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 		reinit(AllAts,OutIndexes,nOut);
 	}
 
+    //printf("finished allocating memory for various strings\n");
 	neighbors = calloc(len,sizeof(int));
 	if (neighbors == NULL)
 	{
 	    printf("Memory Allocation failure for neighbors : len is %d\n",len);
-	    // return EXIT_FAILURE;
+	    //return EXIT_FAILURE;
 	}
+
+    //printf("Check in fullclustering: neighboring size is %ld and they are:\n", sizeof(neighbors));
+    //for (int i = 0; i < sizeof(neighbors); i++) {
+    //    printf("%d", neighbors[i]); // Print each integer
+    //    if (i < sizeof(neighbors) - 1) {
+    //        printf(", "); // Add a comma and space between numbers
+    //    }
+    //}
 
 
 //Initialisation
@@ -275,20 +289,34 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 		neighbors[i]=-1;
 	}
 	neighbors[0]=1;
+    //printf("new initialized neighbor list\n");
+    //for (int i = 0; i < sizeof(neighbors); i++) {
+    //    printf("%d", neighbors[i]); // Print each integer
+    //    if (i < sizeof(neighbors) - 1) {
+    //        printf(", "); // Add a comma and space between numbers
+    //    }
+    //}
 
 
 
 //neighbors computation
-
+    //printf("\nWe are starting to compute neighbors \n");
+    //printf("There are natom %d\n",natom);
 	if(r>0){
+	    //printf("Will compute coordination spheres of order %d\n",r);
 		while(index<natom){
+    	    //printf("index, i.e. current atom, is %d\n",index);    //prints out the current atom, going through the entire list of atoms
+    	    //printf("CentAts for current atom is %d\n",CentAts[index]);
+		    //printf("Centats is %d\n",CentAts[index]);
 			if(CentAts[index] != -1){	//Looping central atom by central atom
 				atom=CentAts[index];
+				//printf("Current central atom is %d\n",atom);        //prints only the central atom that counts
 				CentAts[index]=-1;
 				neighbors[neighbors[0]]=atom;
 				neighbors[0]++;
 				prev_index = neighbors[0];
 				clusteringrec(neighbors,SnapshotBonds,indBonds,OutAts,OutIndexes,nOut,atom,r);
+				//printf("First neighbor in the list is %d\n",neighbors[0]);
 				if(neighbors[0]==prev_index){	//We separate the clusters by the number -1
 					neighbors[0]--;
 					neighbors[neighbors[0]]=-1;
@@ -296,8 +324,23 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 				else{
 					neighbors[0]++;
 				}
+			}
 
-			}		
+            //printf("In the middle of the while loop. OutAts is \n");
+            //for (int i = 0; i < sizeof(OutAts); i++) {
+            //    printf("%d",OutAts[i]); // Print each integer
+            //    if (i < sizeof(neighbors) - 1) {
+            //        printf(", "); // Add a comma and space between numbers
+            //    }
+            //}
+            //printf("\n and OutIndexes is \n");
+            //for (int i = 0; i < sizeof(OutIndexes); i++) {
+            //    printf("%d",OutIndexes[i]); // Print each integer
+            //    if (i < sizeof(neighbors) - 1) {
+            //        printf(", "); // Add a comma and space between numbers
+            //    }
+            //}
+            //printf("\n");
 
 
 			index++;
@@ -319,7 +362,7 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 		free(OutAts);
 		free(CentAts);
 		while(neighbors[neighbors[0]]==-1){
-			neighbors[0]--;
+			neighbors[0]--;   //updates the size of actual neighbors
 		}
 		return neighbors;
 	}

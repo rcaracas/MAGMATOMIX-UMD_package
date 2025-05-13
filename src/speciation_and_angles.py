@@ -194,30 +194,41 @@ def clustering(SnapshotBonds,SnapshotBondIndexes,SnapshotXCart,step,maxSteps,nat
         sys.stdout.write("\rBuilding species. Progress : "+str(100*step//maxSteps)+"%")        
         sys.stdout.flush()
         
-    M=SnapshotBondIndexes[-1]#maximum number of bound atoms for any atoms
+    MaxNrBoundAtoms=SnapshotBondIndexes[-1]#maximum number of bound atoms for any atoms
     #Preparing data for the C script        
 
     SBp = (ctypes.c_int * len(SnapshotBonds))(*SnapshotBonds)
     BIp = (ctypes.c_int * (len(SnapshotBondIndexes)-1))(*SnapshotBondIndexes[:-1])
     CIp = (ctypes.c_int * len(CentIndexes))(*CentIndexes)
     OIp = (ctypes.c_int * len(OutIndexes))(*OutIndexes)
-    
-    Np = clust_lib.fullclustering(SBp,BIp,natom,nAts,CIp,OIp,int(len(CentIndexes)/2),int(len(OutIndexes)/2),M,r)#Computes the clusters
+
+    #print("\n\nbefore the c function")
+    Np = clust_lib.fullclustering(SBp,BIp,natom,nAts,CIp,OIp,int(len(CentIndexes)/2),int(len(OutIndexes)/2),MaxNrBoundAtoms,r)#Computes the clusters
+    #print("after the c function")
     Clusters = [[]]
     Angles = {}
     length = Np[0]
+
+    #print("First Np is ",Np[0])
     #Converting C data into a python list of clusters
-    for i in range(1,length+1):
+    if r==1:
+        startrange=0
+    else:
+        startrange=1
+    #for i in range(startrange,length+1):
+    for i in range(1, length + 1):
         atom=Np[i]
-        if atom ==-1 :
+        #print("Current atoms is ",atom)
+        if atom ==-1:
+            #print("new cluster is ",Clusters[:])
             Clusters.append([])
-        else :   
+        else:
             Clusters[-1].append(atom)
 
     
     if r==1 and AngleCalc:#Calculating the angles within each cluster, as a dictionary whose entries are clusters and values are the angles
         SXp = (ctypes.c_double * len(SnapshotXCart))(*SnapshotXCart)
-        Ap = clust_lib.angles(Np,len(Clusters),M,SXp,CIp,int(len(CentIndexes)/2),OIp,int(len(OutIndexes)/2),acell[0],acell[1],acell[2])
+        Ap = clust_lib.angles(Np,len(Clusters),MaxNrBoundAtoms,SXp,CIp,int(len(CentIndexes)/2),OIp,int(len(OutIndexes)/2),acell[0],acell[1],acell[2])
         index=0
         flagnew=1
         for i in range(1,int(Ap[0])):
@@ -257,9 +268,9 @@ def main(argv):
     rings = 1
     header = ''
     start=time.time()
-    t = 0
-    p = 1
-    b = 0
+    flagangles = 0
+    flagpopul = 1
+    flagbondlife = 0
     nCores = None
     try:
         opts, arg = getopt.getopt(argv,"hb:f:s:c:a:m:r:t:l:p:k:",["bBondFile","fUMDFile","sSampling_Frequency", "cCentral","aAdjacent","mMinlife","rRings","pPopulation","tAngles","lBondslife","pPopulation","knCores"])
@@ -300,11 +311,11 @@ def main(argv):
             Adjacents = arg.split(",")
             #print ('Anion list is: ',Anions)
         elif opt in("-t","--tAngles"):
-            t = int(arg)
+            flagangles = int(arg)
         elif opt in("-p","--pPopulation"):
-            p = int(arg)
+            flagpopul = int(arg)
         elif opt in("-l","--lBondslife"):
-            b = int(arg)
+            flagbondlife = int(arg)
         elif opt in ("-r","--rRings"):
             rings = int(arg)
             if rings == 0:
@@ -324,7 +335,7 @@ def main(argv):
         print ('the bond file ',BondFile,' does not exist')            
         sys.exit()
 
-    if t==1 and (not (os.path.isfile(UMDFile))):
+    if flagangles==1 and (not (os.path.isfile(UMDFile))):
         print ('the UMD file ',UMDFile,' does not exist')            
         sys.exit()
     
@@ -335,7 +346,7 @@ def main(argv):
         sys.stdout.write("The number that will be used is automatically determined.\n")
 
             
-    if b==1 :
+    if flagbondlife==1 :
         print("Calculating the lifetimes of the bonds...")
         DicoBonds,TimeStep = analysis_BondLives(BondFile,Centrals,Adjacents,Nsteps,nCores)
         DicoLives = {}
@@ -375,9 +386,9 @@ def main(argv):
         print("Bonds lifetimes written in file ",FileName)
         fb.close()
  
-    if t==0 and p==0 :
+    if flagangles==0 and flagpopul==0 :
         return True#For the GUI
-    if t==1 and p==1 :
+    if flagangles==1 and flagpopul==1 :
         if len(Centrals)==1 and len(Adjacents)==1:
             CentIndexes,AdjIndexes,MyCrystal,Bonds,TimeStep = umdpf.read_bonds(BondFile,Centrals,Adjacents,Nsteps,"Dictionary")
             if CentIndexes == -1 :#For the GUI to display an error message whenever an element is missing
@@ -432,14 +443,14 @@ def main(argv):
         nAts = MyCrystal.natom
         
         
-    if (t==1) and (rings==1):
+    if (flagangles==1) and (rings==1):
         MyCrystalUMD,TimeStepUMD = umdpf.Crystallization(UMDFile)
         TimeRatio = int(TimeStep/TimeStepUMD)#Used to match the snapshots of UMD and bonding file, in case there has been a sampling of the snapshots in between
         MyCrystalUMD,SnapshotsXCart,TimeStepUMD,length = umdpf.read_values(UMDFile,"xcart","line",Nsteps*TimeRatio,nCores=nCores)
     else :
         SnapshotsXCart = [[] for _ in range(len(Bonds))]#Blank list which will not be used but is needed as an argument
     
-    clusteringRed=partial(clustering,maxSteps=len(Bonds)-1,natom=MyCrystal.natom,nAts=nAts,CentIndexes=CentIndexes,OutIndexes=AdjIndexes,r=rings,acell=MyCrystal.acell,AngleCalc=t)
+    clusteringRed=partial(clustering,maxSteps=len(Bonds)-1,natom=MyCrystal.natom,nAts=nAts,CentIndexes=CentIndexes,OutIndexes=AdjIndexes,r=rings,acell=MyCrystal.acell,AngleCalc=flagangles)
 
 #    DataII = []
 #    for i in range(len(Bonds)):
@@ -528,7 +539,7 @@ def main(argv):
                 else:
                     dicoTimes[life[0]]=[[key,name,life[-1],(life[-1]-life[0]+1)*Nsteps*TimeStep]]
     
-    if rings==1 and t:
+    if rings==1 and flagangles:
         newstring="Formula\tBegin (step)\tEnd(step)\tlifetime (fs)\tcomposition\tAngles\n"
     else :
         newstring="Formula\tBegin (step)\tEnd(step)\tlifetime (fs)\tcomposition\n"
@@ -542,7 +553,7 @@ def main(argv):
                 if data[3]>minlife :
                     newstring=data[1]+"\t"+str(ii*Nsteps)+"\t"+str(data[2]*Nsteps)+"\t"+str(data[3])+"\t"+data[0]
                     
-                    if rings==1 and t :
+                    if rings==1 and flagangles :
                         if data[0] in Angles[ii].keys():
                             angles=np.array([np.array(Angles[jj][data[0]]) for jj in range(ii,data[2]+1)])
                             Meanangles = np.sum(angles,0)/len(angles)
@@ -564,7 +575,7 @@ def main(argv):
     fa.close()
 
         
-    if(rings==1 and t):
+    if(rings==1 and flagangles):
         newstring="Cluster\tTime(fs)\tPercent\tNumber of atoms\tMean Angles\n"
     else:
         newstring="Cluster\tTime(fs)\tPercent\tNumber of atoms\n"    
