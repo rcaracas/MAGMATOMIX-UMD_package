@@ -120,7 +120,7 @@ def main(argv):
 
         if outoption == 1:
             if ksnapshot == -1:
-                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "xcart", mode="line",Nsteps=iterstep)
+                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "xcart", mode="line",Nsteps=iterstep,firststep=firststep)
                 outputfile = UMDname[:-7] + 'xyz'
             else:
                 (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "xcart", mode="line",Nsteps=1,firststep=ksnapshot,laststep=ksnapshot+1)
@@ -128,7 +128,7 @@ def main(argv):
             print_xyz(outputfile, MyCrystal, AllSnapshots, UMDname)
         elif outoption == 2:
             if ksnapshot == -1:
-                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line",Nsteps=iterstep)
+                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line",Nsteps=iterstep,firststep=firststep)
                 outputfile = UMDname[:-7] + 'poscar'
             else:
                 (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line", Nsteps=1,firststep=ksnapshot,laststep=ksnapshot + 1)
@@ -137,7 +137,7 @@ def main(argv):
             print_poscar(outputfile,MyCrystal,AllSnapshots,UMDname)
         elif outoption == 3:
             if ksnapshot == -1:
-                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line",Nsteps=iterstep)
+                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line",Nsteps=iterstep,firststep=firststep)
                 outputfile = UMDname[:-7] + 'lammps'
             else:
                 (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line", Nsteps=1,firststep=ksnapshot,laststep=ksnapshot + 1)
@@ -146,7 +146,7 @@ def main(argv):
             print_lammps(outputfile,MyCrystal,AllSnapshots,UMDname)
         elif outoption == 4:
             if ksnapshot == -1:
-                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line",Nsteps=iterstep)
+                (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line",Nsteps=iterstep,firststep=firststep)
                 outputfile = UMDname[:-7] + 'deepmd'
             else:
                 (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line", Nsteps=1,firststep=ksnapshot,laststep=ksnapshot + 1)
