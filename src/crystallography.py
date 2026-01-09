@@ -215,6 +215,19 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         for iatom in range(self.natom):
             string = '  ' + str(self.atoms[iatom].xred[0]) + '  ' + str(self.atoms[iatom].xred[1]) + '  ' + str(self.atoms[iatom].xred[2])+'\n'
             f.write(string)
+    def derive_types_from_typat(self):
+        """
+        Derive the 'types' attribute from the 'typat' attribute.
+
+        The 'typat' attribute defines the type of each atom, and this method
+        extracts unique types into 'types' while preserving their original order.
+        """
+        if hasattr(self, "typat") and self.typat:
+            # Extract unique types from typat in the order of their first appearance
+            self.types = sorted(set(self.typat), key=self.typat.index)
+        else:
+            # Handle case where typat is not defined or is empty
+            self.types = []
 
 
 def TripleLattice(crystal):

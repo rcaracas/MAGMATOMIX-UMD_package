@@ -97,6 +97,8 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
     print('MyCrystal.natom is ',MyCrystal.natom)
     print('AllMolecules size is ',len(MultiMolecules))
     AtomicOrdering = []
+    AtomicSymbols = []
+    AtomicNoTypes = []
     TryMolec = cr.Lattice()
     string = ''
     notrials = 0
@@ -109,17 +111,17 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
         for jmolec in range(MultiMolecules[imolectype]):
             flagpos = 1
             notrials = 0
-            while flagpos>0 and notrials<10:
+            while flagpos>0 and notrials<10000:
                 notrials = notrials + 1
-                print ('this is trial no. ',notrials,' for molecule no. ',jmolec)
-                print ('DEALING with new molecule')
+                #print ('this is trial no. ',notrials,' for molecule no. ',jmolec)
+                #print ('DEALING with new molecule')
                 OrigMolecule = np.random.rand(3)                #random position of central atom
                 OrigRotationAxis = np.random.rand(3)          #random rotation oaxis f molecule
                 OrigRotationAxis = OrigRotationAxis / np.linalg.norm(OrigRotationAxis)
                 OrigRotationAngle = np.random.rand() * 2 * math.pi      #random rotation angle of molecule
                 rot = Rotation.from_rotvec(OrigRotationAngle * OrigRotationAxis)
             #place all atoms of molecule
-                print('random part. XYZ: ',OrigMolecule,' axis: ',OrigRotationAxis,' angle: ',OrigRotationAngle)
+                #print('random part. XYZ: ',OrigMolecule,' axis: ',OrigRotationAxis,' angle: ',OrigRotationAngle)
                 for iatom in range(TryMolec.natom):
                     flagpos = 0
                     TryMolec.atoms[iatom].symbol = AllMolecules[imolectype].atoms[iatom].symbol
@@ -163,17 +165,20 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
                 TryMolec.natom = AllMolecules[imolectype].natom
                 TryMolec.atoms = [cr.Atom() for _ in range(TryMolec.natom)]
             else:
-                print('I could not insert your molecule even after 1000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
+                print('I could not insert your molecule even after 10000 trials. Most likely there is not enough space in the simulation cell to accomodate all molecules within an exclusion radius of ',Rcutoff)
                 print('  I suggest you increase the unit cell UnitCell or the exclusion radius Rcutoff.')
                 exit()
 
     print('done with generating, we move to ordering')
-    AtomicOrdering = umdpf.sort_umd(MyNewCrystal)
-    #print ('Ordered atoms are',AtomicOrdering)
+    (AtomicOrdering,AtomicSymbols,AtomicNoTypes) = umdpf.sort_umd(MyNewCrystal)
+    print ('done with sorting')
+    print ('Ordered atoms are',AtomicOrdering)
+    print ('Ordered symbols are',AtomicSymbols)
+    print ('Ordered types are',AtomicNoTypes)
     #for iatom in range(MyNewCrystal.natom):
         #print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
     #print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
-    if notrials < 1000 and flagpos == 0:
+    if notrials < 10000 and flagpos == 0:
         filename = 'struct-' + str(CurrStructs) + '.xyz'
         f = open(filename,'w')
         f.write(str(MyNewCrystal.natom))
@@ -188,20 +193,18 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
             string = string + '\n'
         f.write(string)
         f.close()
-        filename = 'POSCAR'
+        print ('done with writing ',filename)
+        filename = 'struct-' + str(CurrStructs) + '.vasp'
         f = open(filename,'w')
         f.write('new structure with inserted atoms \n')
         f.write(' 1.0 \n')
         string = ''
         string = string + str(MyNewCrystal.acell[0]) + ' 0.0 0.0' + '\n' + ' 0.0 ' + str(MyNewCrystal.acell[1]) + ' 0.0 ' + '\n' + ' 0.0 0.0 ' + str(MyNewCrystal.acell[2]) + '\n'
         f.write(string)
-        string = ' ATOMS \n NUMBERS'
-        # for iatom in range(MyNewCrystal.natom):
-        #     string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + ' '
-        string = string + '\n'
-        f.write(string)
-        string = ''
-        f.write(string)
+        f.write((" ".join(AtomicSymbols)))
+        f.write('\n')
+        f.write((" ".join(map(str, AtomicNoTypes))))
+        f.write('\n')
         f.write('Cartesian\n')
         for iatom in range(MyNewCrystal.natom):
             string = '  '
