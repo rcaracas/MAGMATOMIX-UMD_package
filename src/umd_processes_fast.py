@@ -512,49 +512,6 @@ def headerumd():
     print ('    cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534,doi:10.3791/61534 (2021)' )
     print (' ')
 
-def sort_umd_obs(MyCrystal):
-    iflag = -1
-    # To store unique atom types based on their symbols
-    #print ('There are ',MyCrystal.natom,'  atoms to order')
-    types = []
-    symbols = []
-    type_counts = []
-    notypatoms = 0
-    AtomicOrdering = [-1 for _ in range(MyCrystal.natom)]
-    orderedvector = [-1 for _ in range(MyCrystal.natom)]
-    for iatom in range(MyCrystal.natom):
-        #print('Atom no. ', iatom,' with symbol ',MyCrystal.atoms[iatom].symbol,' and ordering ',AtomicOrdering[iatom])
-        if AtomicOrdering[iatom] == -1:
-            #Thi is a new atomic type
-            #print ('new atomic type')
-            iflag = iflag + 1
-            notypatoms = notypatoms + 1
-            AtomicOrdering[iatom] = iflag
-            MyCrystal.typat[iatom] = notypatoms
-
-            # Add the new symbol to the list of types
-            #print ('Atomic ordering of iatom ',iatom,' is ',AtomicOrdering[iatom])
-            if MyCrystal.atoms[iatom].symbol not in types:
-                types.append(MyCrystal.atoms[iatom].symbol)
-                symbols.append(MyCrystal.atoms[iatom].symbol)
-                types.append(0)  # Initialize the count for this type
-
-            # Increment the count for this type
-            type_index = types.index(symbols)
-            type_counts[type_index] += 1
-
-            # Find all other atoms with the same symbol and update their order
-            for jatom in range(iatom+1,MyCrystal.natom):
-                if MyCrystal.atoms[jatom].symbol == MyCrystal.atoms[iatom].symbol:
-                    #print ('small atom no ',jatom,MyCrystal.atoms[jatom].symbol,' same atomic type as big atom ',iatom,MyCrystal.atoms[iatom].symbol)
-                    MyCrystal.typat[jatom] = notypatoms
-                    iflag = iflag + 1
-                    AtomicOrdering[jatom] = iflag
-                    #print ('Atomic ordering of jatom ',jatom,' is ',AtomicOrdering[jatom],MyCrystal.atoms[jatom].symbol)
-        #print ('Atomic ordering is ',AtomicOrdering)
-    return(np.argsort(AtomicOrdering),symbols,types)
-
-
 def sort_umd(MyCrystal):
     iflag = -1
     # To store unique atom types and their counts
@@ -596,7 +553,6 @@ def sort_umd(MyCrystal):
 
     # Return the indices that would sort the AtomicOrdering array
     return (np.argsort(AtomicOrdering),symbols,type_counts)
-
 
 def print_header(FileName,MyCrystal):
     newfile = FileName + '.umd.dat'
