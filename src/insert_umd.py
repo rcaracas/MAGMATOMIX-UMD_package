@@ -188,6 +188,29 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
             string = string + '\n'
         f.write(string)
         f.close()
+        filename = 'POSCAR'
+        f = open(filename,'w')
+        f.write('new structure with inserted atoms \n')
+        f.write(' 1.0 \n')
+        string = ''
+        string = string + str(MyNewCrystal.acell[0]) + ' 0.0 0.0' + '\n' + ' 0.0 ' + str(MyNewCrystal.acell[1]) + ' 0.0 ' + '\n' + ' 0.0 0.0 ' + str(MyNewCrystal.acell[2]) + '\n'
+        f.write(string)
+        string = ' ATOMS \n NUMBERS'
+        # for iatom in range(MyNewCrystal.natom):
+        #     string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + ' '
+        string = string + '\n'
+        f.write(string)
+        string = ''
+        f.write(string)
+        f.write('Cartesian\n')
+        for iatom in range(MyNewCrystal.natom):
+            string = '  '
+            for ii in range(3):
+                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
+            string = string + '\n'
+            f.write(string)
+        f.close()
+
 #        filename = 'struct-' + str(CurrStructs) + '.POSCAR'
 #        f = open(filename,'w')
 #        string = header + '  No. ' + str(CurrStructs) + '\n'
