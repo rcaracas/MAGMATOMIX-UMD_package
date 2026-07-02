@@ -225,7 +225,8 @@ def clustering(SnapshotBonds,SnapshotBondIndexes,SnapshotXCart,step,maxSteps,nat
         else:
             Clusters[-1].append(atom)
 
-    
+    Clusters = [sorted(c) for c in Clusters]
+
     if r==1 and AngleCalc:#Calculating the angles within each cluster, as a dictionary whose entries are clusters and values are the angles
         SXp = (ctypes.c_double * len(SnapshotXCart))(*SnapshotXCart)
         Ap = clust_lib.angles(Np,len(Clusters),MaxNrBoundAtoms,SXp,CIp,int(len(CentIndexes)/2),OIp,int(len(OutIndexes)/2),acell[0],acell[1],acell[2])
