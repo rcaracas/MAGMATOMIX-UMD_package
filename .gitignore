@@ -1,4 +1,10 @@
 
+# Local test/run outputs and legacy scripts (not for GitHub)
+data/
+obsolete files/
+.DS_Store
+.idea/
+
 # Created by https://www.gitignore.io/api/latex,python
 # Edit at https://www.gitignore.io/?templates=latex,python
 
