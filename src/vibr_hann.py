@@ -16,7 +16,7 @@ from functools import partial
 import time
 import ctypes
 from os.path import join
-
+from scipy.signal.windows import hann
 
 current_path=os.path.abspath(__file__)#For all this to work, the file c_autocorrelation_vib.so must be in the same directory than this script
 path_split=current_path.split('/')
@@ -41,59 +41,18 @@ autc_lib.compute_autocorrelation.argtypes = [ctypes.POINTER(ctypes.c_double),cty
 autc_lib.compute_autocorrelation.restype = ctypes.POINTER(ctypes.c_double)
 
 
-def correlation_par_C(posList,timestep,temperature):
+def correlation_par_C(posList,timestep,temperature,maxtau):
 
 #     pos = posList.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     pos =(ctypes.c_double * len(posList))(*list(posList))
     nostep = len(posList)
-    maxtau=int(nostep/2)
+ #   maxtau=int(nostep/2)
     autocorrelationP = autc_lib.compute_autocorrelation(pos,nostep,maxtau)
     autocorrelation = [autocorrelationP[i] for i in range(maxtau)]
     fft_correlation = dct(autocorrelation,1)/2.0 * 2.0 * timestep #this gives exactly the same answer as above and hope you know what is time shifting in discrete fourier transform(that is the reason to have np.abs)
 
     # we calculate frequency
     return autocorrelation,fft_correlation
-
-def correlation_par(posList,normalization,timestep,temperature):
-
-
-    nostep = len(posList)
-    maxtau=int(nostep/2)
-    temp = 1.0/np.arange(nostep,nostep-maxtau,-1)
-    normalization = np.diag(temp)
-    temp1 = np.correlate(posList,posList,mode='full')[len(posList)-1:]
-    autocorrelation = np.matmul(normalization,temp1[0:maxtau])     
-    fft_correlation = dct(autocorrelation,1)/2.0 * 2.0 * timestep #this gives exactly the same answer as above and hope you know what is time shifting in discrete fourier transform(that is the reason to have np.abs)
-
-    # we calculate frequency
-#    print("autocpar=",autocorrelation)
-    return autocorrelation,fft_correlation
-
-def correlation(TimeMatrix,timestep,temperature):
-  
-    # TimeMatrix should be in matrix format
-    # entry1 entry2 entry3 ..
-    # 0 1 2 3 4 5 6 
-    # 1 1 2 3 4 5 6
-    #.....
-    
-    nostep = len(TimeMatrix)
-    noentries = len(TimeMatrix[1])
-    maxtau = int(nostep / 2)
-    autocorrelation = np.empty((maxtau,noentries))
-    fft_correlation = np.empty((maxtau,noentries)) 
-    temp = 1.0/np.arange(nostep,nostep-maxtau,-1)
-    normalization = np.diag(temp)
-    for ientry in range(noentries): 
-
-        temp1 = np.correlate(TimeMatrix[:,ientry],TimeMatrix[:,ientry],mode='full')[len(TimeMatrix[:,ientry])-1:] #same as that of [len(TimeMatrix[ientry])-1:]
-        #although it's fast, it's not normalized
-        autocorrelation[:,ientry] = np.matmul(normalization,temp1[0:maxtau]) 
-        fft_correlation[:,ientry] = dct(autocorrelation[:,ientry],1)/2.0 * 2.0 * timestep #this gives exactly the same answer as above and hope you know what is time shifting in discrete fourier transform(that is the reason to have np.abs)
-
-    # we calculate frequency
-    freq = fftfreq(2*maxtau,d=timestep)[:maxtau] 
-    return autocorrelation,fft_correlation,freq                	
 
 def main(argv):
     start_time=time.time()
@@ -125,6 +84,10 @@ def main(argv):
         elif opt in ("-t"):
             temperature = float(arg)
             print('the temperature is',temperature)
+        elif opt in ("-tau"):
+            maxtau = float(arg)
+            print('the maxinum correltion time is ',maxtau)
+
     if not (os.path.isfile(umdfile)):
         print ('umd file ',umdfile,'does not exist')
         sys.exit()
@@ -145,15 +108,17 @@ def main(argv):
     # correlation for different atom, direction
 
 
-    maxtau=int(nostep/2)
+    print("The timestep is",TimeStep)
+    maxtau=int(nostep*0.5)
+    print("The maxtau is", maxtau)
     freq = fftfreq(2*maxtau,d=TimeStep)[:maxtau] 
     print("Computing correlations")
-    corred_C = partial(correlation_par_C,timestep=TimeStep,temperature=temperature)
+    corred_C = partial(correlation_par_C,timestep=TimeStep,temperature=temperature,maxtau=maxtau)
     with concurrent.futures.ProcessPoolExecutor() as executor :
         Listautocorr_C = list(executor.map(corred_C,[TimeList[i//3][i%3] for i in range(3*MyCrystal.natom)]))
     autocorrelation = np.transpose(np.array([x[0] for x in Listautocorr_C]))
     fft_correlation = np.transpose(np.array([x[1] for x in Listautocorr_C]))
-    
+
     print("Averaging")
     # average over species, and mass weighted
     average_correlation = np.zeros((len(autocorrelation),MyCrystal.ntypat))
@@ -164,16 +129,17 @@ def main(argv):
         for jj in range(MyCrystal.natom):
             for zz in range(3):
                 icounter = icounter + 1 
-                average_correlation[ii][MyCrystal.typat[jj]] = average_correlation[ii][MyCrystal.typat[jj]] + autocorrelation[ii][icounter] * MyCrystal.masses[MyCrystal.typat[jj]]   
+                average_correlation[ii][MyCrystal.typat[jj]] = average_correlation[ii][MyCrystal.typat[jj]] + autocorrelation[ii][icounter] * MyCrystal.masses[MyCrystal.typat[jj]]  
     total_average_correlation =  np.sum(average_correlation,axis=1) 
+
 #    print("ac=",average_correlation)
     temp = total_average_correlation[0]
  #   print("temp=",total_average_correlation)
     total_average_correlation[:] = total_average_correlation[:] / temp
     temp = np.copy(average_correlation[0]) #normalization
+
     for ii in range(MyCrystal.ntypat):
         average_correlation[:,ii] = average_correlation[:,ii] / temp[ii]
-
     # average over species, and mass weighted
     diffusion_coefficient = np.zeros(MyCrystal.ntypat)
     average_fft_correlation = np.zeros((len(autocorrelation),MyCrystal.ntypat))
@@ -188,6 +154,7 @@ def main(argv):
     for ii in range(MyCrystal.ntypat):
         average_fft_correlation[:,ii] = average_fft_correlation[:,ii] * 2 * au_angstrom_squre / kB_T  #normalize to 3N -3
         diffusion_coefficient[ii] = average_fft_correlation[0][ii] / 12.0 / MyCrystal.types[ii] * kB_T *(1.602176634 * 10**-19) /(1.0 / Avogadro * (10**(-3)) * MyCrystal.masses[ii]) * 10**(-15)
+        print(MyCrystal.masses[ii])
     total_fft_correlation = np.sum(average_fft_correlation,axis=1)
     print('sum of average_fft_correlation:','theory gives a value (3N-3 =',3*MyCrystal.natom-3,') ,numerical calcualtion gives',trapezoid(np.sum(average_fft_correlation,axis=1),freq))
     print ('\n Diffusion:')
@@ -226,8 +193,29 @@ def main(argv):
         nf.write(string)
     nf.close()
 
+    ########## here we add a window funciton to smooth the vDOS
+    data = np.loadtxt(vaffilename, skiprows=1)
+    autocorr_win = data[:,-1]
+
+    N = autocorr_win.size
+    n = np.arange(N)
+    w = 0.5 * (1.0 + np.cos(np.pi * n / (N - 1)))
+    autocorr_win = autocorr_win * w
+
+
+    fft_correlation_win = dct(autocorr_win,1)/2.0 * 2.0 * TimeStep
+    
+
+    freq_cm = freq * 33356.41
+    data_out = np.column_stack((freq_cm, fft_correlation_win))
+    np.savetxt('vib_win.dat', data_out,
+           header='Freq (cm-1), fft_correlation_win',
+           fmt='%.8f', comments='')
+    ################       window done
+
     end_time = time.time()
     #print('it takes ',(end_time-start_time)/60, 'mins to finish this job fast!')
 
 if __name__ == "__main__":
    main(sys.argv[1:])
+

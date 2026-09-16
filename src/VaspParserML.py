@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 ###
-##AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH, NATALIA SOLOMATOVA, XI ZHU
+##AUTHORS: RAZVAN CARACAS, ANAIS KOBSCH, NATALIA SOLOMATOVA
 ###
 
 import sys,getopt,os.path,math
 import crystallography as cr
-import umd_processes_fast as umdpf
+import umd_process as umdp
 
-def read_outcar(FileName,InitialStep,SkipStep):
+def read_outcar(FileName,InitialStep):
     #read poscar file
-    print ('Reading outcar file ',FileName,' from initial step ',InitialStep,' writing every ',SkipStep)
+    print ('Reading outcar file ',FileName,' from initial step ',InitialStep)
     switch = False
     flagrprimd = -1
     iatom = -1    
@@ -47,8 +47,6 @@ def read_outcar(FileName,InitialStep,SkipStep):
                             jatom = jatom + 1
                     MyCrystal.atoms = [cr.Atom() for _ in range(MyCrystal.natom)]
                     oldpos = [cr.Atom() for _ in range(MyCrystal.natom)]
-                    for iatom in range(MyCrystal.natom):
-                        oldpos[iatom].xcart = [0.5,0.5,0.5]     #the only coordinates for which the first step will not add an extra phase
                     MyCrystal.elements = ['X' for _ in range(MyCrystal.ntypat)]
                     MyCrystal.masses = [0.0 for _ in range(MyCrystal.ntypat)]
                     MyCrystal.zelec = [0.0 for _ in range(MyCrystal.ntypat)]
@@ -95,7 +93,7 @@ def read_outcar(FileName,InitialStep,SkipStep):
 
 
     ff.close()
-    umdpf.print_header(FileName,MyCrystal)
+    umdp.print_header(FileName,MyCrystal)
     with open(FileName,'r') as ff:
         while True:
             line = ff.readline()
@@ -160,6 +158,7 @@ def read_outcar(FileName,InitialStep,SkipStep):
                         MyCrystal.atoms[ii].magnet = float(entry[len(entry)-1])
 
                 if line == 'total charge':           #reading the atomi charges
+
                     line = ff.readline()
                     line = ff.readline()
                     line = ff.readline()
@@ -183,27 +182,29 @@ def read_outcar(FileName,InitialStep,SkipStep):
                             #Once istep >= InitialStep, we can compute the velocities, diffcoord etc. and print the umd
                             switch = False
                             istep = istep + 1
-                            if istep >= InitialStep and (istep - InitialStep) % SkipStep == 0:
+                            if istep>=InitialStep:
+
                                 for jatom in range(MyCrystal.natom):
-                                    addphase = [0.0, 0.0, 0.0]
                                     for ii in range(3):
-                                        if MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] > MyCrystal.acell[ii]/2:
-                                            addphase[ii] = -1.0
-                                        elif MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] < -MyCrystal.acell[ii]/2:
-                                            addphase[ii] = 1.0
-                                    addphase_cart = [0.0, 0.0, 0.0]
-                                    for ii in range(3):
-                                        for jj in range(3):
-                                            addphase_cart[ii] += addphase[jj] * MyCrystal.rprimd[jj][ii]
-                                        phase[jatom][ii] += addphase_cart[ii]
-                                    for ii in range(3):
-                                        diffcoords[jatom][ii] = MyCrystal.atoms[jatom].xcart[ii] + phase[jatom][ii]
-                                        MyCrystal.atoms[jatom].vels[ii] = (MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] + addphase_cart[ii]) / TimeStep
+                                        jump = MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii]
+                                        if jump > MyCrystal.acell[ii]/2:
+
+                                            phase[jatom][ii] = phase[jatom][ii] - (MyCrystal.rprimd[ii][0]+MyCrystal.rprimd[ii][1]+MyCrystal.rprimd[ii][2])
+                                            diffcoords[jatom][ii] = MyCrystal.atoms[jatom].xcart[ii] + phase[jatom][ii]
+                                            jump = jump - (MyCrystal.rprimd[ii][0]+MyCrystal.rprimd[ii][1]+MyCrystal.rprimd[ii][2])
+                                        elif jump < -MyCrystal.acell[ii]/2:
+
+                                            phase[jatom][ii] = phase[jatom][ii] + (MyCrystal.rprimd[ii][0]+MyCrystal.rprimd[ii][1]+MyCrystal.rprimd[ii][2])
+                                            jump = jump + (MyCrystal.rprimd[ii][0]+MyCrystal.rprimd[ii][1]+MyCrystal.rprimd[ii][2])
+                                            diffcoords[jatom][ii] = MyCrystal.atoms[jatom].xcart[ii] + phase[jatom][ii]
+                                        else:
+                                            diffcoords[jatom][ii] = MyCrystal.atoms[jatom].xcart[ii] + phase[jatom][ii]
+                                        MyCrystal.atoms[jatom].vels[ii] = jump/TimeStep
                                         for jj in range(3):
                                             MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] + MyCrystal.gprimd[ii][jj]*MyCrystal.atoms[jatom].xcart[ii]
                                             while MyCrystal.atoms[jatom].xred[ii] >=1.0:
                                                 MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] - 1.0
-                                (CurrentTime,TimeStep) = umdpf.print_snapshots(FileName,MyCrystal,TimeStep,(istep-InitialStep)*TimeStep,diffcoords)
+                                (CurrentTime,TimeStep) = umdp.print_snapshots(FileName,MyCrystal,TimeStep,(istep-InitialStep)*TimeStep,diffcoords)
                 if (entry[0]=='kin.'):          #reading the temperature
                     if len(entry) == 7:
                         MyCrystal.temperature = float(entry[5])
@@ -250,29 +251,25 @@ def main(argv):
     InitialStep = 0
     CurrentTime = 0.0
     TimeStep = 0.0
-    SkipStep = 1
     string = ''
-    umdpf.headerumd()
+    umdp.headerumd()
     try:
-        opts, arg = getopt.getopt(argv,"hf:i:s:",["fOUTCARfile","iInitialStep","sSkipStep"])
+        opts, arg = getopt.getopt(argv,"hf:i:",["fOUTCARfile","iInitialStep"])
     except getopt.GetoptError:
-        print ('VaspParser.py -f <OUTCAR_filename> -i <InitialStep> -s <SkipStep>')
+        print ('VaspParser.py -f <OUTCAR_filename> -i <InitialStep>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('VaspParser.py program to translate VASP outcar files into UMD ascii format file')
-            print("Current version takes into account the machine learning soimulations within VASP.")
-            print ('VaspParser.py -f <OUTCAR_filename> -i <InitialStep> -s <SkipStep>')
-            print ('   default values: -f OUTCAR -i 0 -s 1')
+            print ('VaspParser.py program to translate VASP outcar files into UMD ascii format file')
+            print ('VaspParser.py -f <OUTCAR_filename> -i <InitialStep>')
+            print ('   default values: -f OUTCAR -i 0')
             sys.exit()
         elif opt in ("-f", "--fOUTCARfile"):
             OUTCARname = str(arg)
         elif opt in ("-i", "--iInitialStep"):
             InitialStep = int(arg)
-        elif opt in ("-s", "--iSkipStep"):
-            SkipStep = int(arg)
     if (os.path.isfile(OUTCARname)):
-        (CurrentTime,TimeStep) = read_outcar(OUTCARname,InitialStep,SkipStep)
+        (CurrentTime,TimeStep) = read_outcar(OUTCARname,InitialStep)
         string = 'Total simulation time ' + str(CurrentTime) + ' fs, done in ' + str(int(CurrentTime/TimeStep)) + ' steps of ' + str(TimeStep) + ' fs each.'
         print(string)
     else:
@@ -283,5 +280,3 @@ def main(argv):
 
 if __name__ == "__main__":
    main(sys.argv[1:])
-
-

@@ -5,6 +5,11 @@ obsolete files/
 .DS_Store
 .idea/
 
+# Compiled C extensions / local archives (not for GitHub)
+*.dylib
+get-pip.py
+umd_latest_src.tar
+
 # Created by https://www.gitignore.io/api/latex,python
 # Edit at https://www.gitignore.io/?templates=latex,python
 
