@@ -82,6 +82,7 @@ Each script imports `crystallography` and `umd_processes_fast`; most also load a
 
 **Utilities:**
 - `umd2out.py` — convert UMD snapshots to XYZ or POSCAR
+- `build_supercell.py` — build an `nx × ny × nz` supercell from a unit cell read from a VASP5-style POSCAR/CONTCAR file (e.g. one exported by VESTA), in reduced or cartesian coordinates. Replication is done in reduced coordinates (exact for any cell shape), writing both `.vasp` (POSCAR) and `.xyz` output. Kept as a standalone script rather than folded into `insert_umd.py`, since it reads a different input format (POSCAR vs. the `molecules.dat` format) and serves a different purpose (replicating a periodic cell vs. inserting molecules into a UMD trajectory); a shared "cell manipulation" library backing both may be considered later.
 - `insert_umd.py` / `insert_umd_xred.py` — insert molecules into a UMD trajectory
 - `stat-concentrate.py` — aggregate statistics from multiple speciation runs
 - `check_overlap.py` — detect atomic overlaps
