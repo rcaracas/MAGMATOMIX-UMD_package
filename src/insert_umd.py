@@ -69,17 +69,24 @@ def BuildEmptyBox(UnitCell,TotalNoAtoms):
     
     
 def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
-    #print('copying the box from the UMD file')
+    #copies the cell and the atomic positions of a UMD snapshot (MyUMDStructure, as returned by
+    #umdpf.read_values(...,"everything",mode="line"): 12 values per atom, xred*3 then xcart*3 then abs.diff.*3 then vel*3)
+    #into a new box, ready to receive the inserted molecules. Assumes an orthogonal cell, like the rest
+    #of this script's molecule-placement/overlap-check logic.
     MyNewCrystal = cr.Lattice()
-#    MyNewCrystal = MyUMDStructure
     print('in BuildUMDbox: MyCrystal.natom is ',MyCrystal.natom,'  and TotalNoAtoms is ',TotalNoAtoms)
     MyNewCrystal.natom = MyCrystal.natom + TotalNoAtoms
     MyNewCrystal.typat = [-1 for _ in range(MyNewCrystal.natom)]
+    MyNewCrystal.acell = list(MyCrystal.acell)
+    MyNewCrystal.rprim = [list(vec) for vec in MyCrystal.rprim]
+    MyNewCrystal.rprimd = [list(vec) for vec in MyCrystal.rprimd]
     MyNewCrystal.atoms = [cr.Atom() for _ in range(MyCrystal.natom)]
     #print (' initial number of atoms is ',MyCrystal.natom)
     for iatom in range(MyCrystal.natom):
         MyNewCrystal.atoms[iatom].symbol = MyCrystal.elements[MyCrystal.typat[iatom]]
-        #print (' next atom is ',MyNewCrystal.atoms[iatom].symbol)
+        MyNewCrystal.atoms[iatom].xred = list(MyUMDStructure[12*iatom:12*iatom+3])
+        MyNewCrystal.atoms[iatom].xcart = list(MyUMDStructure[12*iatom+3:12*iatom+6])
+        #print (' next atom is ',MyNewCrystal.atoms[iatom].symbol,' at ',MyNewCrystal.atoms[iatom].xcart)
     for iatom in range(TotalNoAtoms):
         MyNewCrystal.atoms.append(cr.Atom())
     #print ('in all there will be former ',MyCrystal.natom,' + new ',TotalNoAtoms,' = ',MyNewCrystal.natom,' atoms')
@@ -368,7 +375,7 @@ def main(argv):
             sys.exit()
         else:
             print ('I will insert molecules in ',os.path.isfile(UMDname),' structure every ',Ksteps,' steps')
-            (MyCrystal,AllSnapshots,TimeStep)=umdpf.readumd(UMDname)
+            (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDname, "everything", mode="line", Nsteps=1)
             print ('The length of the simulation is ',len(AllSnapshots),' snapshots')
             firststep = 0
             laststep = len(AllSnapshots)
