@@ -87,7 +87,7 @@ def BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms):
     return(MyNewCrystal,NoInsertedAtoms)
 
 
-def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header):
+def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,OutputOption):
     #places the new molecules in the former structure
     #MultiMolecules stores how many molecules of each type need to be inserted
     #AllMolecules stores the actual structure of each molecule
@@ -175,57 +175,96 @@ def PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoA
     print ('Ordered atoms are',AtomicOrdering)
     print ('Ordered symbols are',AtomicSymbols)
     print ('Ordered types are',AtomicNoTypes)
-    #for iatom in range(MyNewCrystal.natom):
-        #print ('Atom no. ',iatom,' with symbol ',MyNewCrystal.atoms[iatom].symbol,' of type ',MyNewCrystal.typat[iatom])
-    #print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file')
     if notrials < 10000 and flagpos == 0:
-        filename = 'struct-' + str(CurrStructs) + '.xyz'
-        f = open(filename,'w')
-        f.write(str(MyNewCrystal.natom))
-        string = '\nWriting ' + str(MyNewCrystal.natom) + ' with unit cell ' + str(MyNewCrystal.acell[0]) + ' ' + str(MyNewCrystal.acell[1]) + ' ' + str(MyNewCrystal.acell[2]) + '\n'
-        f.write(string)
-        string = ''
-        print ('Writing ',MyNewCrystal.natom,' atoms in the ',filename,' XYZ file with unit cell ',MyNewCrystal.acell[0],' ',MyNewCrystal.acell[1],' ',MyNewCrystal.acell[2])
-        for iatom in range(MyNewCrystal.natom):
-            string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '    '
-            for ii in range(3):
-                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]/MyNewCrystal.acell[ii]) + '  '
-            string = string + '\n'
-        f.write(string)
-        f.close()
-        print ('done with writing ',filename)
-        filename = 'struct-' + str(CurrStructs) + '.vasp'
-        f = open(filename,'w')
-        f.write('new structure with inserted atoms \n')
-        f.write(' 1.0 \n')
-        string = ''
-        string = string + str(MyNewCrystal.acell[0]) + ' 0.0 0.0' + '\n' + ' 0.0 ' + str(MyNewCrystal.acell[1]) + ' 0.0 ' + '\n' + ' 0.0 0.0 ' + str(MyNewCrystal.acell[2]) + '\n'
-        f.write(string)
-        f.write((" ".join(AtomicSymbols)))
-        f.write('\n')
-        f.write((" ".join(map(str, AtomicNoTypes))))
-        f.write('\n')
-        f.write('Cartesian\n')
-        for iatom in range(MyNewCrystal.natom):
-            string = '  '
-            for ii in range(3):
-                string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
-            string = string + '\n'
-            f.write(string)
-        f.close()
+        WriteStructure(OutputOption,MyNewCrystal,AtomicOrdering,AtomicSymbols,AtomicNoTypes,CurrStructs)
 
-#        filename = 'struct-' + str(CurrStructs) + '.POSCAR'
-#        f = open(filename,'w')
-#        string = header + '  No. ' + str(CurrStructs) + '\n'
-#        f.write(string)
-#        f.write('  1.0\n')
-#        string = '    ' + MyNewCrystal.acell[0]) + '0.0  0.0 \n'
-#        f.write(string)
-#        string = '    0.0 + ' + MyNewCrystal.acell[1]) + ' 0.0 \n'
-#        f.write(string)
-#        string = '    0.0  0.0' + MyNewCrystal.acell[02) + ' \n'
-#        f.write(string)
-#        for ii in range(MyNewCrystal.
+
+def WriteXYZ(MyNewCrystal,AtomicOrdering,CurrStructs):
+    #writes the structure as a plain XYZ file (cartesian coordinates, in angstroms)
+    filename = 'struct-' + str(CurrStructs) + '.xyz'
+    string = str(MyNewCrystal.natom) + '\n'
+    string = string + 'Writing ' + str(MyNewCrystal.natom) + ' atoms with unit cell ' + str(MyNewCrystal.acell[0]) + ' ' + str(MyNewCrystal.acell[1]) + ' ' + str(MyNewCrystal.acell[2]) + '\n'
+    for iatom in range(MyNewCrystal.natom):
+        string = string + MyNewCrystal.atoms[AtomicOrdering[iatom]].symbol + '    '
+        for ii in range(3):
+            string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
+        string = string + '\n'
+    f = open(filename,'w')
+    f.write(string)
+    f.close()
+    print ('done with writing ',filename)
+    return filename
+
+
+def WriteVASP(MyNewCrystal,AtomicOrdering,AtomicSymbols,AtomicNoTypes,CurrStructs):
+    #writes the structure as a cartesian VASP POSCAR file
+    filename = 'struct-' + str(CurrStructs) + '.vasp'
+    f = open(filename,'w')
+    f.write('new structure with inserted atoms \n')
+    f.write(' 1.0 \n')
+    string = str(MyNewCrystal.acell[0]) + ' 0.0 0.0' + '\n' + ' 0.0 ' + str(MyNewCrystal.acell[1]) + ' 0.0 ' + '\n' + ' 0.0 0.0 ' + str(MyNewCrystal.acell[2]) + '\n'
+    f.write(string)
+    f.write((" ".join(AtomicSymbols)))
+    f.write('\n')
+    f.write((" ".join(map(str, AtomicNoTypes))))
+    f.write('\n')
+    f.write('Cartesian\n')
+    for iatom in range(MyNewCrystal.natom):
+        string = '  '
+        for ii in range(3):
+            string = string + str(MyNewCrystal.atoms[AtomicOrdering[iatom]].xcart[ii]) + '  '
+        string = string + '\n'
+        f.write(string)
+    f.close()
+    print ('done with writing ',filename)
+    return filename
+
+
+def WriteUMD(MyNewCrystal,AtomicOrdering,AtomicSymbols,AtomicNoTypes,CurrStructs):
+    #writes the structure as a single-snapshot UMD file, reusing the umd_processes_fast writers
+    FileName = 'struct-' + str(CurrStructs)
+    MyNewCrystal.ntypat = len(AtomicSymbols)
+    MyNewCrystal.elements = list(AtomicSymbols)
+    MyNewCrystal.types = list(AtomicNoTypes)
+    MyNewCrystal.masses = [0.0 for _ in range(MyNewCrystal.ntypat)]
+    MyNewCrystal.zelec = [0.0 for _ in range(MyNewCrystal.ntypat)]
+    for itype in range(MyNewCrystal.ntypat):
+        (_,_,_,MyNewCrystal.masses[itype]) = cr.Elements2rest(MyNewCrystal.elements[itype])
+    MyNewCrystal.rprim = [[1.0 if ii==jj else 0.0 for jj in range(3)] for ii in range(3)]
+    MyNewCrystal.rprimd = [[MyNewCrystal.acell[ii] if ii==jj else 0.0 for jj in range(3)] for ii in range(3)]
+    MyNewCrystal.typat = [0 for _ in range(MyNewCrystal.natom)]
+    ReorderedAtoms = [cr.Atom() for _ in range(MyNewCrystal.natom)]
+    for inew in range(MyNewCrystal.natom):
+        iold = AtomicOrdering[inew]
+        ReorderedAtoms[inew].symbol = MyNewCrystal.atoms[iold].symbol
+        ReorderedAtoms[inew].xcart = MyNewCrystal.atoms[iold].xcart
+        ReorderedAtoms[inew].xred = [MyNewCrystal.atoms[iold].xcart[ii]/MyNewCrystal.acell[ii] for ii in range(3)]
+        ReorderedAtoms[inew].vels = MyNewCrystal.atoms[iold].vels
+        ReorderedAtoms[inew].forces = MyNewCrystal.atoms[iold].forces
+        ReorderedAtoms[inew].charge = MyNewCrystal.atoms[iold].charge
+        ReorderedAtoms[inew].magnet = MyNewCrystal.atoms[iold].magnet
+        MyNewCrystal.typat[inew] = MyNewCrystal.elements.index(ReorderedAtoms[inew].symbol)
+    MyNewCrystal.atoms = ReorderedAtoms
+    nf = open(FileName + '.umd.dat','w')     #truncates/creates the file, since print_header/print_snapshots append
+    nf.close()
+    umdpf.print_header(FileName,MyNewCrystal)
+    diffcoords = [[0.0,0.0,0.0] for _ in range(MyNewCrystal.natom)]
+    umdpf.print_snapshots(FileName,MyNewCrystal,0.0,0.0,diffcoords)
+    print ('done with writing ',FileName + '.umd.dat')
+    return FileName + '.umd.dat'
+
+
+def WriteStructure(OutputOption,MyNewCrystal,AtomicOrdering,AtomicSymbols,AtomicNoTypes,CurrStructs):
+    if OutputOption == 1:
+        WriteXYZ(MyNewCrystal,AtomicOrdering,CurrStructs)
+    elif OutputOption == 2:
+        WriteVASP(MyNewCrystal,AtomicOrdering,AtomicSymbols,AtomicNoTypes,CurrStructs)
+    elif OutputOption == 3:
+        WriteUMD(MyNewCrystal,AtomicOrdering,AtomicSymbols,AtomicNoTypes,CurrStructs)
+    else:
+        print ('Unknown output option -t ',OutputOption,'. Please use -t 1 (xyz), -t 2 (vasp poscar) or -t 3 (umd).')
+        sys.exit()
+
 
 def main(argv):
     umdpf.headerumd()
@@ -235,20 +274,21 @@ def main(argv):
     UnitCell = 20.0
     Rcutoff = 2.0
     header = ''
+    OutputOption = 1
     MyUMDStructure = cr.Lattice()
     MyCrystal = cr.Lattice()
     AllSnapshots = [cr.Lattice]
     AllMolecules = [cr.Lattice]
     MultiMolecules = [cr.Lattice]
     try:
-        opts, arg = getopt.getopt(argv,"hf:s:i:a:r:",["fUMDfile","sSampling_Frequency","iMoleculesFile","aCubicUnitCell","rrCutoff"])
+        opts, arg = getopt.getopt(argv,"hf:s:i:a:r:t:",["fUMDfile","sSampling_Frequency","iMoleculesFile","aCubicUnitCell","rrCutoff","tOutputOption"])
     except getopt.GetoptError:
-        print ('insert_umd.py -f <UMD_filename> -s <Sampling_Frequency> -i <File_with_list_of_Molecules -a <Cubic_unit_cell> -r <cutoff_Radius>')
+        print ('insert_umd.py -f <UMD_filename> -s <Sampling_Frequency> -i <File_with_list_of_Molecules -a <Cubic_unit_cell> -r <cutoff_Radius> -t <Output_option>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print ('insert.py program to insert molecular impurities in a structure')
-            print ('insert_umd.py -f <UMD_filename> -s <Sampling_Frequency> -i <File_with_list_of_Molecules -a <Cubic_unit_cell> -r <cutoff_Radius>')
+            print ('insert_umd.py -f <UMD_filename> -s <Sampling_Frequency> -i <File_with_list_of_Molecules -a <Cubic_unit_cell> -r <cutoff_Radius> -t <Output_option>')
             print (' -f specifies the UMD file')
             print (' -s option gies the sampling frequency. Default: -1 ')
             print ('    -1 generates one new structure. inserts molecules in an empty box')
@@ -257,6 +297,10 @@ def main(argv):
             print (' -i the file containing the number and type of molecules to be inserted. Default = molecules.dat')
             print (' -a the size of the empty cubic unit cell, Default 20 angstroms ')
             print (' -r cutoff radius to prevent overlap of atomic spheres. Default 2.0 angstroms.')
+            print (' -t the output format. Default 1 ')
+            print ('    1 = xyz file')
+            print ('    2 = vasp poscar file')
+            print ('    3 = umd file')
             sys.exit()
         elif opt in ("-f", "--fUMDfile"):
             UMDname = str(arg)
@@ -277,6 +321,9 @@ def main(argv):
         elif opt in ("-s","--sKsteps"):
             Ksteps = int(arg)
             header = header + ' -s=' + arg
+        elif opt in ("-t","--tOutputOption"):
+            OutputOption = int(arg)
+            print('The output format option is ',OutputOption)
      #print('Parameters: UMDfile MoleculesFile CellUnit Frequency',UMDname, MoleculesFile, UnitCell, Ksteps,Rcutoff)
     
     #checks and reads the molecules.dat file
@@ -300,7 +347,7 @@ def main(argv):
                 #print(AllMolecules[ii].atoms[kk].symbol)
         (MyUMDStructure,NoInsertedAtoms) = BuildEmptyBox(UnitCell,TotalNoAtoms)
         CurrStructs = 0
-        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header)
+        PositionMolecule(MultiMolecules,AllMolecules,MyUMDStructure,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,OutputOption)
     
     #inserts molecules in the last full snapshot
     elif Ksteps == 0:    #inserts molecules in the  last snapshot of the UMD file
@@ -314,7 +361,7 @@ def main(argv):
             MyUMDStructure = AllSnapshots[len(AllSnapshots)-1]
             (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
             CurrStructs = len(AllSnapshots)
-            PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,header)
+            PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,CurrStructs,OutputOption)
     else:               #inserts molecules in the UMD file
         if not os.path.isfile(UMDname):
             print ('the UMD files ',UMDname,' does not exist')
@@ -328,7 +375,7 @@ def main(argv):
             for istep in range(firststep,laststep,Ksteps):
                 MyUMDStructure = AllSnapshots[istep]
                 (MyNewCrystal,NoInsertedAtoms) = BuildUMDBox(MyCrystal,MyUMDStructure,TotalNoAtoms)
-                PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,istep,header)
+                PositionMolecule(MultiMolecules,AllMolecules,MyNewCrystal,MyCrystal,TotalNoAtoms,NoInsertedAtoms,Rcutoff,istep,OutputOption)
 
 
     
