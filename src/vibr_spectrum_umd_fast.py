@@ -41,59 +41,17 @@ autc_lib.compute_autocorrelation.argtypes = [ctypes.POINTER(ctypes.c_double),cty
 autc_lib.compute_autocorrelation.restype = ctypes.POINTER(ctypes.c_double)
 
 
-def correlation_par_C(posList,timestep,temperature):
+def correlation_par_C(posList,timestep,temperature,maxtau):
 
 #     pos = posList.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     pos =(ctypes.c_double * len(posList))(*list(posList))
     nostep = len(posList)
-    maxtau=int(nostep/2)
     autocorrelationP = autc_lib.compute_autocorrelation(pos,nostep,maxtau)
     autocorrelation = [autocorrelationP[i] for i in range(maxtau)]
     fft_correlation = dct(autocorrelation,1)/2.0 * 2.0 * timestep #this gives exactly the same answer as above and hope you know what is time shifting in discrete fourier transform(that is the reason to have np.abs)
 
     # we calculate frequency
     return autocorrelation,fft_correlation
-
-def correlation_par(posList,normalization,timestep,temperature):
-
-
-    nostep = len(posList)
-    maxtau=int(nostep/2)
-    temp = 1.0/np.arange(nostep,nostep-maxtau,-1)
-    normalization = np.diag(temp)
-    temp1 = np.correlate(posList,posList,mode='full')[len(posList)-1:]
-    autocorrelation = np.matmul(normalization,temp1[0:maxtau])     
-    fft_correlation = dct(autocorrelation,1)/2.0 * 2.0 * timestep #this gives exactly the same answer as above and hope you know what is time shifting in discrete fourier transform(that is the reason to have np.abs)
-
-    # we calculate frequency
-#    print("autocpar=",autocorrelation)
-    return autocorrelation,fft_correlation
-
-def correlation(TimeMatrix,timestep,temperature):
-  
-    # TimeMatrix should be in matrix format
-    # entry1 entry2 entry3 ..
-    # 0 1 2 3 4 5 6 
-    # 1 1 2 3 4 5 6
-    #.....
-    
-    nostep = len(TimeMatrix)
-    noentries = len(TimeMatrix[1])
-    maxtau = int(nostep / 2)
-    autocorrelation = np.empty((maxtau,noentries))
-    fft_correlation = np.empty((maxtau,noentries)) 
-    temp = 1.0/np.arange(nostep,nostep-maxtau,-1)
-    normalization = np.diag(temp)
-    for ientry in range(noentries): 
-
-        temp1 = np.correlate(TimeMatrix[:,ientry],TimeMatrix[:,ientry],mode='full')[len(TimeMatrix[:,ientry])-1:] #same as that of [len(TimeMatrix[ientry])-1:]
-        #although it's fast, it's not normalized
-        autocorrelation[:,ientry] = np.matmul(normalization,temp1[0:maxtau]) 
-        fft_correlation[:,ientry] = dct(autocorrelation[:,ientry],1)/2.0 * 2.0 * timestep #this gives exactly the same answer as above and hope you know what is time shifting in discrete fourier transform(that is the reason to have np.abs)
-
-    # we calculate frequency
-    freq = fftfreq(2*maxtau,d=timestep)[:maxtau] 
-    return autocorrelation,fft_correlation,freq                	
 
 def main(argv):
     start_time=time.time()
@@ -145,10 +103,12 @@ def main(argv):
     # correlation for different atom, direction
 
 
+    print("The timestep is",TimeStep)
     maxtau=int(nostep/2)
-    freq = fftfreq(2*maxtau,d=TimeStep)[:maxtau] 
+    print("The maxtau is",maxtau)
+    freq = fftfreq(2*maxtau,d=TimeStep)[:maxtau]
     print("Computing correlations")
-    corred_C = partial(correlation_par_C,timestep=TimeStep,temperature=temperature)
+    corred_C = partial(correlation_par_C,timestep=TimeStep,temperature=temperature,maxtau=maxtau)
     with concurrent.futures.ProcessPoolExecutor() as executor :
         Listautocorr_C = list(executor.map(corred_C,[TimeList[i//3][i%3] for i in range(3*MyCrystal.natom)]))
     autocorrelation = np.transpose(np.array([x[0] for x in Listautocorr_C]))
@@ -224,6 +184,23 @@ def main(argv):
             string=string+'\t'+str(average_fft_correlation[ii][jj])
         string = string + '\t' + str(total_fft_correlation[ii]) + '\n'
         nf.write(string)
+    nf.close()
+
+    #applies a one-sided raised-cosine taper to the (normalized) total VACF before taking its DCT, to
+    #reduce the spectral leakage/ringing caused by truncating the correlation function at maxtau, and
+    #writes the resulting smoothed total vDOS separately (it is not mass/unit-scaled like specfilename
+    #above, nor broken down by species: it is on the same normalized scale as total_average_correlation)
+    N = len(total_average_correlation)
+    n = np.arange(N)
+    window = 0.5 * (1.0 + np.cos(np.pi * n / (N - 1)))
+    autocorr_win = total_average_correlation * window
+    fft_correlation_win = dct(autocorr_win,1)/2.0 * 2.0 * TimeStep
+
+    specwinfilename = umdfile[:-8] + '.vibr_win.dat'
+    nf = open(specwinfilename,'w')
+    nf.write('Frequency(cm^-1)\tTotal_DOS_windowed\n')
+    for ii in range(len(fft_correlation_win)):
+        nf.write(str(freq[ii]*33356.41) + '\t' + str(fft_correlation_win[ii]) + '\n')
     nf.close()
 
     end_time = time.time()

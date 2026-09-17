@@ -79,7 +79,7 @@ Each script imports `crystallography` and `umd_processes_fast`; most also load a
 
 **Thermodynamic:**
 - `averages.py` / `fullaverages.py` — thermodynamic averages with plots
-- `vibr_spectrum_umd_fast.py` — vibrational spectra via velocity autocorrelation (uses `c_autocorrelation_vib`)
+- `vibr_spectrum_umd_fast.py` — vibrational spectra via velocity autocorrelation (uses `c_autocorrelation_vib`). Writes `<base>.vels.scf.dat` (VACF), `<base>.vibr.dat` (per-species + total vDOS and diffusion coefficients), and `<base>.vibr_win.dat` (a raised-cosine-tapered version of the total vDOS, on the normalized VACF scale rather than the physical units of `.vibr.dat`, meant to reduce spectral ringing from truncating the correlation function). `vibr_hann.py` was an in-development fork with the same windowing feature (plus a broken `-tau` flag and a bug that always wrote the windowed output to the current directory as a fixed `vib_win.dat` instead of alongside the input file); its working parts were merged in here and it has been removed.
 
 **Utilities:**
 - `umd2out.py` — convert UMD snapshots to XYZ or POSCAR
