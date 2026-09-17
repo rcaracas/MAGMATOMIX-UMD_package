@@ -20,10 +20,12 @@ class Atom(object):
             self.xred = xred
         if xcart == None:
             self.xcart = [0.0, 0.0, 0.0]
+        else:
+            self.xcart = xcart
         if absxcart == None:
             self.absxcart = [0.0, 0.0, 0.0]
         else:
-            self.xcart = xcart
+            self.absxcart = absxcart
         if vels == None:
             self.vels = [0.0, 0.0, 0.0]
         else:
@@ -39,15 +41,19 @@ class Atom(object):
 
 
 class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
-    def __init__(self, name='crystal', acell=[0.0 for x in range(3)], angles=[0.0 for x in range(3)],
-                 rprim=[[0.0 for x in range(3)] for y in range(3)], rprimd=[[0.0 for x in range(3)] for y in range(3)],
-                 gprimd=[[0.0 for x in range(3)] for y in range(3)], stress=[0.0 for x in range(6)],
+    def __init__(self, name='crystal', acell=None, angles=None,
+                 rprim=None, rprimd=None,
+                 gprimd=None, stress=None,
                  typat=[],elements=[],masses=[],zelec=[],ntypat=1, natom=1, density=0.0, atoms=[],cellvolume=1.0,enthalpy=0.0,toten=0.0,internalenergy=0.0,electronicentropy = 0.0,kineticenergy=0.0,energywithdrift=0.0,gibbsfreeenergy=0.0,cv=0.0,pressure=0.0,temperature=0.0,magnetization=0.0,elecgap=0.0,noelectrons=0.0,lambda_ThermoInt=1.0):
+        #acell/angles/rprim/rprimd/gprimd/stress default to None (rather than a mutable list literal) and are
+        #built fresh below, since a mutable default argument is created once and shared by every instance that
+        #doesn't override it: in-place edits like MyCrystal.acell[0]=... would otherwise leak into every other
+        #Lattice() created afterwards in the same run.
         self.name = name
-        self.acell = acell
-        self.rprim = rprim
-        self.rprimd = rprimd
-        self.gprimd = gprimd
+        self.acell = acell if acell is not None else [0.0 for x in range(3)]
+        self.rprim = rprim if rprim is not None else [[0.0 for x in range(3)] for y in range(3)]
+        self.rprimd = rprimd if rprimd is not None else [[0.0 for x in range(3)] for y in range(3)]
+        self.gprimd = gprimd if gprimd is not None else [[0.0 for x in range(3)] for y in range(3)]
         self.natom = natom                                      #number of atoms
         self.ntypat = ntypat                                    #number of atom types
         self.density = density
@@ -57,7 +63,7 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         self.masses = ['0.0' for x in range(self.ntypat)]       #gives the atomic mass of each atom
         self.zelec = ['0.0' for x in range(self.ntypat)]        #gives the atomic mass of each atom
         self.atoms = [Atom() for x in range(self.natom)]        #gives the complete Atom() class for each atom
-        self.angles = angles
+        self.angles = angles if angles is not None else [0.0 for x in range(3)]
         self.cellvolume = cellvolume
         self.enthalpy = enthalpy
         self.internalenergy = internalenergy
@@ -68,7 +74,7 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         self.cv = cv
         self.pressure = pressure
         self.elecgap = elecgap
-        self.stress=stress
+        self.stress = stress if stress is not None else [0.0 for x in range(6)]
         self.toten=toten
         self.temperature=temperature
         self.magnetization=magnetization
