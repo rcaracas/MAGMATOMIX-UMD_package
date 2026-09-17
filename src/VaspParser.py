@@ -47,8 +47,8 @@ def read_outcar(FileName,InitialStep,SkipStep):
                             jatom = jatom + 1
                     MyCrystal.atoms = [cr.Atom() for _ in range(MyCrystal.natom)]
                     oldpos = [cr.Atom() for _ in range(MyCrystal.natom)]
-                    for iatom in range(MyCrystal.natom):
-                        oldpos[iatom].xcart = [0.5,0.5,0.5]     #the only coordinates for which the first step will not add an extra phase
+                    for jatom in range(MyCrystal.natom):
+                        oldpos[jatom].xcart = [0.5,0.5,0.5]     #the only coordinates for which the first step will not add an extra phase
                     MyCrystal.elements = ['X' for _ in range(MyCrystal.ntypat)]
                     MyCrystal.masses = [0.0 for _ in range(MyCrystal.ntypat)]
                     MyCrystal.zelec = [0.0 for _ in range(MyCrystal.ntypat)]
