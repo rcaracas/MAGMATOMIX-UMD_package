@@ -49,6 +49,7 @@ Use `-h` or read the argument-parsing block at the bottom of each script to disc
 - **`crystallography.py`** — Defines the two central data structures used everywhere:
   - `Atom`: position (`xred`, `xcart`, `absxcart`), velocities, forces, charge, magnetization
   - `Lattice`: simulation cell (vectors, volume, angles), atom list, and all thermodynamic scalars (energy, pressure, temperature, stress tensor, etc.). Also contains `Elements2rest()` (element → atomic number / mass lookup) and coordinate-transformation methods.
+  - `Lattice.__init__`'s `acell`/`angles`/`rprim`/`rprimd`/`gprimd`/`stress` used to be mutable default arguments, so every `Lattice()` created without explicit values silently shared (and could corrupt) the same list — fixed to build a fresh list per instance. No script constructs `Lattice()`/`Atom()` with explicit keyword arguments, so this was a pure latent-bug fix.
 - **`umd_processes_fast.py`** — Python wrapper around `c_UMDprocess.dylib` (ctypes). Provides fast reading of UMD snapshots and bond-definition routines used by most analysis scripts. This is the main I/O layer for `.umd.dat` files.
 
 ### UMD File Format (`.umd.dat`)
@@ -83,7 +84,7 @@ Each script imports `crystallography` and `umd_processes_fast`; most also load a
 **Utilities:**
 - `umd2out.py` — convert UMD snapshots to XYZ or POSCAR
 - `build_supercell.py` — build an `nx × ny × nz` supercell from a unit cell read from a VASP5-style POSCAR/CONTCAR file (e.g. one exported by VESTA), in reduced or cartesian coordinates. Replication is done in reduced coordinates (exact for any cell shape), writing both `.vasp` (POSCAR) and `.xyz` output. Kept as a standalone script rather than folded into `insert_umd.py`, since it reads a different input format (POSCAR vs. the `molecules.dat` format) and serves a different purpose (replicating a periodic cell vs. inserting molecules into a UMD trajectory); a shared "cell manipulation" library backing both may be considered later.
-- `insert_umd.py` — insert molecules into a UMD trajectory (or an empty box); output format is selectable with `-t` (1 = xyz, 2 = vasp poscar, 3 = umd file). `insert_umd_xred.py` was a broken, unused duplicate and has been removed.
+- `insert_umd.py` — insert molecules into a UMD trajectory (or an empty box); output format is selectable with `-t` (1 = xyz, 2 = vasp poscar, 3 = umd file). `-s -1` (default) builds an empty cubic box of side `-a`; `-s 0` inserts into the last snapshot of the UMD file given by `-f`; `-s Ksteps>0` inserts into every Ksteps-th snapshot. `insert_umd_xred.py` was a broken, unused duplicate and has been removed.
 - `stat-concentrate.py` — aggregate statistics from multiple speciation runs
 - `check_overlap.py` — detect atomic overlaps
 - `crystallography.py` also contains `Elements2rest()`, used widely for element → mass/atomic-number lookup
