@@ -102,9 +102,26 @@ def read_outcar(FileName,InitialStep,SkipStep):
             if not line: break
             line=line.strip()
             entry=line.split()
-            if (len(entry) == 6):               
+            if (len(entry) == 6):
                 if (entry[4] == 'magnetization'):
                     MyCrystal.magnetization = float(entry[5])
+            if len(entry) > 0:
+                #reading the unit cell: checked on every line (not just within an ionic step's
+                #-STRESS...ETOTAL window), because for NPT runs VASP reports the updated cell for
+                #the next step via 'VOLUME and BASIS-vectors are now :' in between ionic steps,
+                #using the same 'direct lattice vectors' 3-row table as the per-step SCF section
+                if (flagrprimd>-1):
+                    MyCrystal.rprimd[flagrprimd][0]=float(entry[0].split(',')[0])
+                    MyCrystal.rprimd[flagrprimd][1]=float(entry[1].split(',')[0])
+                    MyCrystal.rprimd[flagrprimd][2]=float(entry[2].split(')')[0])
+                    MyCrystal.acell[flagrprimd]=math.sqrt(MyCrystal.rprimd[flagrprimd][0]*MyCrystal.rprimd[flagrprimd][0] + MyCrystal.rprimd[flagrprimd][1]*MyCrystal.rprimd[flagrprimd][1] + MyCrystal.rprimd[flagrprimd][2]*MyCrystal.rprimd[flagrprimd][2])
+                    flagrprimd = flagrprimd+1
+                if (flagrprimd == 3):
+                    MyCrystal.gprimd = MyCrystal.makegprimd()
+                    MyCrystal.density = MyCrystal.getdensity()
+                    flagrprimd = -1
+                if (entry[0]=='direct'):
+                    flagrprimd = flagrprimd + 1
             if(switch==False):
                 if (len(entry)==3 and entry[0]=='POTIM'):
                     TimeStep=float(entry[2])
@@ -212,21 +229,6 @@ def read_outcar(FileName,InitialStep,SkipStep):
                         MyCrystal.temperature = float(mixedtemp[-8:])
                     else:
                         print('defect on the temperature line',entry)
-                if (flagrprimd>-1):             #reaeding the unit cell
-
-                    MyCrystal.rprimd[flagrprimd][0]=float(entry[0].split(',')[0])
-                    MyCrystal.rprimd[flagrprimd][1]=float(entry[1].split(',')[0])
-                    MyCrystal.rprimd[flagrprimd][2]=float(entry[2].split(')')[0])
-                    MyCrystal.acell[flagrprimd]=math.sqrt(MyCrystal.rprimd[flagrprimd][0]*MyCrystal.rprimd[flagrprimd][0] + MyCrystal.rprimd[flagrprimd][1]*MyCrystal.rprimd[flagrprimd][1] + MyCrystal.rprimd[flagrprimd][2]*MyCrystal.rprimd[flagrprimd][2])
-                    flagrprimd = flagrprimd+1
-                if (flagrprimd == 3):
-                    MyCrystal.gprimd = MyCrystal.makegprimd()
-
-                    MyCrystal.density = MyCrystal.getdensity()
-
-                    flagrprimd = -1
-                if (entry[0]=='direct'):
-                    flagrprimd = flagrprimd + 1
                 if (iatom>-1):                  #reading the atomic positions
 
                     MyCrystal.atoms[iatom].xred = [0.0,0.0,0.0]
