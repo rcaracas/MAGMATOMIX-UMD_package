@@ -1,103 +1,171 @@
 #!/usr/bin/env python3
 """
-@author: Razvan Caracas, Anais Kobsch
+@author: Razvan Caracas, Anais Kobsch, Tim Bögels
 """
 
-import numpy as np 
+import numpy as np
 import sys
 import getopt
 import os
 import subprocess
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
 import umd_processes_fast as umdpf
 
 
+#labels for the components of the multi-valued UMD fields; StressTensor follows the VASP order xx yy zz xy yz zx
+ComponentLabels = {'StressTensor':['xx','yy','zz','xy','yz','zx'], 'acell':['a','b','c']}
+
 def is_number(s):
     try:
-        
+
         float(s)
         return True
     except ValueError:
         return False
 
-def grep_pattern(FileName, Pattern, SkipSteps): 
+def grep_pattern(FileName, Pattern, SkipSteps):
+    """Extraction of all the numerical values following Pattern, skipping the first SkipSteps snapshots.
+    Returns an array with one row per component (1 row for scalars, 6 for StressTensor, ...) and the unit."""
     data = []
-    average = 0 
-    stdev = 0 
-    variance = 0
+    unit = ''
     anchor=Pattern.split()[0]
-    patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
+    try:
+        patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
+    except subprocess.CalledProcessError:
+        print('Parameter ',Pattern,' not found in ',FileName)
+        sys.exit()
     greps=patterns.split('\n')
-    for isteps in range(SkipSteps+1,len(greps)):
+    for isteps in range(SkipSteps,len(greps)):
         elems=greps[isteps].split()
         for ii in range(len(elems)):
             if elems[ii] == anchor:
+                values = []         #all the consecutive numbers after the anchor, e.g. the 6 components of StressTensor
                 for jj in range(ii+1,len(elems)):
                     if is_number(elems[jj]):
-                        data.append(float(elems[jj]))
+                        values.append(float(elems[jj]))
+                    elif values:
+                        unit = elems[jj]
                         break
-    average = sum(data)/len(data)
-    for ii in range(len(data)):
-        variance = variance + (data[ii]-average)**2
-    variance = variance/len(data)
-    stdev = np.sqrt(variance)
-    #print('Averages over ',len(data),' steps for', Pattern, 'are: mean = ',average,' variance = ', variance, ' stdev = ', stdev)
-    return data, average, stdev
+                if values:
+                    data.append(values)
+                break
+    if not data:
+        print('No numerical values found after ',anchor,' in ',FileName)
+        sys.exit()
+    ncomp = min(len(values) for values in data)
+    data = np.array([values[:ncomp] for values in data]).T     #one row per component
+    return data, unit
 
-def plot_function(name,ax,data,average,stdev):
-    bleuspecial = '#00ccff'
-    x=np.arange(1,len(data)+1,1)
-    if name == "Pressure":
-        unit = "GPa"
-    elif name == "Energy":
-        unit = "eV"
-    elif name == "Temperature":
-        unit = "K"
-    else:
-        unit = "??"
-    plt.minorticks_on()
-    ax.plot(x,data,'.', color=bleuspecial)
-    ax.plot((0,x[len(x)-1]),(average, average), 'm-', linewidth=4)
-    txtaverage = 'Average = ' + str(round(average)) + ' $\pm$ ' + str(round(stdev)).rstrip('0').rstrip('.') + ' ' + unit           #for temperature
-    ax.text(0.02,0.01, txtaverage,transform=ax.transAxes, fontsize=12)
-    ax.autoscale(enable=True,axis='both',tight=True)
+def plot_series(series):
+    """Plots one series at a time, with Previous/Next buttons to move between them.
+    Each series is (title, unit, data, average, stdev) and gets its own y-scale, since e.g. diagonal and
+    off-diagonal stresses, or pressure and energy, can differ by orders of magnitude."""
+    fig, ax = plt.subplots()
+    line, = ax.plot(series[0][2])
+    avgline = ax.axhline(series[0][3], color='m')
+    ax.set_xlabel('step')
+    state = {'iseries':0}
+    def draw():
+        iseries = state['iseries']
+        title, unit, data, average, stdev = series[iseries]
+        line.set_data(np.arange(len(data)), data)
+        avgline.set_ydata([average,average])
+        if len(series) > 1:
+            title = title + '  (' + str(iseries+1) + '/' + str(len(series)) + ')'
+        ax.set_title(title + ':  mean = ' + '%.6g' % average + ' +/- ' + '%.3g' % stdev + ' ' + unit)
+        ax.set_ylabel(title.split()[0] + ' (' + unit + ')' if unit else title.split()[0])
+        ax.relim()
+        ax.autoscale(enable=True)      #re-enabled in case the toolbar zoom switched it off
+        fig.canvas.draw_idle()
+    draw()
+    if len(series) > 1:
+        fig.subplots_adjust(bottom=0.2)
+        def step(delta):
+            state['iseries'] = (state['iseries'] + delta) % len(series)
+            draw()
+        bprev = Button(fig.add_axes([0.59, 0.03, 0.15, 0.06]), 'Previous')
+        bnext = Button(fig.add_axes([0.75, 0.03, 0.15, 0.06]), 'Next')
+        bprev.on_clicked(lambda event: step(-1))
+        bnext.on_clicked(lambda event: step(1))
+        fig._umd_buttons = (bprev, bnext)       #keeps the buttons alive, otherwise they are garbage-collected and stop responding
+    plt.show()
 
 
 def main(argv):
     FileName = ''
-    SkipSteps=0
+    Pattern = ''
+    SkipSteps = 0
+    LongOutput = False
+    Visual = False
     umdpf.headerumd()
+    usage = 'averages.py -f <UMDFile> -p <Pattern> -i <SkipSteps> (or -s <SkipSteps>) -l -v'
     try:
-        opts, arg = getopt.getopt(argv,"hf:i:",["fFileName,iInitialStep"])
+        opts, arg = getopt.getopt(argv,"hf:p:i:s:lv")
     except getopt.GetoptError:
-        print('averages.py -f <UMDFile> -i <InitialStep>')
+        print(usage)
         sys.exit()
     for opt, arg in opts:
         if opt == '-h':
-            print('averages.py -f <UMDFile> -i <InitialStep>')
-            print('averages.py program to extract the average and the spread of the numerical values of Pressure, Temperature, and InternalEnergy')
+            print(usage)
+            print('averages.py program to extract the average and the spread of the numerical values in a UMD file')
+            print('   -f <UMDFile>     the UMD file')
+            print('   -p <Pattern>     the quantity to average, e.g. Pressure, Temperature, StressTensor, acell')
+            print('                    default: Pressure, Temperature, and InternalEnergy, written on one line as')
+            print('                    file  #PstdTstdEstd  nsteps  P  stdev_P  T  stdev_T  E  stdev_E')
+            print('                    multi-valued quantities (StressTensor, acell, ...) are averaged component by component')
+            print('   -i or -s <SkipSteps>   number of initial snapshots to skip (default 0 = use all the snapshots)')
+            print('   -l               long output: mean, variance, and stdev printed for every quantity and component')
+            print('   -v               display the evolution of every quantity and component (default: no display)')
             sys.exit()
-        elif opt in ("-f", "--fFileName"):
+        elif opt == '-f':
             FileName = str(arg)
-        elif opt in ("-i", "--iInitialStep"):
+        elif opt == '-p':
+            Pattern = str(arg)
+        elif opt in ('-i', '-s'):
             SkipSteps = int(arg)
-    #print(FileName)
-    if (os.path.isfile(FileName)):
-        #****Calculations and creation of arrays
-        Pressure, Average_P, stdev_P  = grep_pattern(FileName,"Pressure", SkipSteps)
-        Temperature, Average_T, stdev_T  = grep_pattern(FileName,"Temperature", SkipSteps)
-        Energy, Average_E, stdev_E  = grep_pattern(FileName,"InternalEnergy", SkipSteps)
-        arraytowrite = FileName + '\t#PstdTstdEstd\t' + str(len(Pressure)) + '\t' + str(Average_P) + '\t' + str(stdev_P) + '\t' + str(Average_T) + '\t' + str(stdev_T) + '\t' + str(Average_E) + '\t' + str(stdev_E)
-        #print('Averages over no.steps, P, stdev_P, T, stdev_T, E, stdev_E',len(Pressure),Average_P,stdev_P,Average_T,stdev_T,Average_E,stdev_E)
-        print(arraytowrite)
-    else:
+        elif opt == '-l':
+            LongOutput = True
+        elif opt == '-v':
+            Visual = True
+    if not os.path.isfile(FileName):
         print('No input file or file "',FileName,'" does not exist')
         sys.exit()
+    if Pattern:
+        Patterns = [Pattern]
+    else:
+        Patterns = ['Pressure', 'Temperature', 'InternalEnergy']
+    #****Calculations
+    series = []         #(title, unit, data, average, stdev) for every quantity and component
+    short = []          #(nsteps, averages, stdevs) for every quantity
+    for pattern in Patterns:
+        data, unit = grep_pattern(FileName, pattern, SkipSteps)
+        anchor = pattern.split()[0]
+        averages = data.mean(axis=1)
+        variances = data.var(axis=1)
+        stdevs = np.sqrt(variances)
+        short.append((data.shape[1], averages, stdevs))
+        ncomp = len(data)
+        labels = ComponentLabels.get(anchor,[str(ii+1) for ii in range(ncomp)])
+        for ic in range(ncomp):
+            title = anchor + ' ' + labels[ic] if ncomp > 1 else anchor
+            series.append((title, unit, data[ic], averages[ic], stdevs[ic]))
+            if LongOutput:
+                print('Averages of ',title,' over ',data.shape[1],' steps: mean = ',averages[ic],' variance = ', variances[ic], ' stdev = ', stdevs[ic], unit)
+    if not LongOutput:
+        if Pattern:
+            nsteps, averages, stdevs = short[0]
+            arraytowrite = FileName + '\t#' + Pattern.split()[0] + '\t' + str(nsteps)
+            for ic in range(len(averages)):
+                arraytowrite = arraytowrite + '\t' + str(averages[ic]) + '\t' + str(stdevs[ic])
+        else:
+            arraytowrite = FileName + '\t#PstdTstdEstd\t' + str(short[0][0])
+            for nsteps, averages, stdevs in short:
+                arraytowrite = arraytowrite + '\t' + str(averages[0]) + '\t' + str(stdevs[0])
+        print(arraytowrite)
+    if Visual:
+        plot_series(series)
 
 
 if __name__ == "__main__":
    main(sys.argv[1:])
-
-
-
-

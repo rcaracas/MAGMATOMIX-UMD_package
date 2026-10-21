@@ -38,7 +38,7 @@ All scripts are standalone executables. Typical invocation pattern:
 ```bash
 python3 src/VaspParser.py -f <OUTCAR_file> [-i InitialStep] [-s SkipStep]
 python3 src/gofr_umd.py -f <file.umd.dat> [options]
-python3 src/averages.py -f <file.umd.dat> [-s SkipSteps]
+python3 src/averages.py -f <file.umd.dat> [-p Pattern] [-s SkipSteps] [-l] [-v]
 ```
 
 Use `-h` or read the argument-parsing block at the bottom of each script to discover its options.
@@ -78,7 +78,8 @@ Each script imports `crystallography` and `umd_processes_fast`; most also load a
 - `analyze_msd.py` — post-process MSD output
 
 **Thermodynamic:**
-- `averages.py` / `fullaverages.py` — thermodynamic averages with plots
+- `averages.py` — mean and stdev of any numerical field of one UMD file. Default: Pressure, Temperature and InternalEnergy on one tab-separated line (`file #PstdTstdEstd nsteps P stdev_P T stdev_T E stdev_E`, a format that may be parsed by downstream scripts — keep it stable). `-p <Pattern>` averages a single field instead; multi-valued fields (`StressTensor`, `acell`, …) are averaged component by component. `-l` gives the long per-component output (mean, variance, stdev, unit), `-v` opens a plot with Previous/Next buttons stepping through the quantities/components one at a time, each on its own y-scale (default: no display). `-i` and `-s` are synonyms for the number of initial snapshots to skip (default 0 = all). `averages_detailed.py` and `averages_visual.py` were merged into it and removed; `averages_forGUI.py` is a separate copy kept only because `UMD_GUI.py` imports it.
+- `fullaverages.py` — batch thermodynamics over every `*.umd.dat` in the current folder (blocking-method errors, bootstrap Cv), written to `fullthermo.dat`
 - `vibr_spectrum_umd_fast.py` — vibrational spectra via velocity autocorrelation (uses `c_autocorrelation_vib`). Writes `<base>.vels.scf.dat` (VACF), `<base>.vibr.dat` (per-species + total vDOS and diffusion coefficients), and `<base>.vibr_win.dat` (a raised-cosine-tapered version of the total vDOS, on the normalized VACF scale rather than the physical units of `.vibr.dat`, meant to reduce spectral ringing from truncating the correlation function). `vibr_hann.py` was an in-development fork with the same windowing feature (plus a broken `-tau` flag and a bug that always wrote the windowed output to the current directory as a fixed `vib_win.dat` instead of alongside the input file); its working parts were merged in here and it has been removed.
 
 **Utilities:**
