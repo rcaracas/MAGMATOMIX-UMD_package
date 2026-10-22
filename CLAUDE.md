@@ -16,7 +16,6 @@ gcc -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
 gcc -dynamiclib -o c_autocorrelation_vib.dylib c_autocorrelation_vib.c
 gcc -dynamiclib -o c_bonds_full.dylib c_bonds_full.c
 gcc -dynamiclib -o c_clusters.dylib c_clusters.c
-gcc -dynamiclib -o c_msd.dylib c_msd.c
 gcc -dynamiclib -o c_gofr_new_alt.dylib c_gofr_new_alt.c
 ```
 
@@ -73,9 +72,10 @@ Each script imports `crystallography` and `umd_processes_fast`; most also load a
 - `lifetimes.py` — bond/cluster lifetimes from population files
 
 **Transport:**
-- `msd_umd.py` / `msd_all_umd.py` / `msd_clusters_umd.py` — mean-square displacements and diffusion coefficients (uses `c_msd`)
+- `msd_umd.py` — mean-square displacements per element (`-m elements`) or per atom and element (`-m atoms`), written to `<base>.msd.dat` (`#` comment lines, then a `time_(fs)` column header). Computed in numpy with the FFT algorithm (Calandrini/nMoldyn), averaged over all time origins, for lags up to half the trajectory; this replaced the former `c_msd` C library (removed), which took ~100x more CPU time and only used origins from the first half. `-a cart` / `-a cryst` (`Auto` is a synonym) / `-a [x1,y1,z1,...]` add the MSD projected on unit vectors along x,y,z / the a,b,c vectors of the first snapshot's cell / arbitrary axes, as extra columns `El_x`, `El_a`, `El_1`… For a non-orthogonal cell the a,b,c components do not sum to the total. `-b` drops lags shorter than the ballistic regime, `-v` writes every v-th lag, `-z` is accepted but ignored (kept because `UMD_GUI.py` and `MSDdistrib.py` pass it). `main()` returns `[msdfile, MSD, Instants, elements, Axes]` with `MSD[species][0]` the total and `MSD[species][1+k]` axis k, normalized per atom; `UMD_GUI.py` and `MSDdistrib.py` rely on this. `msd_all_umd.py` was an older pure-Python duplicate and has been removed.
+- `msd_clusters_umd.py` — MSD of the mass-weighted centre of mass of each cluster listed in a `.popul.dat` file from `speciation_and_angles.py`, one `<popul base>__<cluster>.msd.dat` file per cluster type (one column per cluster instance, plus their mean). Reuses `msd_umd.msd_fft`. The popul Begin/End steps are converted to UMD snapshots using the file's lifetime column, so a speciation run with sampling > 1 is handled.
 - `viscosity_umd.py` — shear viscosity via stress autocorrelation
-- `analyze_msd.py` — post-process MSD output
+- `analyze_msd.py` — fits every column of all `*.msd.dat` files below the current folder and writes `diffusivities.txt` per folder; D = slope/6 for total-MSD columns and slope/2 for single-axis columns (any name containing `_`).
 
 **Thermodynamic:**
 - `averages.py` — mean and stdev of any numerical field of one UMD file. Default: Pressure, Temperature and InternalEnergy on one tab-separated line (`file #PstdTstdEstd nsteps P stdev_P T stdev_T E stdev_E`, a format that may be parsed by downstream scripts — keep it stable). `-p <Pattern>` averages a single field instead; multi-valued fields (`StressTensor`, `acell`, …) are averaged component by component. `-l` gives the long per-component output (mean, variance, stdev, unit), `-v` opens a plot with Previous/Next buttons stepping through the quantities/components one at a time, each on its own y-scale (default: no display). `-i` and `-s` are synonyms for the number of initial snapshots to skip (default 0 = all). `averages_detailed.py` and `averages_visual.py` were merged into it and removed; `averages_forGUI.py` is a separate copy kept only because `UMD_GUI.py` imports it.

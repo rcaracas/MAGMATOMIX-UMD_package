@@ -63,7 +63,6 @@ analyze_gofr_semi_automatic.py
 speciation_umd.py
 
     transport properties:
-msd_all_umd.py
 msd_clusters_umd.py
 msd_umd.py
 analyze_msd.py

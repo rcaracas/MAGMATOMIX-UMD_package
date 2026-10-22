@@ -112,7 +112,7 @@ def createMSD_graph(self,MSD,Instants,Elements,axes=None):
             axes = [round(axes[i],3) for i in range(len(axes))]
 
             for n in range(int(len(axes)/3)):
-                ax.plot(Instants[:],MSD[i][i][:],label = "Axis "+str(n)+" : "+str(axes[3*n:3*(n+1)]))
+                ax.plot(Instants[:],MSD[i][n+1][:],label = "Axis "+str(n)+" : "+str(axes[3*n:3*(n+1)]))
         else :
             
             ax.plot(Instants[:],MSD[i][0])

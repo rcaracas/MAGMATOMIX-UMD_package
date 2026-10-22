@@ -68,7 +68,7 @@ def main(argv):
         theta = math.pi/nData*i
         v = math.cos(theta)*A1+math.sin(theta)*A2
         vectors.append(v)
-        mat+=list(v)
+        mat+=[float(x) for x in v]#plain floats, so that str(mat) is a literal list msd_umd can parse
         Thetas.append(theta/math.pi)
         
     args=["-f",File,"-z","10","-m","elements","-a",str(mat)]
