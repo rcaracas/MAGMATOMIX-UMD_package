@@ -66,6 +66,7 @@ speciation_umd.py
 msd_clusters_umd.py
 msd_umd.py
 analyze_msd.py
+analyze_msd_clusters.py
 viscosity_umd.py
 
     thermodynamic properties:

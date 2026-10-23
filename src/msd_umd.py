@@ -11,7 +11,7 @@ import umd_processes_fast as umdpf
 import time
 import ast
 import numpy as np
-from analyze_msd import calculation_diffusivities, block_diffusivity_error
+from analyze_msd import calculation_diffusivities, block_diffusivity_error, diffusion_exponent, regime_warning
 
 
 def msd_fft(x):#Mean square displacement of each column of x (time along axis 0), averaged over all the time origins
@@ -110,7 +110,8 @@ def main(argv):
             print ('Output : <base>.msd.dat, one time column (fs), then one column per element (or per atom and per element)')
             print (' named El for the total MSD, and El_x, El_a, El_1 ... for the components along the axes. MSD in A^2.')
             print (' <base>.diffusion.dat : diffusion coefficient of each element (and along each axis), D = slope/6 for the total MSD')
-            print (' and slope/2 along one axis, with its error and the R^2 of the fit. For finer fits, or many files at once, use analyze_msd.py.')
+            print (' and slope/2 along one axis, with its error, the R^2 of the fit, and the exponent alpha of MSD ~ t^alpha over the fit window')
+            print (' (1 for normal diffusion, < 1 if still sub-diffusive). For finer fits, plots (-v), or many files at once, use analyze_msd.py.')
             sys.exit()
         elif opt in ("-f", "--fumdfile"):
             umdfile = str(arg)
@@ -283,10 +284,11 @@ def main(argv):
         else :
             errorstring = 'error = standard error of the slope of the fit (underestimated : the MSD points are correlated)'
         f.write('# Diffusion coefficients from '+msdfile+' : linear fit of the MSD between '+str(tmin)+' and '+str(tmax)+' fs ; D = slope/6 (total) or slope/2 (along one axis) ; '+errorstring+'\n')
-        f.write('column\tD_(m2/s)\tD_error_(m2/s)\tR_squared\n')
+        f.write('column\tD_(m2/s)\tD_error_(m2/s)\tR_squared\talpha\n')
         print ('\nDiffusion coefficients, fit between '+str(tmin)+' and '+str(tmax)+' fs ; '+errorstring)
-        print ('{:<10s}{:>14s}{:>14s}{:>10s}'.format('column','D (m2/s)','error','R^2'))
+        print ('{:<10s}{:>14s}{:>14s}{:>10s}{:>8s}'.format('column','D (m2/s)','error','R^2','alpha'))
         icol = 0
+        lowalpha = False
         for itypat in range(MyCrystal.ntypat):
             for jj in range(1+nAxes):
                 lab = ellabels[icol]
@@ -295,10 +297,16 @@ def main(argv):
                 D, D_err, R2, slope, intercept = calculation_diffusivities(times,MSDel[itypat][jj],tmin,dimension,tmax)
                 if BlockMSD != []:
                     D_err = block_diffusivity_error(blocklags*TimeStep,[BlockMSD[kk][itypat][jj] for kk in range(nBlocks)],tmin,tmax,dimension)
-                f.write(lab+'\t'+str(D)+'\t'+str(D_err)+'\t'+str(R2)+'\n')
-                print ('{:<10s}{:>14.4e}{:>14.4e}{:>10.4f}'.format(lab,D,D_err,R2))
+                alpha = diffusion_exponent(times,MSDel[itypat][jj],tmin,tmax)#1 for normal diffusion, < 1 if the window is still sub-diffusive
+                f.write(lab+'\t'+str(D)+'\t'+str(D_err)+'\t'+str(R2)+'\t'+str(alpha)+'\n')
+                print ('{:<10s}{:>14.4e}{:>14.4e}{:>10.4f}{:>8.2f}'.format(lab,D,D_err,R2,alpha))
+                if regime_warning(alpha) != '':
+                    lowalpha = True
         f.close()
         print ('Diffusion coefficients printed in file ',difffile)
+        if lowalpha:
+            print ('WARNING : alpha is outside 0.9-1.1 for some columns : the fit window is not in the diffusive regime (MSD ~ t^alpha) ;')
+            print ('          alpha < 0.9 (sub-diffusive) : consider a larger -e ; alpha > 1.1 (ballistic) : consider a larger -b and -e.')
 
         end=time.time()
         print("runtime :",end-start)
