@@ -14,7 +14,7 @@ import bonding_umd
 import speciation_and_angles
 import VaspParser2umd
 import LAMMPSParser2umd
-import vibr_spectrum_umd_fast
+import vibrations_umd
 import umd_to_lammps
 import gofr_umd
 import val_extract_umd
@@ -1251,7 +1251,7 @@ class MainWindow(QMainWindow):
         
         self.messageVib=QLabel("")
 
-        self.temperature = QLineEdit("5000")
+        self.temperature = QLineEdit("")
         self.UMDfileVib_edit = QLineEdit("")
         
         UMDButton = QPushButton("Select the UMD file")
@@ -1259,7 +1259,7 @@ class MainWindow(QMainWindow):
         UMDButton.clicked.connect(partial(select_File,self.UMDfileVib_edit))
 
         hboxT=QHBoxLayout()
-        hboxT.addWidget(QLabel("Select the temperature (default 5000 K) :"))
+        hboxT.addWidget(QLabel("Temperature for the normalization (K ; empty = mean temperature of the UMD file) :"))
         hboxT.addWidget(self.temperature)
                 
         
@@ -1285,13 +1285,15 @@ class MainWindow(QMainWindow):
         
         
     def ComputeVib(self):
-        argv = ["-f",self.UMDfileVib_edit.text(),"-t",self.temperature.text()]
+        argv = ["-f",self.UMDfileVib_edit.text()]
+        if self.temperature.text() != "":
+            argv += ["-t",self.temperature.text()]
         
         if self.UMDfileVib_edit.text()=="":
             self.messageVib.setText("Error : Please select an UMD file.")
         elif not os.path.isfile(self.UMDfileVib_edit.text()):
             self.messageVib.setText("Error : the file "+self.UMDfileVib_edit.text()+" is displaced or missing.") 
-        elif not (self.temperature.text().isnumeric() and int(self.temperature.text())>=0):
+        elif self.temperature.text() != "" and not (self.temperature.text().isnumeric() and int(self.temperature.text())>0):
             self.messageVib.setText("Error : the temperature must be a strictly positive integer.")
         else :
             self.messageVib.setText("Computing...") 
@@ -1305,7 +1307,7 @@ class MainWindow(QMainWindow):
                     types = [int(line[i]) for i in range (1,len(line))]
                     break
             ff.close()
-            result=usefunction(vibr_spectrum_umd_fast, argv, self.messageVib)
+            result=usefunction(vibrations_umd, argv, self.messageVib)
             if result and self.displayVib.isChecked() :
                 self.messageVib.setText("Vibrational spectrum successfully calculated. Files created under the names "+self.UMDfileVib_edit.text()[:-8]+".vels.scf.dat and "+self.UMDfileVib_edit.text()[:-8]+".vibr.dat\nDOS showed in graphs (see the tab <Visual Display> above)")
                 DOS,Freq,Elements = read_vibr_allEls(self.UMDfileVib_edit.text()[:-8]+".vibr.dat")
