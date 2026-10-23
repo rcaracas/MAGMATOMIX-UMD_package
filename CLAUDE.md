@@ -61,6 +61,8 @@ Human-readable ASCII: one header section per snapshot followed by per-atom lines
 | `QBoxParser.py` | QBox XML output |
 | `LAMMPSParser2umd.py` | LAMMPS dump files |
 
+`VaspParser.py` unwraps the positions (`absxcart`) at every MD step from `-i` on, even those not written with `-s`, so no crossing of a cell face is missed. It finds each crossing as a whole-number change of the displacement in reduced coordinates, which works for any cell shape. The `timestep` it writes is the time between written snapshots (`-s` × POTIM), as the analysis scripts expect. On-the-fly ML learning steps print the positions twice (ML and DFT blocks); the previous positions are taken only from the first block of each ionic step.
+
 ### Analysis Scripts
 Each script imports `crystallography` and `umd_processes_fast`; most also load a dedicated C library for the heavy computation.
 

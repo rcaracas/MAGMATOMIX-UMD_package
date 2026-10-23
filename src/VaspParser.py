@@ -14,6 +14,7 @@ def read_outcar(FileName,InitialStep,SkipStep):
     flagrprimd = -1
     iatom = -1    
     istep = 0
+    positionsread = False         #True once the positions of the current ionic step have been read ; on-the-fly ML learning steps print them twice (ML and DFT blocks)
     MyCrystal = cr.Lattice()
     TimeStep = 1.0
     newfile = FileName + '.umd.dat'
@@ -46,9 +47,7 @@ def read_outcar(FileName,InitialStep,SkipStep):
                             MyCrystal.typat[jatom] = atomictype-1
                             jatom = jatom + 1
                     MyCrystal.atoms = [cr.Atom() for _ in range(MyCrystal.natom)]
-                    oldpos = [cr.Atom() for _ in range(MyCrystal.natom)]
-                    for jatom in range(MyCrystal.natom):
-                        oldpos[jatom].xcart = [0.5,0.5,0.5]     #the only coordinates for which the first step will not add an extra phase
+                    oldpos = [cr.Atom() for _ in range(MyCrystal.natom)]     #set to the first positions read, in the atomic-positions block
                     MyCrystal.elements = ['X' for _ in range(MyCrystal.ntypat)]
                     MyCrystal.masses = [0.0 for _ in range(MyCrystal.ntypat)]
                     MyCrystal.zelec = [0.0 for _ in range(MyCrystal.ntypat)]
@@ -199,28 +198,36 @@ def read_outcar(FileName,InitialStep,SkipStep):
                             #ETOTAL is the last value we want to take in the umd, so we can put the switch off and increase the counter of steps
                             #Once istep >= InitialStep, we can compute the velocities, diffcoord etc. and print the umd
                             switch = False
+                            positionsread = False
                             istep = istep + 1
-                            if istep >= InitialStep and (istep - InitialStep) % SkipStep == 0:
+                            if istep >= InitialStep:
+                                #the unwrapping is done at every MD step, also those not written (-s SkipStep), so that no jump across a cell face is missed
                                 for jatom in range(MyCrystal.natom):
+                                    #minimum-image unwrapping done in reduced coordinates, so that it is valid for non-orthogonal cells:
+                                    #a jump across a cell face is an integer change of the reduced displacement along that lattice vector
+                                    dcart = [MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] for ii in range(3)]
                                     addphase = [0.0, 0.0, 0.0]
                                     for ii in range(3):
-                                        if MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] > MyCrystal.acell[ii]/2:
-                                            addphase[ii] = -1.0
-                                        elif MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] < -MyCrystal.acell[ii]/2:
-                                            addphase[ii] = 1.0
+                                        dred = 0.0
+                                        for jj in range(3):
+                                            dred += MyCrystal.gprimd[ii][jj]*dcart[jj]
+                                        addphase[ii] = -float(round(dred))
                                     addphase_cart = [0.0, 0.0, 0.0]
                                     for ii in range(3):
                                         for jj in range(3):
                                             addphase_cart[ii] += addphase[jj] * MyCrystal.rprimd[jj][ii]
                                         phase[jatom][ii] += addphase_cart[ii]
                                     for ii in range(3):
-                                        diffcoords[jatom][ii] = MyCrystal.atoms[jatom].xcart[ii] + phase[jatom][ii]
                                         MyCrystal.atoms[jatom].vels[ii] = (MyCrystal.atoms[jatom].xcart[ii] - oldpos[jatom].xcart[ii] + addphase_cart[ii]) / TimeStep
+                            if istep >= InitialStep and (istep - InitialStep) % SkipStep == 0:
+                                for jatom in range(MyCrystal.natom):
+                                    for ii in range(3):
+                                        diffcoords[jatom][ii] = MyCrystal.atoms[jatom].xcart[ii] + phase[jatom][ii]
                                         for jj in range(3):
-                                            MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] + MyCrystal.gprimd[ii][jj]*MyCrystal.atoms[jatom].xcart[ii]
-                                            while MyCrystal.atoms[jatom].xred[ii] >=1.0:
-                                                MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] - 1.0
-                                (CurrentTime,TimeStep) = umdpf.print_snapshots(FileName,MyCrystal,TimeStep,(istep-InitialStep)*TimeStep,diffcoords)
+                                            MyCrystal.atoms[jatom].xred[ii] = MyCrystal.atoms[jatom].xred[ii] + MyCrystal.gprimd[ii][jj]*MyCrystal.atoms[jatom].xcart[jj]
+                                        MyCrystal.atoms[jatom].xred[ii] -= math.floor(MyCrystal.atoms[jatom].xred[ii])
+                                #the timestep written in the UMD file is the time between two written snapshots, as expected by the analysis scripts
+                                (CurrentTime,_) = umdpf.print_snapshots(FileName,MyCrystal,TimeStep*SkipStep,(istep-InitialStep)*TimeStep,diffcoords)
                 if (entry[0]=='kin.'):          #reading the temperature
                     if len(entry) == 7:
                         MyCrystal.temperature = float(entry[5])
@@ -233,12 +240,16 @@ def read_outcar(FileName,InitialStep,SkipStep):
 
                     MyCrystal.atoms[iatom].xred = [0.0,0.0,0.0]
                     MyCrystal.atoms[iatom].vels = [0.0,0.0,0.0]
-                    oldpos[iatom].xcart = MyCrystal.atoms[iatom].xcart
+                    if not positionsread:       #the previous positions are kept only at the first positions block of the ionic step
+                        oldpos[iatom].xcart = MyCrystal.atoms[iatom].xcart
                     MyCrystal.atoms[iatom].xcart = [float(entry[0]),float(entry[1]),float(entry[2])]
+                    if istep == 0:              #first ionic step: there is no previous position, so take the current one (no phase, zero velocity)
+                        oldpos[iatom].xcart = list(MyCrystal.atoms[iatom].xcart)
                     MyCrystal.atoms[iatom].forces = [float(entry[3]),float(entry[4]),float(entry[5])]
                     iatom = iatom + 1
                     if (iatom==MyCrystal.natom):
                         iatom = -1
+                        positionsread = True
                 if (entry[0]=='POSITION'):
                     line = ff.readline()
                     iatom = 0
