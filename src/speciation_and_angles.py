@@ -470,10 +470,14 @@ def main(argv):
     clusters,Angles = map(list,zip(*Data))
         
     population=analysis_subtab(clusters,0)
-        #Creating the output files        
-    FileAll = UMDFile[:-8] +'.r' + str(rings) + '.popul.dat'
-    FileStat = UMDFile[:-8] + '.r' + str(rings) + '.stat.dat'
-    FileStep = UMDFile[:-8] + '.r' + str(rings) + '.step.dat'
+        #Creating the output files : named after the UMD file if given (-f is optional), otherwise after the bonding file
+    if UMDFile != '':
+        BaseName = UMDFile[:-8] if UMDFile.endswith('.umd.dat') else os.path.splitext(UMDFile)[0]
+    else:
+        BaseName = BondFile[:-12] if BondFile.endswith('.bonding.dat') else os.path.splitext(BondFile)[0]
+    FileAll = BaseName +'.r' + str(rings) + '.popul.dat'
+    FileStat = BaseName + '.r' + str(rings) + '.stat.dat'
+    FileStep = BaseName + '.r' + str(rings) + '.step.dat'
     header+="\n"            
     
     print("\nWriting...")#writing the clusters in a file
