@@ -2,251 +2,196 @@
 # -*- coding: utf-8 -*-
 
 
-### Authors : Razvan Caracas, Adrien Saurety, Emma Stoutenburg with help from chatGPT
+### Authors : Razvan Caracas, Adrien Saurety, Emma Stoutenburg
+### Green-Kubo with the 5 components of the traceless stress tensor, bias correction and block errors : Razvan Caracas
 import sys, getopt, os
-import scipy 
-print(scipy.__version__)
-import umd_processes_fast as umdpf
-import crystallography as cr
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.integrate import simpson
+from scipy.integrate import cumulative_trapezoid
+import umd_processes_fast as umdpf
 
 
+COMPONENTS = ['xy','yz','zx','xx','yy','zz']
+#Daivis & Evans : eta = V/(10 kB T) int sum_ab <N_ab(0) N_ab(t)> dt, with N the traceless symmetric stress tensor (5 independent components)
+#each off-diagonal component appears twice (ab and ba), each diagonal one once ; written as weights on per-component viscosities
+#for which the diagonal ones are scaled by 3/4, since <N_aa N_aa> = 4/3 <N_ab N_ab> in an isotropic liquid
+WEIGHTS = {'all':np.array([0.2,0.2,0.2,2/15,2/15,2/15]), 'offdiag':np.array([1/3,1/3,1/3,0.0,0.0,0.0])}
+DIAGSCALE = np.array([1.0,1.0,1.0,0.75,0.75,0.75])
 
 
-# Placeholder function for autocorrelation and int
-def _compute_autocorrelation(arr, max_window_size=None):
-    """
-    Compute the self-correlation function of a 1D array.
-
-    Parameters:
-    arr (np.ndarray): Input 1D array with shape (nsteps,).
-    max_window_size (int, optional): Maximum window size for the autocorrelation length.
-
-    Returns:
-    np.ndarray: An array containing the self-correlation function for the nsteps dimension.
-    """
-    nsteps = len(arr)
-    correlation = np.zeros(nsteps)
-    # Loop over each time lag
-    for lag in range(nsteps):
-        if max_window_size is not None and lag >= max_window_size:
-            break
-        correlation[lag] = np.mean((arr[:nsteps - lag] * arr[lag:nsteps]))
-    if max_window_size is not None:
-        correlation = correlation[:max_window_size]
-
-    return correlation
+def gk_prefactor(volume,temperature):#V/(kB T) in Pa.s per GPa^2.fs, for V in A^3 and T in K : 1e-30 * 1e18 * 1e-15 / 1.380649e-23 = 1e-4/1.380649
+    return 1.0E-04*volume/(1.380649*temperature)
 
 
-def plotaurocorrelation(UMDfile,autocorr_bydir, int_values,zero_autocorr):
-    """
-    
+def shear_stresses(stress):#Traceless stress tensor N = sigma - p I, from the UMD StressTensor (xx yy zz xy yz zx, in GPa)
+    p = stress[:,:3].mean(axis=1)
+    return np.column_stack([stress[:,3],stress[:,4],stress[:,5],stress[:,0]-p,stress[:,1]-p,stress[:,2]-p])
 
-    Parameters
-    ----------
-    UMDfile : str
-    name of the umd.dat file used
-    autocorr_bydir : list
-        autocorrelation by direction (XY, YZ, ZX)
-    int_values : list
-        list of the integral of the autocorrelation
-    zero_autocorr : int
-        first time an autocorrelation reach zero
 
-    Returns
-    -------
-    None. Plot the graphic
+def autocorrelation(x,nlags):#Autocorrelation of each column of x (time along axis 0), averaged over all the time origins, by FFT
+    #x must already be the fluctuations : the mean of the whole trajectory is removed once, also for the blocks, so that they all have the same bias
+    n = x.shape[0]
+    F = np.fft.rfft(x,n=2*n,axis=0)#Zero-padding to 2n gives the non-cyclic correlation
+    acf = np.fft.irfft(F*F.conj(),n=2*n,axis=0)[:nlags]
+    return acf/(n-np.arange(nlags))[:,None]
 
-    """
-    autocorr_bydir = np.array(autocorr_bydir)
-    int_values = np.array(int_values)
-    print('new len of int is ', len(int_values[0]))
-    # Plot autocorrelation
-    plt.figure(figsize=(8, 6))
-    plt.subplot(2, 1, 1)
-    plt.plot(autocorr_bydir[0,:], label='Stress XY')
-    plt.plot(autocorr_bydir[1,:], label='Stress YZ')
-    plt.plot(autocorr_bydir[2,:], label='Stress ZX')
-    plt.plot([zero_autocorr],[0], 'or')
-    plt.title('Autocorrelation')
-    plt.xlabel('Lag')
-    plt.ylabel('Autocorrelation Value')
-    plt.legend()
-    # Plot int of autocorrelation
-    plt.subplot(2, 1, 2)
-    plt.plot(np.abs(int_values[0,:]), label='Stress XY')
-    plt.plot(np.abs(int_values[1,:]), label='Stress YZ')
-    plt.plot(np.abs(int_values[2,:]), label='Stress ZX')
-    plt.plot(np.abs(int_values[3,:]), 'r',label='Average')
-    plt.plot([zero_autocorr],np.abs(int_values[3,zero_autocorr]), 'or')
-    plt.title('Viscosity')
-    plt.xlabel('$\tau$ (fs)')
-    plt.ylabel('Viscosity (Pa.s)')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(UMDfile+'visco.pdf')
+
+def running_viscosities(acf,dt,pref):#Running Green-Kubo integral of each component, in Pa.s, the diagonal ones scaled to estimate the shear viscosity
+    return cumulative_trapezoid(acf,dx=dt,axis=0,initial=0)*pref*DIAGSCALE
+
+
+def viscosity_estimate(t,eta,etablocks,iend,runtime):#Viscosity at the end of the integral, t[iend], and its error from the blocks
+    #removing the mean of a trajectory of length runtime lowers its autocorrelation by about 2 I/runtime at all lags, I being its full integral,
+    #so that eta(t) is lowered by 2 eta t/runtime (about 10% at 1 ps for a 16 ps run) ; the self-consistent correction at the end of the integral is
+    #eta = eta_raw/(1 - 2 t_end/runtime), and the correction 2 eta t/runtime is the same for all the components and all the times
+    factor = 1.0/(1.0-2.0*t[iend]/runtime)
+    value = eta[iend]*factor
+    correction = 2.0*value*t/runtime
+    etaerr = etablocks.std(axis=0,ddof=1)/np.sqrt(len(etablocks))*factor#standard error of the whole-run eta(t), from the spread of the blocks
+    #convergence : eta(t) should no longer rise between half the integral and its end
+    ihalf = iend//2
+    rise = (eta[iend]+correction[iend]) - (eta[ihalf]+correction[ihalf])
+    return {'eta':value, 'error':etaerr[iend], 'iend':iend, 'tend':t[iend], 'correction':correction, 'etaerr':etaerr,
+            'converged':rise < 2.0*etaerr[iend], 'rise':rise}
+
+
+def plot_viscosity(t,acf,etacomp,eta,etaerr,res,title):
+    import matplotlib.pyplot as plt
+    fig,(ax1,ax2) = plt.subplots(2,1,figsize=(8,8),sharex=True)
+    for ic,comp in enumerate(COMPONENTS):
+        ax1.plot(t,acf[:,ic]*DIAGSCALE[ic],lw=0.8,label=comp+(' (x3/4)' if ic > 2 else ''))
+        ax2.plot(t,etacomp[:,ic]*1e3,lw=0.6,alpha=0.6,label=comp)
+    ax1.axhline(0.0,color='k',lw=0.5)
+    ax1.set_ylabel('stress autocorrelation (GPa$^2$)')
+    ax1.legend(fontsize='small',ncol=3)
+    ax1.set_title(title,fontsize='medium')
+    ax2.fill_between(t,(eta-etaerr)*1e3,(eta+etaerr)*1e3,color='0.8',label='block error')
+    ax2.plot(t,eta*1e3,'k',lw=1.5,label='viscosity')
+    ax2.axvline(res['tend'],color='r',lw=0.8,label='end of the integral')
+    ax2.axhline(res['eta']*1e3,color='r',lw=0.8,ls=':')
+    ax2.set_xlabel('time (fs)')
+    ax2.set_ylabel('running viscosity (mPa.s)')
+    ax2.set_title('viscosity = '+'%.3g' % (res['eta']*1e3)+' +/- '+'%.2g' % (res['error']*1e3)+' mPa.s at '+'%.0f' % res['tend']+' fs',fontsize='medium')
+    ax2.legend(fontsize='small',ncol=3)
+    fig.tight_layout()
     plt.show()
 
-def prefactor(volume, temperature, timestep):
-    """
-    Compute the frefactor of the Green-Kubo equation. 
-    Please note that the time step is required to correct integral of the GK equation as the code do the integration over the step and not over time !
 
-    Parameters
-    ----------
-    volume : float
-        volume of the cell in angstrom
-    temperature : float
-        average temperature of the simulation in Kelvin
-    timestep : float
-        timestep use in the simulation.
-
-    Returns
-    -------
-    float
-        prefactor needed to compute viscosity, unit are in SI unit to give the viscosity in Pa.s
-
-    """
-    #print('computing prefactors, for option ', option)
-    kb = 1.3806503  # m2kg/s2K
-    print('Prefactor for viscosity is ', volume * timestep / (kb * temperature) * 1.0E-04)
-    return 1.0E-04 * volume * timestep / (kb * temperature)
-
-
-def write_to_files_viscosity(autocorr_data, int_data, TimeStep, filename):
-    nsteps = len(autocorr_data[0])
-    print(len(autocorr_data[0]))
-    print(np.shape(int_data))
-    time_values = np.arange(nsteps) * TimeStep
-    with open(filename, 'w') as f:
-        f.write("Time\tAutocorr\tint\n")
-        for i in range(nsteps):
-            autocorr_values = "\t".join([str(autocorr_data[j][i]) for j in range(len(autocorr_data))])
-            int_values = "\t".join([str(np.abs(int_data[j][i])) for j in range(len(int_data))])
-            f.write(f"{time_values[i]}\t{autocorr_values}\t{int_values}\n")
-            
-
-def main():
-    """
-    Main function to execute the UMD viscosity tool.
-
-    :return: None
-    """
-    UMDfile = 'OUTCAR.umd.dat'
+def main(argv):
+    umdpf.headerumd()
+    UMDfile = ''
     firststep = 0
-    window_size = 5000
-    #property = 0  # 0=viscosity; 1x=vibrations from velocities, 2x=vibrations from positions
-    flaggraph = 0
-    mean_volume = 1.0
-    mean_temperature = 300.0
+    FitEnd = None
+    nBlocks = 4
+    Components = 'all'
+    plot = False
+    usage = 'viscosity_umd.py -f <umdfile> -i <InitialSteps> -e <End> -n <nBlocks> -c <Components> -v'
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hf:i:t:w:r:g")
+        opts, args = getopt.getopt(argv,"hf:i:e:n:c:v",["fumdfile","iInitialSteps","eEnd","nBlocks","cComponents","visual"])
     except getopt.GetoptError:
-        print('spectra_umd.py -f <umdfile> -i <InitialStep> -t <Temperature> -w <WindowSize> -r <Property> -g <GraphicalOutput>')
+        print(usage)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('spectra_umd.py program to compute the auto-correlation function of various time-dependent values')
-            print('spectra_umd.py -f <umdfile> -i <InitialStep> -w <WindowSize> -g <GraphicalOutput> ')
-            print('default values: -f OUTCAR.umd.dat -i 0 -w 5000 -g 0')
-            print('-g options:')
-            print('0 : graphical output (default) ')
-            print('1 : no graphical output ')
+            print('viscosity_umd.py program to compute the shear viscosity with the Green-Kubo relation, from the stress tensor of a UMD file')
+            print(usage)
+            print('-f : UMD file')
+            print('-i : number of initial snapshots to skip (default 0)')
+            print('-e : end of the Green-Kubo integral, in steps, where the viscosity is read (default and maximum: half a block, i.e. 1/8 of the run for 4 blocks)')
+            print('-n : number of consecutive blocks of the trajectory, used for the error (default 4, minimum 3) ; fewer blocks allow a longer integral')
+            print("-c : 'all' (default) uses the 5 independent components of the traceless stress tensor, for an isotropic liquid (Daivis & Evans) ;")
+            print("     'offdiag' uses only the 3 off-diagonal components xy, yz, zx, e.g. for anisotropic systems")
+            print('-v : display the stress autocorrelations and the running viscosity, with its error and the end of the integral (default: no display)')
+            print('The mean stress is removed, and the running Green-Kubo integral eta(t) is corrected for the bias this causes (+2 eta t / run length).')
+            print('The viscosity is eta(t) at the end of the integral, and its error is the standard error of eta(t) from the spread of the blocks.')
+            print('By default the integral runs as far as the blocks allow : the stress autocorrelation of melts often has a small but long tail')
+            print('that carries much of the viscosity, which automatic windows tend to cut. A warning is printed if eta(t) still rises by more than')
+            print('2 errors over the second half of the integral : then use a longer run or fewer blocks. Check the plateau with -v, and use -e')
+            print('to stop earlier for fast-relaxing liquids, whose eta(t) is noisier at long times. With few blocks the error may be underestimated')
+            print('by 10-30%.')
+            print('Output : <base>.visc.dat with the autocorrelation and the running viscosity of each component, the combined running')
+            print('viscosity and its error from the blocks, as a function of time.')
             sys.exit()
-        elif opt in ("-f"):
+        elif opt in ("-f","--fumdfile"):
             UMDfile = str(arg)
-        elif opt in ("-i"):
+        elif opt in ("-i","--iInitialSteps"):
             firststep = int(arg)
-        elif opt in ("-w"):
-            window_size = int(arg)
-        elif opt in ("-g"):
-            print("graphical output",arg)
-            flaggraph = int(arg)
-            if flaggraph != 1:
-                flaggraph = 0
-    if os.path.isfile(UMDfile):  # Changed from UMDname to UMDfile
-        if firststep > 0:
-            print('The first ', firststep, 'timesteps will be discarded')
-        MyCrystal = cr.Lattice()
-        AllSnapshots = []
-        pref = 1.0
-        (MyCrystal, AllSnapshots, TimeStep) = umdpf.read_stresses_4visc(UMDfile)
-        print('after reading the stresses')
-        print('Total length is ', len(AllSnapshots))
-        temperatures = [ snapshot.temperature for snapshot in AllSnapshots]
-        mean_temperature = np.mean(temperatures)
-        print('Mean Temperature: ', mean_temperature, ' K')
-        volumes = [snapshot.cellvolume for snapshot in AllSnapshots]
-        mean_volume = np.mean(volumes)
-        print('Cell volume is ', mean_volume, ' in angstroms^3')
-
-        # Calculate the prefactor based on mean volume and mean temperature
-        pref = prefactor(mean_volume, mean_temperature, TimeStep)
-
-        # Extract stress components from snapshots
-        stresses_xy = np.array([snapshot.stress[3] for snapshot in AllSnapshots])
-        stresses_yz = np.array([snapshot.stress[4] for snapshot in AllSnapshots])
-        stresses_zx = np.array([snapshot.stress[5] for snapshot in AllSnapshots])
-
-        #print("shears as ",stresses_xy[1:10])
-
-        # Compute autocorrelations
-        window_size = min(window_size,int(len(stresses_xy)/2))
-        autocorr_xy = _compute_autocorrelation(stresses_xy, window_size)
-        autocorr_yz = _compute_autocorrelation(stresses_yz, window_size)
-        autocorr_zx = _compute_autocorrelation(stresses_zx, window_size)
-        i,j,k=0,0,0
-        try:
-            while autocorr_xy[i]>0 and i<window_size:
-                i+=1
-            
-            while autocorr_xy[j]>0 and j<window_size:
-                j+=1
-            while autocorr_xy[k]>0 and k<window_size:
-                k+=1
-            zero_autocorr=max(i,j,k)
-            # Integrate the autocorrelations and multiply by prefactor
-            intvaluesxy = np.array([simpson(autocorr_xy[:i], dx=1) for i in range(1, len(autocorr_xy) + 1)]) * pref
-            intvaluesyz = np.array([simpson(autocorr_yz[:i], dx=1) for i in range(1, len(autocorr_yz) + 1)]) * pref
-            intvalueszx = np.array([simpson(autocorr_zx[:i], dx=1) for i in range(1, len(autocorr_zx) + 1)]) * pref
-
-            # Calculate the mean of the integral values for each step
-            visc_mean = np.array([(intvaluesxy[i] + intvaluesyz[i] + intvalueszx[i]) / 3 for i in range(int(len(intvaluesxy)))])
-            viscosity_integrals = [intvaluesxy, intvaluesyz, intvalueszx, visc_mean]
-            
-            #Print the viscosity average and std 
-            print('Viscosity along XY=',np.mean(intvaluesxy[zero_autocorr::]),' Pa.s')
-            print('Viscosity along YZ =',np.mean(intvaluesyz[zero_autocorr::]),' Pa.s')
-            print('Viscosity along ZX=',np.mean(intvalueszx[zero_autocorr::]),' Pa.s')
-            print('Viscosity =',np.mean(visc_mean[zero_autocorr::]),' +/- ', max([np.mean(visc_mean[zero_autocorr::])-np.mean(intvaluesxy[zero_autocorr::]),np.mean(visc_mean[zero_autocorr::])-np.mean(intvalueszx[zero_autocorr::]),np.mean(visc_mean[zero_autocorr::])-np.mean(intvaluesyz[zero_autocorr::])]),' Pa.s')
-            # Store autocorrelations for plotting and writing
-            max_diff=max([np.mean(visc_mean[zero_autocorr::])-np.mean(intvaluesxy[zero_autocorr::]),np.mean(visc_mean[zero_autocorr::])-np.mean(intvalueszx[zero_autocorr::]),np.mean(visc_mean[zero_autocorr::])-np.mean(intvaluesyz[zero_autocorr::])])*100/np.mean(visc_mean[zero_autocorr::])
-            print('max difference between viscosty along specific direction and average visocosity is :',max_diff,' %')
-            if max_diff>20:
-                print('WARNING !!! convergence seems to be bad ! You MUST check the graph to investigate further (-g 0)')
-            autocorr_stresses = [autocorr_xy, autocorr_yz, autocorr_zx]
-
-
-            # Plot autocorrelation and viscosity integrals
-            if flaggraph==0:
-                plotaurocorrelation(UMDfile,autocorr_stresses, viscosity_integrals,zero_autocorr)
-
-            # Write results to file
-            viscfile = UMDfile[:-7] + 'visc.dat'
-            write_to_files_viscosity(autocorr_stresses, viscosity_integrals, TimeStep, viscfile)
-                    
-        except:
-            if flaggraph==0:
-                plotaurocorrelation(UMDfile,autocorr_stresses, viscosity_integrals,zero_autocorr)
-            print("ERORR !!at least one of the auto correlation functions do not converge!")
-
-        
-        
-    else:
-        print('the umdfile ', UMDfile, ' does not exist')
+        elif opt in ("-e","--eEnd"):
+            FitEnd = int(arg)
+        elif opt in ("-n","--nBlocks"):
+            nBlocks = int(arg)
+            if nBlocks < 3:
+                print('ERROR : at least 3 blocks -n are needed for the error.')
+                sys.exit()
+        elif opt in ("-c","--cComponents"):
+            Components = str(arg)
+            if Components not in WEIGHTS:
+                print("ERROR : components -c have to be 'all' or 'offdiag'.")
+                sys.exit()
+        elif opt in ("-v","--visual"):
+            plot = True
+    if not os.path.isfile(UMDfile):
+        print('the umdfile ',UMDfile,' does not exist')
         sys.exit()
-        
+
+    MyCrystal, AllSnapshots, TimeStep = umdpf.read_stresses_4visc(UMDfile)
+    if firststep > 0:
+        print('The first ',firststep,' snapshots are discarded')
+    AllSnapshots = AllSnapshots[firststep:]
+    nsteps = len(AllSnapshots)
+    stress = np.array([snapshot.stress for snapshot in AllSnapshots])
+    temperature = np.mean([snapshot.temperature for snapshot in AllSnapshots])
+    volume = np.mean([snapshot.cellvolume for snapshot in AllSnapshots])
+    pref = gk_prefactor(volume,temperature)
+    weights = WEIGHTS[Components]
+    print(nsteps,' snapshots of ',TimeStep,' fs ; mean temperature ','%.1f' % temperature,' K ; mean volume ','%.2f' % volume,' A^3')
+
+    blocklen = nsteps//nBlocks
+    window = blocklen//2#the blocks give the error up to half their length
+    if FitEnd is None or FitEnd > window-1:
+        if FitEnd is not None:
+            print('The end of the integral -e is beyond half a block ; it is set to ',window-1,' steps. Use fewer blocks -n for a longer integral.')
+        FitEnd = window-1
+    if window < 10:
+        print('ERROR : the trajectory is too short for ',nBlocks,' blocks.')
+        sys.exit()
+    t = np.arange(window)*TimeStep
+
+    N = shear_stresses(stress)
+    N = N - N.mean(axis=0)#Green-Kubo needs the fluctuations : a residual mean stress would make the integral grow linearly
+    acf = autocorrelation(N,window)
+    etacomp = running_viscosities(acf,TimeStep,pref)
+    etablocks = np.array([running_viscosities(autocorrelation(N[kk*blocklen:(kk+1)*blocklen],window),TimeStep,pref) @ weights for kk in range(nBlocks)])
+    res = viscosity_estimate(t,etacomp @ weights,etablocks,FitEnd,nsteps*TimeStep)
+    etacomp = etacomp + res['correction'][:,None]#the bias correction, in Pa.s, is the same for all components
+    eta = etacomp @ weights
+    etaerr = res['etaerr']
+
+    print('Components : ',Components,' ; ',nBlocks,' blocks of ',blocklen,' steps ; time lags up to ',t[-1],' fs')
+    print('Running viscosity (mPa.s) : '+', '.join('%.0f' % t[ii]+' fs : '+'%.3g' % (eta[ii]*1e3)+' +/- '+'%.2g' % (etaerr[ii]*1e3) for ii in (FitEnd//4,FitEnd//2,3*FitEnd//4,FitEnd)))
+    print('Running viscosity at the end of the integral, by component (mPa.s) : '+', '.join(comp+' '+'%.3g' % (etacomp[FitEnd,ic]*1e3) for ic,comp in enumerate(COMPONENTS) if weights[ic] > 0))
+    print('Viscosity = ','%.4g' % res['eta'],' +/- ','%.2g' % res['error'],' Pa.s  (','%.4g' % (res['eta']*1e3),' +/- ','%.2g' % (res['error']*1e3),' mPa.s)')
+    print('Viscosity read at the end of the integral, ','%.0f' % res['tend'],' fs')
+    if not res['converged']:
+        print('WARNING : the running viscosity still rises by ','%.2g' % (res['rise']*1e3),' mPa.s over the second half of the integral (more than 2 errors) :')
+        print('          it has not converged, and the value is a lower bound ; use fewer blocks -n (longer integral) or a longer run.')
+
+    if UMDfile.endswith('.umd.dat'):
+        viscfile = UMDfile[:-8]+'.visc.dat'
+    else:
+        viscfile = os.path.splitext(UMDfile)[0]+'.visc.dat'
+    with open(viscfile,'w') as f:
+        f.write('# Green-Kubo viscosity from '+UMDfile+' : '+str(nsteps)+' snapshots from '+str(firststep)+', T = '+'%.1f' % temperature+' K, V = '+'%.2f' % volume+' A^3, components '+Components+', '+str(nBlocks)+' blocks of '+str(blocklen)+' steps\n')
+        f.write('# viscosity = '+str(res['eta'])+' +/- '+str(res['error'])+' Pa.s, at the end of the integral '+str(res['tend'])+' fs'+('' if res['converged'] else ' (NOT converged : lower bound)')+'\n')
+        f.write('# acf_ab : autocorrelation of the traceless stress N_ab (GPa^2) ; eta_ab : its running Green-Kubo integral (Pa.s, x3/4 for the diagonal ones, bias-corrected) ; eta : weighted mean, eta_err : error from the blocks\n')
+        f.write('time_(fs)\t'+'\t'.join('acf_'+comp for comp in COMPONENTS)+'\t'+'\t'.join('eta_'+comp for comp in COMPONENTS)+'\teta\teta_err\n')
+        for ii in range(window):
+            f.write(str(t[ii])+'\t'+'\t'.join(str(x) for x in acf[ii])+'\t'+'\t'.join(str(x) for x in etacomp[ii])+'\t'+str(eta[ii])+'\t'+str(etaerr[ii])+'\n')
+    print('Autocorrelations and running viscosities printed in file ',viscfile)
+
+    if plot:
+        plot_viscosity(t,acf,etacomp,eta,etaerr,res,UMDfile+' : '+Components+' components')
+    return res
+
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

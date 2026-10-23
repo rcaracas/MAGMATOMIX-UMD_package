@@ -292,19 +292,11 @@ def prefactor(option, volume, temperature, timestep_fs):
     """
     compute:
         
-        the prefactor using the formula B= V* dt / (kb * T) of the GK formula for viscosity 
-    
-    OR 
-    
-        the prefactor for scaling of the VDOS
+        the prefactor for scaling of the VDOS (the viscosity is computed by viscosity_umd.py)
     
     """
     kb = 1.3806503  # this appears to be in different units in your original; preserve their formula
-    if option == 0:
-        # original: 1.0E-04 * volume * timestep / (kb * temperature)
-        print('Prefactor for viscosity is ', volume * timestep_fs / (kb * temperature) * 1.0E-04)
-        return 1.0E-04 * volume * timestep_fs / (kb * temperature)
-    elif option in [1, 11]:
+    if option in [1, 11]:
         Boltzmann = 8.6173303e-5  # eV / K
         Avogadro = 6.022140857e23
         au_angstrom_square = 1.0 / Avogadro * 1.0e-3 * 1.0e10 / (1.602176634e-19)
@@ -318,7 +310,7 @@ def main():
     UMDfile = 'OUTCAR.umd.dat'
     firststep = 0
     window_size = None 
-    property = 0  
+    property = 1  # the viscosity is computed by viscosity_umd.py
     flaggraph = 0
     mean_volume = 1.0
     mean_temperature = 300.0
@@ -330,12 +322,11 @@ def main():
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('spectra_umd_fixed.py program to compute velocity auto-correlation and the related viscosity or power spectra')
+            print('spectra_umd_fixed.py program to compute velocity auto-correlation and the related power spectra (the viscosity is computed by viscosity_umd.py)')
             print('spectra_umd_fixed.py -f <umdfile> -i <InitialStep> -w <WindowSize> -r <Property> -g <Graphical>')
-            print('default values: -f OUTCAR.umd.dat -i 0 -w None -t 300 -r 0 -g 0')
+            print('default values: -f OUTCAR.umd.dat -i 0 -w None -t 300 -r 1 -g 0')
             print('-r options:')
-            print('0 : viscosity  (Default)')
-            print('1: combined VDOS analysis')
+            print('1: combined VDOS analysis (Default)')
             print('11 : separated VDOS by atomic type')
             sys.exit()
         elif opt == '-f':
@@ -354,37 +345,6 @@ def main():
     if not os.path.isfile(UMDfile):
         print('the umdfile ', UMDfile, ' does not exist')
         sys.exit(1)
-
-    # Branch for viscosity (kept largely as before)
-    if property == 0:
-        MyCrystal, AllSnapshots, TimeStep = umdpf.read_stresses_4visc(UMDfile)
-        TimeStep_fs = TimeStep  # assume returned in fs
-        print('after reading the stresses, total snapshots =', len(AllSnapshots))
-        temps = [s.temperature for s in AllSnapshots]
-        mean_temperature = np.mean(temps)
-        volumes = [s.cellvolume for s in AllSnapshots]
-        mean_volume = np.mean(volumes)
-        pref = prefactor(property, mean_volume, mean_temperature, TimeStep_fs)
-
-        stresses_xy = np.array([snapshot.stress[3] for snapshot in AllSnapshots])
-        stresses_yz = np.array([snapshot.stress[4] for snapshot in AllSnapshots])
-        stresses_zx = np.array([snapshot.stress[5] for snapshot in AllSnapshots])
-
-        autocorr_xy, _ = autocorr_fft_unbiased(stresses_xy - np.mean(stresses_xy))
-        autocorr_yz, _ = autocorr_fft_unbiased(stresses_yz - np.mean(stresses_yz))
-        autocorr_zx, _ = autocorr_fft_unbiased(stresses_zx - np.mean(stresses_zx))
-
-        intvaluesxy = np.array([simpson(autocorr_xy[:i], dx=1) for i in range(1, len(autocorr_xy) + 1)]) * pref
-        intvaluesyz = np.array([simpson(autocorr_yz[:i], dx=1) for i in range(1, len(autocorr_yz) + 1)]) * pref
-        intvalueszx = np.array([simpson(autocorr_zx[:i], dx=1) for i in range(1, len(autocorr_zx) + 1)]) * pref
-        visc_mean = (intvaluesxy + intvaluesyz + intvalueszx) / 3.0
-
-        # plot and write
-        plot_vdos(np.fft.rfftfreq(len(autocorr_xy), TimeStep_fs * FS_TO_S), intvaluesxy, title="Viscosity integral (xy)")
-        viscfile = UMDfile.replace(".umd.dat", "") + ".visc.dat"
-        write_spectrum_to_file(viscfile, np.fft.rfftfreq(len(autocorr_xy), TimeStep_fs * FS_TO_S), visc_mean)
-        print("Wrote viscosity integral to", viscfile)
-        return
 
     # Velocity-based spectra (10..13)
     if property in [1, 11]:

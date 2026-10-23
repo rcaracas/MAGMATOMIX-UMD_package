@@ -124,10 +124,7 @@ def plotaurocorrelation(autocorr_byatoms, fft_values):
 def prefactor(option, volume, temperature, timestep):
     #print('computing prefactors, for option ', option)
     kb = 1.3806503  # m2kg/s2K
-    if option == 0:
-        print('Prefactor for viscosity is ', volume * timestep / (kb * temperature) * 1.0E-04)
-        return 1.0E-04 * volume * timestep / (kb * temperature)
-    elif option in [10, 11, 12, 13]:
+    if option in [10, 11, 12, 13]:
         print('computing prefactors, for option ', option)
         Boltzmann = 8.6173303 * 10 ** (-5)  # eV
         Avogadro = 6.022140857 * (10 ** (23))  # mol-1
@@ -199,7 +196,7 @@ def main():
     UMDfile = 'OUTCAR.umd.dat'
     firststep = 0
     window_size = 10000
-    property = 0  # 0=viscosity; 1x=vibrations from velocities, 2x=vibrations from positions
+    property = 10  # 1x=vibrations from velocities, 2x=vibrations from positions ; the viscosity is computed by viscosity_umd.py
     flaggraph = 0
     mean_volume = 1.0
     mean_temperature = 300.0
@@ -212,12 +209,12 @@ def main():
         if opt == '-h':
             print('spectra_umd.py program to compute the auto-correlation function of various time-dependent values')
             print('spectra_umd.py -f <umdfile> -i <InitialStep> -t <Temperature> -w <WindowSize> -r <Property> -g <Graphical>')
-            print('default values: -f OUTCAR.umd.dat -i 0 -w 1000 -t 300 -r 0 -g 0')
+            print('default values: -f OUTCAR.umd.dat -i 0 -w 1000 -t 300 -r 10 -g 0')
             print('-r options:')
-            print('0 : viscosity  (Default)')
+            print('(the viscosity is computed by viscosity_umd.py)')
             print('1 : vibrational spectrum from atomic velocities')
             print('2 : vibrational spectrum from atomic positions')
-            print('10 : combined atomic velocities analysis')
+            print('10 : combined atomic velocities analysis (Default)')
             print('11 : separated by atomic types and directions (velocities)')
             print('12 : separated by atoms, mixed directions (velocities)')
             print('13 : separated by both atoms and directions (velocities)')
@@ -246,52 +243,7 @@ def main():
         MyCrystal = cr.Lattice()
         AllSnapshots = []
         pref = 1.0
-        if property == 0:  # viscosity part
-            stresses = []
-            (MyCrystal, AllSnapshots, TimeStep) = umdpf.read_stresses_4visc(UMDfile)
-            print('after reading the stresses')
-            print('Total length is ', len(AllSnapshots))
-            temperatures = [ snapshot.temperature for snapshot in AllSnapshots]
-            mean_temperature = np.mean(temperatures)
-            print('Mean Temperature: ', mean_temperature, ' K')
-            volumes = [snapshot.cellvolume for snapshot in AllSnapshots]
-            mean_volume = np.mean(volumes)
-            print('Cell volume is ', mean_volume, ' in angstroms^3')
-
-            # Calculate the prefactor based on mean volume and mean temperature
-            pref = prefactor(property, mean_volume, mean_temperature, TimeStep)
-
-            # Extract stress components from snapshots
-            stresses_xy = np.array([snapshot.stress[3] for snapshot in AllSnapshots])
-            stresses_yz = np.array([snapshot.stress[4] for snapshot in AllSnapshots])
-            stresses_zx = np.array([snapshot.stress[5] for snapshot in AllSnapshots])
-
-            #print("shears as ",stresses_xy[1:10])
-
-            # Compute autocorrelations
-            window_size = min(window_size,int(len(stresses_xy)/2))
-            autocorr_xy = _compute_autocorrelation(stresses_xy, window_size)
-            autocorr_yz = _compute_autocorrelation(stresses_yz, window_size)
-            autocorr_zx = _compute_autocorrelation(stresses_zx, window_size)
-
-            # Integrate the autocorrelations and multiply by prefactor
-            intvaluesxy = np.array([simps(autocorr_xy[:i], dx=1) for i in range(1, len(autocorr_xy) + 1)]) * pref
-            intvaluesyz = np.array([simps(autocorr_yz[:i], dx=1) for i in range(1, len(autocorr_yz) + 1)]) * pref
-            intvalueszx = np.array([simps(autocorr_zx[:i], dx=1) for i in range(1, len(autocorr_zx) + 1)]) * pref
-
-            # Calculate the mean of the integral values for each step
-            visc_mean = np.array([(intvaluesxy[i] + intvaluesyz[i] + intvalueszx[i]) / 3 for i in range(int(len(intvaluesxy)))])
-            viscosity_integrals = [intvaluesxy, intvaluesyz, intvalueszx, visc_mean]
-            # Store autocorrelations for plotting and writing
-            autocorr_stresses = [autocorr_xy, autocorr_yz, autocorr_zx]
-
-            # Plot autocorrelation and viscosity integrals
-            plotaurocorrelation(autocorr_stresses, viscosity_integrals)
-
-            # Write results to file
-            viscfile = UMDfile[:-7] + 'visc.dat'
-            write_to_files(autocorr_stresses, viscosity_integrals, TimeStep, viscfile)
-        elif property in [10, 11]:  # vibrational spectrum from atomic velocities
+        if property in [10, 11]:  # vibrational spectrum from atomic velocities
             fftforprinting = []
             (MyCrystal, AllSnapshots, TimeStep, length) = umdpf.read_values(UMDfile, "velocity", "line", 1, firststep, laststep=None, cutoff="all", nCores=None)
             print("Spectra from velocities: size of AllSnapshots", len(AllSnapshots), " by ", len(AllSnapshots[0]), " where the number of atoms is ", MyCrystal.natom)
