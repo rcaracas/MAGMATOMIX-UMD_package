@@ -54,7 +54,7 @@ def ana_popul(MyCrystal,AbsXcart,TimeStep,POPname,MinLife,ClusterMaxSize,Nsteps)
 
 def printfiles(population,POPname,dt):
     for clustername in population:                                                                #loop over all the cluster types
-        filename = POPname[:-9] + '__' + clustername + '.msd.dat'                                    #each one will go into a separate file
+        filename = (POPname[:-10] if POPname.endswith('.popul.dat') else os.path.splitext(POPname)[0]) + '__' + clustername + '.msd.dat'   #each one will go into a separate file
         print(filename)
         msds = population[clustername]
         nlags = max(len(msd) for msd in msds)
