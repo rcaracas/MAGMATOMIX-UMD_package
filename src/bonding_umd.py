@@ -39,7 +39,7 @@ for u in path_red:
 fullbond_lib = ctypes.cdll.LoadLibrary(join(path_new, LibraryName))
 
 
-fullbond_lib.compute_Bonds_full.argtypes = [ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.c_int,ctypes.c_int]
+fullbond_lib.compute_Bonds_full.argtypes = [ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_double),ctypes.c_int]
 fullbond_lib.compute_Bonds_full.restype = ctypes.POINTER(ctypes.POINTER(ctypes.c_int))
 
 fullbond_lib.free_memory.argtypes = [ctypes.POINTER(ctypes.POINTER(ctypes.c_int))]
@@ -64,7 +64,7 @@ def read_inputfile(InputFile,MyCrystal):#Creates a matrix from the .dat file con
                                 BondTable[jj][ii]=float(entry[2])*float(entry[2])
     return BondTable
 
-def WriteBonding_C_full(MySnapshotL,step,maxSteps,MyCrystal,BondTable,timestep,natom,numCells,acell,specifics,ortho=True):#Calculates bonds in a given snapshot
+def WriteBonding_C_full(MySnapshotL,step,maxSteps,MyCrystal,BondTable,timestep,natom,numCells,cell,specifics):#Calculates bonds in a given snapshot
     
     if(100*step//maxSteps != 100*(step-1)//maxSteps or True):
         sys.stdout.write("\rDetermining bonds between atoms. Progress : "+str(100*step//maxSteps)+"%") 
@@ -87,16 +87,11 @@ def WriteBonding_C_full(MySnapshotL,step,maxSteps,MyCrystal,BondTable,timestep,n
         specification = 1
         SPp = (ctypes.c_double * 6)(*specifics)
     
-    if ortho :#Orthogonal cell
-        RVp= np.array([0]).ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        Cellp = (ctypes.c_double *3)(*acell)
-        diag = 1
-    else:
-        Cellp = (ctypes.c_double * 9)(*acell[0])
-        RVp = (ctypes.c_double * 9)(*acell[1])
-        diag = 0
+    Cellp = (ctypes.c_double * 9)(*cell[0])#lattice vectors and reciprocal vectors, any cell
+    RVp = (ctypes.c_double * 9)(*cell[1])
+    NCp = (ctypes.c_int * 3)(*numCells)
 
-    Bonds = fullbond_lib.compute_Bonds_full(MSp,BTp,CTp,natom,MyCrystal.ntypat,Cellp,RVp,numCells,SPp,specification,diag)
+    Bonds = fullbond_lib.compute_Bonds_full(MSp,BTp,CTp,natom,MyCrystal.ntypat,Cellp,RVp,NCp,SPp,specification)
                
     BondsList=[[at] for at in range(natom)]
 
@@ -136,7 +131,8 @@ def main(argv):
             print ('default values: -f output.umd.dat -s 1 -l None -p None -k None')
             print ('The input file contains the bond lengths for the different atom pairs. \n The option -l overwrites all the values of this file.')
             print ('-l : unique bonding length. Use in the case of not having an input file -i. ')
-            print ('-n : states the number of sub-cells the script will work with. The default vomatically computed for optimal performances.')
+            print ('-n : number of sub-cells along each direction. Default : along each of a, b, c, the largest number whose sub-cells are wider than the longest bond.')
+            print ('Any cell, orthogonal or not : each pair is bonded once, in its nearest image (reduced coordinates), when it is shorter than its cutoff.')
             print ('-p : restricts the computation of the bonds in a specific place of the simulation. Takes a list of floats under the form -p [xmin,ymin,zmin,xmax,ymax,zmax], with the list contains the maximal and minimal coordinates values for the atoms to be considered. Default None (no restriction).')
             print ('-k : defines the number of cores that will be used in the parallel calculation. By default, this number is automatically calculated by Python.')
             sys.exit()
@@ -177,27 +173,30 @@ def main(argv):
     start=time.time()
 
     MyCrystal,AllSnapshotsL,TimeStep,lensnap = umdpf.read_values(UMDname,"xcart","line",Nsteps,nCores = nCores)#Creating the list of the xcart coordinates from the UMD file
-    rprimd=MyCrystal.rprimd
-    acell=MyCrystal.acell
-
-    ortho = False    
-    if [rprimd[0][1],rprimd[0][2],rprimd[1][0],rprimd[1][2],rprimd[2][0],rprimd[2][1]] == [0,0,0,0,0,0]:#If the rprimd matrix is diagonal, the cell is otrhogonal
-        ortho = True
+    rprimd = np.array(MyCrystal.rprimd,dtype=float)#lattice vectors as rows
+    cell = [list(rprimd.flatten()),list(np.linalg.inv(rprimd).T.flatten())]#and the reciprocal vectors, s_k = x.rvec_k
+    widths = abs(np.linalg.det(rprimd))/np.linalg.norm(np.cross(rprimd[[1,2,0]],rprimd[[2,0,1]]),axis=1)#distances between opposite faces
 
     if maxlength==None and len(InputFile)>0 :
         BondTable = read_inputfile(InputFile,MyCrystal)#Converts the input file into a matrix
     elif maxlength!=None :#If a unique bonding length is specified
         BondTable = [[maxlength**2 for _ in range(MyCrystal.ntypat)] for _ in range(MyCrystal.ntypat)]#Creates a matrix filled with -l value
-
+    else :
+        print('Give the bond lengths with -i or -l')
+        sys.exit(2)
 
     M=math.sqrt(max([max(Bondlengths) for Bondlengths in BondTable]))#maximal length of any bond
 
-    if numCells == None :#If the number of subcells isn't specified, it is automatically calculated. The size of a subcell is smaller than the biggest bond length.
-        numCells = int(min(acell)/M)
-        print("Number of cells automatically fixed to "+str(numCells))
-        
-    if acell[0]/numCells<M or acell[1]/numCells<M or acell[2]/numCells<M:
-        print('WARNING : one or more dimension(s) of the sub-cells smaller than the greatest bond length.')            
+    if numCells == None :#If the number of subcells isn't specified, it is the largest one whose sub-cells are wider than the longest bond
+        numCells = [max(1,min(64,int(w/M))) if M > 0 else 1 for w in widths]
+        print("Number of sub-cells along a, b, c automatically fixed to "+' '.join(str(n) for n in numCells))
+    else :
+        numCells = [numCells]*3
+
+    if any(w/n < M for w,n in zip(widths,numCells)):
+        print('WARNING : one or more width(s) of the sub-cells smaller than the greatest bond length : bonds will be missed.')
+    if 2*M > widths.min():
+        print('WARNING : the greatest bond length is larger than half the width of the cell : only the nearest image of each pair is bonded.')
 
     natom=MyCrystal.natom#Creating the output file
     if UMDname[-8:] == ".umd.dat":
@@ -206,23 +205,7 @@ def main(argv):
         FileAll=UMDname+'.bonding.dat'
             
     umdpf.copyhead(FileAll,UMDname,Nsteps)     #Copies the header of the UMD file into the output file
-#    ortho = True
-    if ortho == False :
-        V0 = np.array(MyCrystal.rprimd[0])
-        V1 = np.array(MyCrystal.rprimd[1])
-        V2 = np.array(MyCrystal.rprimd[2])
-    
-        #Vectors of the reciprocal space
-        RecVecs0 = np.cross(V1,V2)/np.dot(np.cross(V1,V2),V0)
-        RecVecs1 = np.cross(V2,V0)/np.dot(np.cross(V2,V0),V1)
-        RecVecs2 = np.cross(V0,V1)/np.dot(np.cross(V0,V1),V2)
-        
-        RecVecs = list(RecVecs0)+list(RecVecs1)+list(RecVecs2)
-        CellVecs = list(V0)+list(V1)+list(V2)
-        
-        acell = [CellVecs,RecVecs]
-
-    WriteBondingRed=partial(WriteBonding_C_full,maxSteps=len(AllSnapshotsL)-1,MyCrystal=MyCrystal,BondTable=BondTable,timestep=TimeStep,natom=natom,numCells=numCells,acell=acell,specifics = specifics,ortho=ortho)
+    WriteBondingRed=partial(WriteBonding_C_full,maxSteps=len(AllSnapshotsL)-1,MyCrystal=MyCrystal,BondTable=BondTable,timestep=TimeStep,natom=natom,numCells=numCells,cell=cell,specifics = specifics)
         
     
 #    Lines = []

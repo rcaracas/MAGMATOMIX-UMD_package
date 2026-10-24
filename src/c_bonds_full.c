@@ -11,30 +11,6 @@ void free_memory(int **tab){
 	free(tab);
 }
 
-
-double min(double a, double b, double c){
-	double m=a;
-	if(b<m){
-		m=b;
-	}
-	if(c<m){
-		m=c;
-	}
-return m;
-}
-
-int maxval(const int tab[], int L){//Maximal value of a tab
-
-    int val;
-    val=tab[0];
-    for(int i=0 ; i<L ; i++){
-        if(val<tab[i]){
-            val=tab[i];
-        }
-    }
-return val;
-}
-
 bool specificity(double x, double y, double z, const double *specifics){//Check if a particular point meets the spatial selectivity criteria
 
 	if(x>=specifics[0] && x<=specifics[0]+specifics[3] && y>=specifics[1] && y<=specifics[1]+specifics[4] && z>=specifics[2] && z<=specifics[2]+specifics[5]){
@@ -45,238 +21,106 @@ bool specificity(double x, double y, double z, const double *specifics){//Check 
 	}
 }
 
-int** compute_Bonds_full(const double *MySnapshot, const double *BondTable, const int *CrystalTypes, const int nAtoms, const int ntypat, const double *cell, const double *rvec, const int nCells, const double *specifics, const int specification, const int diag){
-    int* DicoAtoms;
-    int* nMesh;
-    int** Mesh;
-    int* MeshIndex;
-    int** Bonding;
-    int* nBonding;
+static void add_bond(int **Bonding, int *nBonding, int at, int ne){//Appends ne to the list of at, Bonding[at][0] being its allocated length during the search
+	if(Bonding[at][0]<=nBonding[at]+1){
+		Bonding[at] = (int *)realloc(Bonding[at],(Bonding[at][0]+4)*sizeof(int));
+		Bonding[at][0] += 4;
+	}
+	nBonding[at]++;
+	Bonding[at][nBonding[at]] = ne;
+}
 
-    double x,y,z;
-    int nX,nY,nZ,cellnum;
-    double Lx, Ly, Lz;
-    double rda,rdb,rdc;
+/* Bonds of one snapshot, for any cell (orthogonal or not).
+   MySnapshot   : cartesian coordinates, nAtoms x 3
+   BondTable    : squared cutoff of each pair of types, ntypat x ntypat
+   cell         : lattice vectors, rows a, b, c (cartesian = s0 a + s1 b + s2 c)
+   rvec         : reciprocal vectors, rows a*, b*, c* (s_k = x.rvec_k), the transpose of the inverse of cell
+   nCells       : number of sub-cells along a, b, c ; the width of a sub-cell (distance between its opposite faces) must not be
+                  smaller than the largest cutoff
+   Each atom is put in a sub-cell from its reduced coordinates, and compared with the atoms of the 27 surrounding sub-cells,
+   each counted once even when there are fewer than 3 sub-cells along a direction (then -1 and +1 are the same sub-cell).
+   The nearest image is taken in reduced coordinates (ds - rint(ds)), exact for the distances shorter than half the smallest
+   width of the cell. Returns for each atom a list whose first number is the number of bound atoms, followed by them. */
+int** compute_Bonds_full(const double *MySnapshot, const double *BondTable, const int *CrystalTypes, const int nAtoms, const int ntypat, const double *cell, const double *rvec, const int *nCells, const double *specifics, const int specification){
+	int nTot = nCells[0]*nCells[1]*nCells[2];
+	double *red = malloc(3*nAtoms*sizeof(double));//reduced coordinates, in [0,1)
+	int *cellOf = malloc(nAtoms*sizeof(int));      //sub-cell of each atom, -1 outside the specified zone
+	int *head = malloc(nTot*sizeof(int));          //first atom of each sub-cell, then next[] chains the others
+	int *next = malloc(nAtoms*sizeof(int));
+	int *nBonding = calloc(nAtoms,sizeof(int));
+	int **Bonding = (int **)malloc(nAtoms*sizeof(int*));
+	int offsets[3][3], nOffsets[3];
 
-    if(diag==1){            //If the simulation cell is orthogonal
-	Lx = cell[0]/nCells;//we define the dimension of a sub-cell along x
-    	Ly = cell[1]/nCells;			      //along y
-   	Lz = cell[2]/nCells;			      //along z
-    }
-    
-    int ntotAts=0;
-    int numCoord=0;
-    int indexCoord=0;
-    int index = 0;
-    int cx,cy,cz;    
-    int at,ne;
-    double dx,dy,dz,valx,valy,valz,distij;
-
-
-    DicoAtoms = calloc((3*nAtoms+1),sizeof(int));	   //Will contain the indexes of the sub-cell in which each atom is
-    nMesh = calloc((nCells*nCells*nCells),sizeof(int));    //Will contain the number of atoms in each sub-cell
-    MeshIndex = calloc((nCells*nCells*nCells),sizeof(int));//Same thing than nMesh but will be useful during it's filling
-    nBonding = calloc(nAtoms , sizeof(int));		   //Will contain the number of bonds for each atom
-
-    for(int i=0 ; i<3*nAtoms+1 ; i++){
-	DicoAtoms[i]=-1;
-    }
-    for (int i=0 ; i<nAtoms ; i=i+1){//This loop is used to fill nMesh and DicoAtoms with the appropriate values
-
-        x = MySnapshot[3*i];
-        y = MySnapshot[3*i+1];
-        z = MySnapshot[3*i+2];
-	if(specification==0||specificity(x,y,z,specifics)){
-		if(diag==1){//If the simulation cell is orthogonal
-		        nX = ((int)floor(x/Lx)+nCells)%nCells;//We place each atom in the corresponding cell
-        		nY = ((int)floor(y/Ly)+nCells)%nCells;
-        		nZ = ((int)floor(z/Lz)+nCells)%nCells;
-			
-        		DicoAtoms[3*i] = nX;
-        		DicoAtoms[3*i+1] = nY;
-        		DicoAtoms[3*i+2] = nZ;
-		if(nX<0||nY<0||nZ<0){printf("A cell index is < 0. (atom %d) : nX %d ; nY %d ; nZ%d /x %f; y %f; z %f. Please check your UMD file ; XCart should always be >0.\n",i,nX,nY,nZ,x,y,z);}
+	for(int k=0 ; k<3 ; k++){//Distinct neighbouring sub-cells along each direction
+		if(nCells[k]>=3){
+			nOffsets[k] = 3;
+			offsets[k][0] = -1; offsets[k][1] = 0; offsets[k][2] = 1;
 		}
-		else{//If it is not, the sub-cells aren't either
-			rda = x * rvec[0] + y * rvec[1] + z * rvec[2];//We project the position in the 3 directions of the cell thanks to reciprocal vectors
-			rdb = x * rvec[3] + y * rvec[4] + z * rvec[5];
-			rdc = x * rvec[6] + y * rvec[7] + z * rvec[8];
-
-        		nX = (int)floor(rda * nCells);//We place each atom in the corresponding cell
-        		nY = (int)floor(rdb * nCells);
-        		nZ = (int)floor(rdc * nCells);
-
-        		DicoAtoms[3*i] = nX;
-        		DicoAtoms[3*i+1] = nY;
-        		DicoAtoms[3*i+2] = nZ;
+		else{
+			nOffsets[k] = nCells[k];
+			for(int o=0 ; o<nCells[k] ; o++){offsets[k][o] = o;}
 		}
-		nMesh[nX*nCells*nCells+nY*nCells+nZ]++;//We then increment the atom count of said cell
+	}
+	for(int c=0 ; c<nTot ; c++){head[c] = -1;}
+
+	for(int i=nAtoms-1 ; i>=0 ; i--){//Backwards, so that each sub-cell lists its atoms in increasing order
+		const double *x = MySnapshot+3*i;
+		Bonding[i] = (int *)malloc(4*sizeof(int));
+		Bonding[i][0] = 4;
+		cellOf[i] = -1;
+		if(specification==0 || specificity(x[0],x[1],x[2],specifics)){
+			int n[3];
+			for(int k=0 ; k<3 ; k++){
+				double s = x[0]*rvec[3*k]+x[1]*rvec[3*k+1]+x[2]*rvec[3*k+2];
+				s -= floor(s);
+				red[3*i+k] = s;
+				n[k] = (int)(s*nCells[k]);
+				if(n[k]>=nCells[k]){n[k] = nCells[k]-1;}
+			}
+			cellOf[i] = (n[0]*nCells[1]+n[1])*nCells[2]+n[2];
+			next[i] = head[cellOf[i]];
+			head[cellOf[i]] = i;
+		}
 	}
 
-    }
-
-
-    int M = maxval(nMesh,nCells*nCells*nCells);          //maximum number of atoms that a cell contains in this snapshot
-    Mesh = (int **)malloc(nCells*nCells*nCells*sizeof(int*)); //Mesh will explicitely contain the atoms of each sub-cell
-    Bonding = (int **)malloc(nAtoms*sizeof(int*));        //Bonding will contain the atoms that are bound to another. Each sub-tab corresponds to a single (central) atom. All the values will be initialized to -1, except the first of each sub-tab which will be its size.
-    int Ats[M];                                          //table transitorily containing the atoms in a central cell
-    int Coord[M*27];                                     //table transitorily containing the coordinating atoms in the 27 surrounding cells
-
-    for(int i=0 ; i<nCells*nCells*nCells ; i++){
-	Mesh[i] = (int *)malloc(nMesh[i]*sizeof(int));
-    }
-
-    for(int i=0; i<nAtoms ; i++){
-	Bonding[i]=(int *)malloc((2)*sizeof(int));
-
-	Bonding[i][1]=-1;
-	Bonding[i][0]=1;
-    }
-
-    for(int iat = 0 ; iat<nAtoms ; iat++){//Filling the Mesh tab using the information previousely stored in DicoAtoms
-
-	if(DicoAtoms[3*iat] != -1){
-	        nX = DicoAtoms[3*iat];
-        	nY = DicoAtoms[3*iat+1];
-        	nZ = DicoAtoms[3*iat+2];
-        	cellnum = nX*nCells*nCells+nY*nCells+nZ;
-        	index = MeshIndex[cellnum];
-   		Mesh[cellnum][index] = iat;
-		MeshIndex[cellnum]++;  				//Counts the number of atoms presents in each cell
-	}
-    }
-
-    for(int iat=0 ; iat<nAtoms ; iat++) {//For each atom, we will determine the atoms to which it is bound
-//	printf("atom %d\n",iat);
-
-        numCoord = 0;
-
-        if(DicoAtoms[3*iat]!=-1){//If we did not already directly examine the links between this atom and all the other atoms in it's sub-cell (or the atom is not in the specified zone)
-
-            //Extraction of the relevant information
-
-	    nX = DicoAtoms[3*iat];
-            nY = DicoAtoms[3*iat+1];
-            nZ = DicoAtoms[3*iat+2];
-            cellnum = nX*nCells*nCells+nY*nCells+nZ;
-            index = MeshIndex[cellnum];
-            
-	    for(int iatom=0 ; iatom<index ; iatom++){//We note that all the atoms in the sub-cell will be examined in their potential bonding relationships to each other
-
-              
-	        Ats[iatom]=Mesh[cellnum][iatom];
-		DicoAtoms[3*Ats[iatom]]=-1;
-            }
-
-            for(int i=-1 ; i<2 ; i++){
-                    cx = (nX+i+nCells)%nCells;
-                    for(int j=-1 ; j<2 ; j++){
-                        cy = (nY+j+nCells)%nCells;
-                        for(int k=-1 ; k<2 ; k++){
-                            cz = (nZ+k+nCells)%nCells;
-                            cellnum = cx*nCells*nCells+cy*nCells+cz;
-                            indexCoord = MeshIndex[cellnum];
-                         
-			    for(int jatom = 0 ; jatom<indexCoord ; jatom++){
-	
-                                Coord[numCoord]=Mesh[cellnum][jatom];//We fill the Coord tab with all the atoms in the surrounding cells + the central cell
-                                numCoord++;			      //Counting the atoms in the tab
-			
-			       }
-                            }
-                        }
-                    }
-
-
-                 for(int iatom = 0 ; iatom<index ; iatom++){//We parse the Ats tab
-
-                    at = Ats[iatom];
-		    
-                    for(int jatom = 0 ; jatom<numCoord ; jatom++){//And we examine their relationships to the atoms in the Coord tab
-
-                        ne = Coord[jatom];
-
-                        if(at<ne){
-	    
-	                    dx = MySnapshot[at*3]-MySnapshot[ne*3];
-        	            dy = MySnapshot[at*3+1]-MySnapshot[ne*3+1];
-                            dz = MySnapshot[at*3+2]-MySnapshot[ne*3+2];
-
-			    if(diag==1){
-					
-				    if(fabs(dx/cell[0])>0.5){
-				    	dx=cell[0]-fabs(dx);    
-				    }
-				    if(fabs(dy/cell[1])>0.5){
-				    	dy=cell[1]-fabs(dy);    
-				    }
-				    if(fabs(dz/cell[2])>0.5){
-				    	dz=cell[2]-fabs(dz);    
-				    }
-
-        	                    distij = pow(dx,2)+pow(dy,2)+pow(dz,2);
-			    }
-
-			    else{
-			    	rda = dx * rvec[0] + dy * rvec[1] + dz * rvec[2];//We project the position difference in the 3 directions of the cell thanks to reciprocal vectors (remark : 1 > (rda, rdb, rdc) > 0)
-			    	rdb = dx * rvec[3] + dy * rvec[4] + dz * rvec[5];
-			    	rdc = dx * rvec[6] + dy * rvec[7] + dz * rvec[8];
-	
-			    	//We check whether finding the smallest distance between at and ne necessitates to fold the cell, for each 3 directions
-			    	if(fabs(rda)>0.5){
-					rda = -1*(rda/fabs(rda)*(1-fabs(rda)));//Folding
-			    	}
-			    	if(fabs(rda)>0.5){
-					rdb = -1*(rdb/fabs(rdb)*(1-fabs(rdb)));
-			    	}
-			    	if(fabs(rdc)>0.5){
-					rdc = -1*(rdc/fabs(rdc)*(1-fabs(rdc)));
-			    	}
-			
-			    	dx = rda * cell[0] + rdb * cell[3] + rdc * cell[6];//We rebuild the position difference in the cartesian space
-			    	dy = rda * cell[1] + rdb * cell[4] + rdc * cell[7];
-			    	dz = rda * cell[2] + rdb * cell[5] + rdc * cell[8];
-
-                            	valx = pow(dx,2);
-                            	valy = pow(dy,2);
-                            	valz = pow(dz,2);
-	
-                            	distij = valx+valy+valz;
-			    }
-
-                            if(distij<BondTable[CrystalTypes[at]*ntypat+CrystalTypes[ne]]){//If at and ne are effectively linked to each other, we update Bonding and nBonding
-				if(Bonding[at][0]<=nBonding[at]+1){
-					Bonding[at] = (int *)realloc(Bonding[at],(Bonding[at][0]+2)*sizeof(int));
-					Bonding[at][0] = Bonding[at][0]+2;
+	for(int at=0 ; at<nAtoms ; at++){
+		if(cellOf[at]<0){continue;}
+		int c = cellOf[at];
+		int n0 = c/(nCells[1]*nCells[2]), n1 = (c/nCells[2])%nCells[1], n2 = c%nCells[2];
+		const double *cut = BondTable+CrystalTypes[at]*ntypat;
+		for(int i=0 ; i<nOffsets[0] ; i++){
+			int cx = (n0+offsets[0][i]+nCells[0])%nCells[0];
+			for(int j=0 ; j<nOffsets[1] ; j++){
+				int cy = (n1+offsets[1][j]+nCells[1])%nCells[1];
+				for(int k=0 ; k<nOffsets[2] ; k++){
+					int cz = (n2+offsets[2][k]+nCells[2])%nCells[2];
+					for(int ne=head[(cx*nCells[1]+cy)*nCells[2]+cz] ; ne>=0 ; ne=next[ne]){
+						if(ne<=at){continue;}//each pair once
+						double da = red[3*ne]-red[3*at], db = red[3*ne+1]-red[3*at+1], dc = red[3*ne+2]-red[3*at+2];
+						da -= rint(da);
+						db -= rint(db);
+						dc -= rint(dc);
+						double dx = da*cell[0]+db*cell[3]+dc*cell[6];
+						double dy = da*cell[1]+db*cell[4]+dc*cell[7];
+						double dz = da*cell[2]+db*cell[5]+dc*cell[8];
+						if(dx*dx+dy*dy+dz*dz < cut[CrystalTypes[ne]]){
+							add_bond(Bonding,nBonding,at,ne);
+							add_bond(Bonding,nBonding,ne,at);
+						}
+					}
 				}
-				if(Bonding[ne][0]<=nBonding[ne]+1){
-					Bonding[ne] = (int *)realloc(Bonding[ne],(Bonding[ne][0]+2)*sizeof(int));
-					Bonding[ne][0] = Bonding[ne][0]+2;
-				}
-
-                                nBonding[ne]++;
-                                nBonding[at]++;
-				Bonding[at][nBonding[at]]=ne;
-                                Bonding[ne][nBonding[ne]]=at;
-
-				ntotAts = ntotAts+2;
-                            }
-                        }
-                    }
-                }
-            }	
-        }
-
-	for(int i=0 ; i<nAtoms ; i++){//Now the first number of each tab is the number of coordinating atoms
-		Bonding[i][0]=nBonding[i];
+			}
+		}
 	}
 
-	for(int i=0 ; i<nCells*nCells*nCells ; i++){free(Mesh[i]);}
+	for(int i=0 ; i<nAtoms ; i++){//Now the first number of each list is the number of bound atoms
+		Bonding[i][0] = nBonding[i];
+	}
 
-	free(Mesh);
-	free(nMesh);
-	free(MeshIndex);
-	free(DicoAtoms);
+	free(red);
+	free(cellOf);
+	free(head);
+	free(next);
 	free(nBonding);
 
 	return Bonding;
