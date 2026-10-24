@@ -15,7 +15,7 @@ Performance-critical routines are implemented as C shared libraries loaded at ru
 gcc -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
 gcc -dynamiclib -o c_bonds_full.dylib c_bonds_full.c
 gcc -dynamiclib -o c_clusters.dylib c_clusters.c
-gcc -dynamiclib -o c_gofr_new_alt.dylib c_gofr_new_alt.c
+gcc -O2 -dynamiclib -o c_gofr.dylib c_gofr.c
 ```
 
 **Linux / Windows (`.so` / `.dll`):** See `compilC-mac.txt` and `compilC-windows.txt` for the analogous commands.
@@ -66,7 +66,7 @@ Human-readable ASCII: one header section per snapshot followed by per-atom lines
 Each script imports `crystallography` and `umd_processes_fast`; most also load a dedicated C library for the heavy computation.
 
 **Structural:**
-- `gofr_umd.py` — pair distribution functions (uses `c_gofr_new_alt`), for orthogonal and non-orthogonal cells. `gofr_new_notcubic.py` and its `c_gofr_new.c` (a duplicate, never compiled) were removed; their one advantage, a C routine filling a numpy array passed by the caller instead of returning a malloc'ed one copied element by element, is a 3.0 optimization candidate for `gofr_umd.py`.
+- `gofr_umd.py` — pair distribution functions g(r) and running coordination numbers `Int(A-B)` of all element pairs, one method for every cell (uses `c_gofr`, compiled with -O2: ~25 % faster). The C routine takes the nearest image in reduced coordinates (ds − rint(ds)), exact up to half the smallest distance between opposite faces of the cell (V/|b×c| etc.), the largest r computed; it uses the cell of every snapshot (NPT; read from the rprimd lines, matched to read_values' -i/-s selection) and fills caller-allocated histograms over blocks of snapshots run in threads (ctypes releases the GIL). g is normalized with the volume of each snapshot and N_i(N_j − δ_ij) pairs, so it tends to 1; Int = cumulated pair counts / N_i, up to the outer edge of each bin. Output format unchanged (header parsed by the analyze_gofr scripts). It replaced `c_gofr_new_alt`, which wrapped the b direction with the a component in non-orthogonal cells, normalized with maxlength³ instead of the volume, took the largest r from vector lengths (and ignored c in orthogonal cells), used one cell for all snapshots, and ignored -k. Checks: ideal gas in a triclinic cell changing at every snapshot gives g = 1.000 ± 0.03; fcc in its cubic and its 60° primitive cell give the same 12 and 54 neighbours; hexagonal corundum equals a brute-force count over explicit images to 3e-14; cubic pyrolite equals the old code for unlike pairs (3e-13) and differs by N/(N−1) for like pairs; 0.9 s vs 4.2 s. `gofr_new_notcubic.py` and `c_gofr_new.c` (a never-compiled duplicate) were removed.
 - `analyze_gofr.py` / `analyze_gofr_semi_automatic.py` — post-process gofr output, find bond lengths
 - `bonding_umd.py` — bond analysis (uses `c_bonds_full`)
 - `speciation_and_angles.py` — chemical speciation and interatomic angles (uses `c_clusters`)
