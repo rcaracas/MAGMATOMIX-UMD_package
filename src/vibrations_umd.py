@@ -305,6 +305,7 @@ def main(argv):
             print('         mass-weighted and normalized so that the vDOS of an element integrates to 3 N_El (T_kinetic/T).')
             print('         <base>.vibr.axes.dat (with -a) : the same along each axis, VDos_El_x ... and Total_DOS_x ..., integrating to N_El per axis.')
             print('         <base>.vibr.err.dat : frequency, then each vDOS (also along the axes) followed by its error, VDos_El VDos_El_err ...')
+            print('         vdos_thermo.py computes the harmonic thermodynamics and the quantum corrections from these vDOS.')
             print('         <base>.vacf.diffusion.dat : diffusion coefficients from the VACF (Green-Kubo), with their block errors.')
             print('         They are an independent check of those fitted on the MSD by msd_umd.py.')
             print('Checks printed in the terminal :')
