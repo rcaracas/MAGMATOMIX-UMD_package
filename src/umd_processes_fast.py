@@ -333,6 +333,25 @@ def data_type(SnapshotsValuesList,natom,mode="line",datatype="list"):
     
     return SnapshotsValues
 
+def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, c) of the nsnap snapshots read by read_values with the same Nsteps and firststep
+    cells = []                                         #the cell of each snapshot (NPT), from its rprimd lines ; the first cell for all if they are missing
+    cell = []
+    ntotal = 0
+    with open(UMDfile,'r') as f:
+        for line in f:
+            if line.startswith('rprimd_'):
+                entry = line.split()
+                cell.append([float(entry[1]),float(entry[2]),float(entry[3])])
+                if len(cell) == 3:
+                    cells.append(cell)
+                    cell = []
+            elif line.startswith('atoms:'):
+                ntotal += 1
+    if len(cells) == ntotal and ntotal > 0:
+        return np.array(cells)[firststep+Nsteps*np.arange(nsnap)]
+    MyCrystal,TimeStep = Crystallization(UMDfile)
+    return np.repeat(np.array(MyCrystal.rprimd,dtype=float)[None],nsnap,axis=0)
+
 def read_bonds(BondFile,centEls,adjEls,Nsteps=1,mode="Indexes",nCores = None):
     
     MyCrystal,TimeStep = Crystallization(BondFile)

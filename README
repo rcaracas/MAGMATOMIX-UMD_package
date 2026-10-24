@@ -57,9 +57,10 @@ umd2poscar.py
 umd2xyz.py
 
     structural properties:
-gofrs_umd.py
+gofr_umd.py
 analyze_gofr.py
-speciation_umd.py
+bonding_umd.py
+speciation_and_angles.py
 
     transport properties:
 msd_clusters_umd.py

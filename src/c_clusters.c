@@ -11,10 +11,6 @@ void free_memory_int(int *tab){
 }
 
 
-void free_memory_double(double *tab){
-	free(tab);
-}
-
 
 int min(int a,int b){//returns the minimum of 2 numbers, except if one of them is negative (it will return the other).
 
@@ -53,125 +49,6 @@ int num_atoms(int* Indexes, int n){//"How many atoms are designed by the tab Ind
 	}
 	return num;
 }
-
-double min3(double a, double b, double c){//The minimum between 3 numbers.
-
-	double minimum = a;
-
-	if(minimum>b){minimum=b;}
-	if(minimum>c){minimum=c;}
-
-	return minimum;
-}
-
-
-double* angles(int *polyhedras, int nPol, int M, double *MySnapshot, int *CentIndexes, int nCent, int *OutIndexes, int nOut, double acell0, double acell1, double acell2){//Calculates the angle between the atoms of the type Out-Cent-Out in a snapshot
-	double* AnglesList = NULL;//The list of numerical values of the angles
-	int* OutList = NULL;//The list of outer type atoms
-	double* CoordList = NULL;//The list which will (transitorily) contains the coordinates of the atoms linked to a given central atom
-	int at,ne1,ne2;	
-	double xCent,yCent,zCent,Deltx1,Delty1,Deltz1,Deltx2,Delty2,Deltz2,valx1,valy1,valz1,valx2,valy2,valz2,deltzz,deltxx,deltyy,valxx,valyy,valzz,dist1,dist2,distij,angle;
-	int centat=1;
-	int nbounds=0 ;
-	int ncent=0;
-	int indexPol=0;
-	int flagcoord=0;
-
-	CoordList = calloc(3*M,sizeof(double));
-	OutList = calloc(M,sizeof(int));
-
-	int numCent = num_atoms(CentIndexes,nCent);
-	int numOut = num_atoms(OutIndexes,nOut);
-
-	AnglesList = calloc(((M+1)*M/2*numCent+numCent),sizeof(double));//Maximum possible size
-
-	if(CoordList == NULL || OutList == NULL || AnglesList == NULL){
-		printf("Memory Allocation failure for CoordList (length %d), OutList (length %d) or AnglesList (length %d) in function 'angles'",3*M,M,(M+1)*M/2*numCent+numCent);
-		// return EXIT_FAILURE;
-	}
-	AnglesList[0]=1;//Index of the next angle to write in the tab
-	while(ncent<=nPol){//We parse the polyhedras central atom by central atom
-
-		indexPol++;
-		at = polyhedras[indexPol];
-		if(at==-1){//If we're at the end of the cluster, we mark it by writing a -1 and we update the control variables
-			AnglesList[(int)AnglesList[0]]=-1;
-			AnglesList[0]++;
-			centat=1;
-			ncent++;
-			nbounds = 0;
-		}		
-		
-		else if(centat==1){	//If the atom we're looking at is of the central type
-			centat=0;
-			//We extract the coordinates of said central atom
-			xCent = MySnapshot[3*at];
-			yCent = MySnapshot[3*at+1];
-			zCent = MySnapshot[3*at+2];
-
-		}
-		else{	//If not, at is a coordinating atom
-			flagcoord=1;
-			while(flagcoord){	//we parse polyhedras to extract all the coordinating atoms of the cluster, count them and put them in OutList
-				at = polyhedras[indexPol];				
-				OutList[nbounds]=at;
-				CoordList[3*nbounds]=MySnapshot[3*at];
-				CoordList[3*nbounds+1]=MySnapshot[3*at+1];
-				CoordList[3*nbounds+2]=MySnapshot[3*at+2];
-				nbounds++;
-				indexPol++;				
-				if(polyhedras[indexPol]==-1){
-					flagcoord=0;
-					indexPol--;
-				}
-
-			}
-			
-			for(int i=0 ; i<nbounds ; i++){//Calculation of the angles ; double looping on the OutList
-				
-				Deltx1 = CoordList[3*i]-xCent;
-				Delty1 = CoordList[3*i+1]-yCent;
-				Deltz1 = CoordList[3*i+2]-zCent;
-
-				for(int j=i+1 ; j<nbounds ; j++){
-					
-
-					Deltx2 = CoordList[3*j]-xCent;
-					Delty2 = CoordList[3*j+1]-yCent;
-					Deltz2 = CoordList[3*j+2]-zCent;
-
-					deltxx = CoordList[3*i]-CoordList[3*j]; 					
-					deltyy = CoordList[3*i+1]-CoordList[3*j+1]; 					
-					deltzz = CoordList[3*i+2]-CoordList[3*j+2];					
-
-					valx1=min3(pow(Deltx1,2),pow(Deltx1-acell0,2),pow(Deltx1+acell0,2));													
-					valy1=min3(pow(Delty1,2),pow(Delty1-acell1,2),pow(Delty1+acell1,2));
-					valz1=min3(pow(Deltz1,2),pow(Deltz1-acell2,2),pow(Deltz1+acell2,2));
-
-					dist1=valx1+valy1+valz1;
-
-					valx2=min3(pow(Deltx2,2),pow(Deltx2-acell0,2),pow(Deltx2+acell0,2));
-					valy2=min3(pow(Delty2,2),pow(Delty2-acell1,2),pow(Delty2+acell1,2));
-					valz2=min3(pow(Deltz2,2),pow(Deltz2-acell2,2),pow(Deltz2+acell2,2));
-
-					dist2=valx2+valy2+valz2;
-				
-					valxx = min3(pow(deltxx,2),pow(deltxx-acell0,2),pow(deltxx+acell0,2));
-					valyy = min3(pow(deltyy,2),pow(deltyy-acell1,2),pow(deltyy+acell1,2));
-					valzz = min3(pow(deltzz,2),pow(deltzz-acell2,2),pow(deltzz+acell2,2));
-
-					distij = valxx+valyy+valzz;
-					AnglesList[(int)AnglesList[0]] = acos((dist1+dist2-distij)/(2*sqrt(dist1*dist2)))/3.141592653589793*180;	//We put the value in AnglesList
-					AnglesList[0]++;
-				}
-			}
-		}
-	}
-
-	free(OutList);
-	free(CoordList);
-	return AnglesList;
-} 
 
 void clusteringall(int *neighbors,const int *SnapshotBonds, const int *indBonds,int *AllAtoms, const int atom){		//Clustering as an infinite polymerization when r=0
 
@@ -219,13 +96,9 @@ int* fullclustering(const int *SnapshotBonds, const int *indBonds, const int nat
 	int index = 0;
 	int atom;
 	int len;
-	int imax;
 	int prev_index=0;
 
-	int numCent = num_atoms(CentIndexes,nCent);
-	int numOut = num_atoms(OutIndexes,nCent);
-
-	int meanClustSize = indBonds[nAts]/(nAts);
+	int numOut = num_atoms(OutIndexes,nOut);
 
     //printf("Starting the c function fullclustering \n");
 

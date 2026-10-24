@@ -29,23 +29,6 @@ gofr_lib.gofr_histogram.argtypes = (array_double,ctypes.c_int,ctypes.c_int,np.ct
 gofr_lib.gofr_histogram.restype = None
 
 
-def read_cells(umdfile):#Lattice vectors of every snapshot (rows a, b, c), and the number of snapshots
-    cells = []
-    cell = []
-    nsnap = 0
-    with open(umdfile,'r') as f:
-        for line in f:
-            if line.startswith('rprimd_'):
-                entry = line.split()
-                cell.append([float(entry[1]),float(entry[2]),float(entry[3])])
-                if len(cell) == 3:
-                    cells.append(cell)
-                    cell = []
-            elif line.startswith('atoms:'):
-                nsnap += 1
-    return np.array(cells), nsnap
-
-
 def half_width(cells):#Half the smallest distance between opposite faces of each cell : the nearest image is exact up to it
     volumes = np.abs(np.linalg.det(cells))
     areas = np.array([np.linalg.norm(np.cross(cells[:,(k+1)%3],cells[:,(k+2)%3]),axis=1) for k in range(3)])
@@ -108,11 +91,7 @@ def main(argv):
     X = np.array(SnapshotsXCart,dtype=float).reshape(len(SnapshotsXCart),natom,3)
     del SnapshotsXCart
     nsnap = len(X)
-    allcells, ntotal = read_cells(umdfile)
-    if len(allcells) == ntotal:#the cell of each snapshot, as read by read_values : from InitialStep, every Nsteps
-        cells = allcells[InitialStep+Nsteps*np.arange(nsnap)]
-    else:
-        cells = np.repeat(np.array(MyCrystal.rprimd,dtype=float)[None],nsnap,axis=0)
+    cells = umdpf.read_cells(umdfile,nsnap,Nsteps,InitialStep)#the cell of each snapshot, as read by read_values : from InitialStep, every Nsteps
     volumes = np.abs(np.linalg.det(cells))
     red = np.einsum('sni,sij->snj',X,np.linalg.inv(cells))#x = s M, with the lattice vectors as rows of M
     del X

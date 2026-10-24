@@ -64,7 +64,7 @@ def read_inputfile(InputFile,MyCrystal):#Creates a matrix from the .dat file con
                                 BondTable[jj][ii]=float(entry[2])*float(entry[2])
     return BondTable
 
-def WriteBonding_C_full(MySnapshotL,step,maxSteps,MyCrystal,BondTable,timestep,natom,numCells,cell,specifics):#Calculates bonds in a given snapshot
+def WriteBonding_C_full(MySnapshotL,step,cell,maxSteps,MyCrystal,BondTable,timestep,natom,numCells,specifics):#Calculates bonds in a given snapshot, cell = its lattice vectors (rows)
     
     if(100*step//maxSteps != 100*(step-1)//maxSteps or True):
         sys.stdout.write("\rDetermining bonds between atoms. Progress : "+str(100*step//maxSteps)+"%") 
@@ -87,8 +87,8 @@ def WriteBonding_C_full(MySnapshotL,step,maxSteps,MyCrystal,BondTable,timestep,n
         specification = 1
         SPp = (ctypes.c_double * 6)(*specifics)
     
-    Cellp = (ctypes.c_double * 9)(*cell[0])#lattice vectors and reciprocal vectors, any cell
-    RVp = (ctypes.c_double * 9)(*cell[1])
+    Cellp = (ctypes.c_double * 9)(*cell.flatten())#lattice vectors and reciprocal vectors (s_k = x.rvec_k), any cell
+    RVp = (ctypes.c_double * 9)(*np.linalg.inv(cell).T.flatten())
     NCp = (ctypes.c_int * 3)(*numCells)
 
     Bonds = fullbond_lib.compute_Bonds_full(MSp,BTp,CTp,natom,MyCrystal.ntypat,Cellp,RVp,NCp,SPp,specification)
@@ -132,7 +132,7 @@ def main(argv):
             print ('The input file contains the bond lengths for the different atom pairs. \n The option -l overwrites all the values of this file.')
             print ('-l : unique bonding length. Use in the case of not having an input file -i. ')
             print ('-n : number of sub-cells along each direction. Default : along each of a, b, c, the largest number whose sub-cells are wider than the longest bond.')
-            print ('Any cell, orthogonal or not : each pair is bonded once, in its nearest image (reduced coordinates), when it is shorter than its cutoff.')
+            print ('Any cell, orthogonal or not, changing or not (NPT) : each pair is bonded once, in its nearest image (reduced coordinates), when it is shorter than its cutoff.')
             print ('-p : restricts the computation of the bonds in a specific place of the simulation. Takes a list of floats under the form -p [xmin,ymin,zmin,xmax,ymax,zmax], with the list contains the maximal and minimal coordinates values for the atoms to be considered. Default None (no restriction).')
             print ('-k : defines the number of cores that will be used in the parallel calculation. By default, this number is automatically calculated by Python.')
             sys.exit()
@@ -173,9 +173,8 @@ def main(argv):
     start=time.time()
 
     MyCrystal,AllSnapshotsL,TimeStep,lensnap = umdpf.read_values(UMDname,"xcart","line",Nsteps,nCores = nCores)#Creating the list of the xcart coordinates from the UMD file
-    rprimd = np.array(MyCrystal.rprimd,dtype=float)#lattice vectors as rows
-    cell = [list(rprimd.flatten()),list(np.linalg.inv(rprimd).T.flatten())]#and the reciprocal vectors, s_k = x.rvec_k
-    widths = abs(np.linalg.det(rprimd))/np.linalg.norm(np.cross(rprimd[[1,2,0]],rprimd[[2,0,1]]),axis=1)#distances between opposite faces
+    cells = umdpf.read_cells(UMDname,len(AllSnapshotsL),Nsteps)#lattice vectors (rows) of each snapshot (NPT)
+    widths = (np.abs(np.linalg.det(cells))[:,None]/np.linalg.norm(np.cross(cells[:,[1,2,0]],cells[:,[2,0,1]]),axis=2)).min(axis=0)#smallest distances between opposite faces
 
     if maxlength==None and len(InputFile)>0 :
         BondTable = read_inputfile(InputFile,MyCrystal)#Converts the input file into a matrix
@@ -205,7 +204,7 @@ def main(argv):
         FileAll=UMDname+'.bonding.dat'
             
     umdpf.copyhead(FileAll,UMDname,Nsteps)     #Copies the header of the UMD file into the output file
-    WriteBondingRed=partial(WriteBonding_C_full,maxSteps=len(AllSnapshotsL)-1,MyCrystal=MyCrystal,BondTable=BondTable,timestep=TimeStep,natom=natom,numCells=numCells,cell=cell,specifics = specifics)
+    WriteBondingRed=partial(WriteBonding_C_full,maxSteps=len(AllSnapshotsL)-1,MyCrystal=MyCrystal,BondTable=BondTable,timestep=TimeStep,natom=natom,numCells=numCells,specifics = specifics)
         
     
 #    Lines = []
@@ -216,10 +215,10 @@ def main(argv):
 
     if nCores != None :    
         with concurrent.futures.ProcessPoolExecutor(max_workers = nCores) as executor :#Calculation of the bonds
-            Lines=list(executor.map(WriteBondingRed,AllSnapshotsL,[step for step in range(len(AllSnapshotsL))]))#Calculates the bond profile for each snapshot
+            Lines=list(executor.map(WriteBondingRed,AllSnapshotsL,[step for step in range(len(AllSnapshotsL))],cells))#Calculates the bond profile for each snapshot
     else :
         with concurrent.futures.ProcessPoolExecutor() as executor :#Calculation of the bonds
-            Lines=list(executor.map(WriteBondingRed,AllSnapshotsL,[step for step in range(len(AllSnapshotsL))]))#Calculates the bond profile for each snapshot
+            Lines=list(executor.map(WriteBondingRed,AllSnapshotsL,[step for step in range(len(AllSnapshotsL))],cells))#Calculates the bond profile for each snapshot
 
     print("\n")
     step=0
