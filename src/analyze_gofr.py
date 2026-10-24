@@ -1,972 +1,396 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jun  2 2017 & Thu Feb 6 2018 & March 15, 2021
 
-@author: Natalia & Anaïs
-Langage: Python3
+### Authors : Natalia Solomatova, Anaïs Kobsch, Razvan Caracas
+### Merge of analyze_gofr.py, analyze_gofr_semi_automatic.py and analyze_1gofr.py ; automatic detection of the first shell : Razvan Caracas
+### First maximum, first minimum, coordination number and mean distance of the first shell of every pair of elements, from the gofr files of gofr_umd.py
 
-                ****     Analyze the plot of gofr and int gofr       ****
-                          and save all the data into a txt file
-                          and save the first minimum for all bonds in a .bonds file
 
-This code requires all the gofr.dat files created by the script gofrs_umd.py
-
-WARNING! for efficiency, your data needs to be located in different folders for each T 
-and you should launch this script from the folder containing every subfolder temperature'
-
-This code produces a gofrs_summary.txt file per temperature with:
-    - a column with filename
-    - 4 column per A-B couple of atoms
-        - x value of max(gofr)
-        - y value associated
-        - x value of the first min(gofr)
-        - y value of int(gofr) associated to previous x value
-
-And a .maximum_bonds file with three colums:
-    - atom 1
-    - atom 2
-    - bondlength
-
-"""
-
-# *********** Importation of the packages and modules used here ************
-import glob
-import os
-import sys
-import getopt
-import re
+import sys, getopt, os, glob
 import numpy as np
-import csv
-import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter
-import matplotlib.ticker as ticker
-from matplotlib.widgets import Button
-import warnings
+from scipy.ndimage import gaussian_filter1d, median_filter
+from scipy.signal import find_peaks
 
 
-def headerfile(firstfile):
-    """creation of the gofrs.txt file with correct header"""
-    firstline = ['file']  # beginning of the first line of the file gofr
-    secondline = ['file']
-    with open(firstfile, 'r') as f:
-        header = f.readline()
-    header = header.strip('dist')
-    header = re.sub('(Int\([A-Za-z1-9-]*\))', ' ', header).split()
-    for couple in header:
-        for i in range(0,4):
-            firstline.append(couple)
-        secondline.extend(['xmax','ymax','xmin','coord'])
-    newfilename = 'gofrs_summary.txt'
-    f = open(newfilename,'w')
-    f.write("\t".join(x for x in firstline)+ "\n")
-    f.write("\t".join(x for x in secondline)+ "\n")
-    return f, header
+NOISE_PEAKS = 10.0      #a peak must be more prominent than this many times the noise of the smoothed g(r)
+TOP_MAX = 0.25          #the maximum is fitted over the top quarter of the first peak
+BOTTOM_MIN = 0.1        #the minimum is fitted over the bottom tenth of the dip after the first peak
+SHALLOW = 0.5           #warning when g(min)/g(max) is above this : the end of the first shell is ill-defined
 
 
-def atoms_columns_max(firstfile):
-    """creation of a new file for maximum bonds"""
-    atom1 = []
-    atom2 = []
-    with open(firstfile, 'r') as f:
-        header = f.readline()
-    header = header.strip('dist')
-    header = re.sub('(Int\([A-Za-z1-9-]*\))', ' ', header).split()
-    for couple in header:
-        atom1.append(couple.split('-')[0])
-        atom2.append(couple.split('-')[1])
-    newfilenamebond = firstfile.split('.gofr.dat')[0] + '.maximum_bonds.inp'
-    b = open(newfilenamebond, 'w')
-    return b, atom1, atom2
+def read_gofr(gofrfile):#Pairs, distances, g(r) and running coordination numbers of a gofr file of gofr_umd.py
+    with open(gofrfile,'r') as f:
+        header = f.readline().split()
+    data = np.loadtxt(gofrfile,skiprows=1,ndmin=2)
+    return header[1::2], data[:,0], data[:,1::2], data[:,2::2]
 
 
-def atoms_columns_avg(firstfile):
-    """creation of a new file for average bonds"""
-    atom1_avg = []
-    atom2_avg = []
-    with open(firstfile, 'r') as f:
-        header = f.readline()
-    header = header.strip('dist')
-    header = re.sub('(Int\([A-Za-z1-9-]*\))', ' ', header).split()
-    for couple in header:
-        atom1_avg.append(couple.split('-')[0])
-        atom2_avg.append(couple.split('-')[1])
-    newfilenamebond_avg = firstfile.split('.gofr.dat')[0] + '.average_bonds.inp'
-    b_avg = open(newfilenamebond_avg, 'w')
-    return b_avg, atom1_avg, atom2_avg
+def smoothed_noise(g,s):#Local noise of the smoothed g(r) : from the median of |second differences| of g over +/- 25 bins (robust to the
+    d2 = np.abs(np.diff(g,2))                                    #curvature of sharp peaks), reduced by the gaussian of s bins
+    d2 = np.concatenate(([d2[0]],d2,[d2[-1]]))
+    sigma = 1.4826*median_filter(d2,size=51,mode='nearest')/np.sqrt(6.0)
+    return sigma/np.sqrt(2.0*np.sqrt(np.pi)*max(s,0.5))
 
 
-def atoms_columns_coord(firstfile):
-    """creation of a new file for coordination"""
-    atom1_coord = []
-    atom2_coord = []
-    with open(firstfile, 'r') as f:
-        header = f.readline()
-    header = header.strip('dist')
-    header = re.sub('(Int\([A-Za-z1-9-]*\))', ' ', header).split()
-    for couple in header:
-        atom1_coord.append(couple.split('-')[0])
-        atom2_coord.append(couple.split('-')[1])
-    newfilenamebond_coord = firstfile.split('.gofr.dat')[0] + '.coordinations.inp'
-    b_coord = open(newfilenamebond_coord, 'w')
-    return b_coord, atom1_coord, atom2_coord
+def refine_max(r,g,gs,ip,im):#Position and height of the first maximum : cubic fitted to g over the top quarter of the peak
+    h = gs[ip]-gs[im]
+    lo = ip
+    while lo > 0 and gs[lo-1] >= gs[ip]-TOP_MAX*h:
+        lo -= 1
+    hi = ip
+    while hi < im and gs[hi+1] >= gs[ip]-TOP_MAX*h:
+        hi += 1
+    lo, hi = min(lo,ip-2), max(hi,ip+2)
+    if lo < 0 or hi >= len(r):
+        return r[ip], gs[ip]
+    p = np.polyfit(r[lo:hi+1]-r[ip],g[lo:hi+1],3)
+    x = np.linspace(r[lo],r[hi],2001)
+    y = np.polyval(p,x-r[ip])
+    k = np.argmax(y)
+    if k == 0 or k == len(x)-1:#no maximum inside the window
+        return r[ip], gs[ip]
+    return x[k], y[k]
 
-def Approximate_radius(element):
-    """library of approximate ionic radii"""
-    element_list = ['H','He','Li','Be','B','C','N','O','F','Na','Mg','Al','Si','P','S','Cl','K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Fr','Ra','Ac','Th','Pa','U','Np','Pu','Am','Cm','Bk','Cf','Es']
-    radii_list = [2,1,90,59,41,30,132,126,119,116,86,68,54,58,170,167,152,114,89,75,72,94,97,92,89,89,74,87,88,76,87,184,182,166,132,104,86,86,83,75,76,74,100,108,109,94,83,90,207,206,62,181,149,117,115,113,143,111,136,131,108,106,105,104,103,102,101,100,85,86,80,77,77,82,94,151,133,164,133,117,108,76,194,162,126,108,116,116,124,114,140,111,110,109,93]
-    if element in element_list:
-        element_index = element_list.index(element)
-        ionic_radius = radii_list[element_index]
-    else:
-        ionic_radius = 100
-    return(ionic_radius)
 
-def AtomPairsMinMax(atom1,atom2):
-    """determine fitting ranges based on sum of ionic radii"""
-    ionic_radius1 = Approximate_radius(atom1)
-    ionic_radius2 = Approximate_radius(atom2)
-    sum_ionic_radii = ionic_radius1 + ionic_radius2
-    if sum_ionic_radii < 140:
-        fitting_ranges = [0.05, 0.08, 0.08, 0.12] # left_min, right_min, left_max, right_max
-    if 140 <= sum_ionic_radii < 200:
-        fitting_ranges = [0.08, 0.1, 0.12, 0.16]  # left_min, right_min, left_max, right_max
-    if 200 <= sum_ionic_radii < 230:
-        fitting_ranges = [0.08, 0.12, 0.12, 0.18]  # left_min, right_min, left_max, right_max
-    if sum_ionic_radii >=230:
-        fitting_ranges = [0.12, 0.18, 0.14, 0.25]  # left_min, right_min, left_max, right_max
-    return(fitting_ranges)
+def refine_min(r,g,gs,ip,im,iend):#Position of the first minimum : parabola fitted to g over the bottom tenth of the minimum, else the middle of this region
+    h = gs[ip]-gs[im]
+    lo = im
+    while lo > ip and gs[lo-1] <= gs[im]+BOTTOM_MIN*h:
+        lo -= 1
+    hi = im
+    while hi < iend and gs[hi+1] <= gs[im]+BOTTOM_MIN*h:
+        hi += 1
+    lo, hi = min(lo,im-2), max(hi,im+2)
+    if lo <= ip or hi >= len(r):
+        return r[im]
+    p = np.polyfit(r[lo:hi+1]-r[im],g[lo:hi+1],2)
+    if p[0] > 0:
+        x = r[im]-0.5*p[1]/p[0]
+        if r[lo] < x < r[hi]:
+            return x
+    return 0.5*(r[lo]+r[hi])#flat bottom (e.g. g = 0 between the shells of a molecule) : any cutoff inside gives the same bonds
 
-def interactive_fit(data, file, couples, distance, col, max_bonds, peak_heights, avg_bonds, avg_coord, xmin_clicks, couple, list_atom1, list_atom2):
-    """fit the maximum and mininum of the data using interactive plot for each couple of atoms"""
-    gofr, intgofr = np.loadtxt(file, usecols=(couples.index(couple) + col + 1, couples.index(couple) + col + 2), skiprows=1, unpack=True)
-    col = col + 1
-    i = 0
-    indices = []
-    orig_size = np.size(distance)  # size of our data
-    max_index = np.argmax(gofr)  # find the index of max gofr
-    cutdistance = distance[max_index:-1]  # cut off beginning for finding minimum
-    cutgofr = gofr[max_index:-1]  # cut off beginning for finding minimum
-    cut_size = np.size(cutdistance)  # size of data
-    cut_min_index = np.argmin(cutgofr)  # find the min of gofr in the cut segment
-    atom1 = couple.split('-')[0]
-    atom2 = couple.split('-')[1]
-    fitting_ranges = AtomPairsMinMax(atom1,atom2)
-    left_max = fitting_ranges[0]
-    right_max = fitting_ranges[1]
-    left_min = fitting_ranges[2]
-    right_min = fitting_ranges[3]
 
-    ## Here I check if the gofr actually contains a maximum/minimum at physically-relevant distances:
-    # The longest reported bond length is between two atoms is 2.8 Ang (for Bi-I)
-    # If the max value is larger than 2.8 Angstroms, there is no first coord. shell (no bonding)
-    # We only consider g(r)'s with first coordination shells and record 0's for non-existing bonds
-    # If the first minimum is beyond 4 Ang, a warning message is displayed
-    # If the gofr is flat (the max y-value of the gofr is less than 0.01), record 0's
-    conditions = False # Are the physical conditions fulfilled? Declaration of variable
-    warning_message1 = False # Should a warning message be displayed?
-    max_index = np.argmax(gofr)  # determine index of max y value for initial analysis
-    max_distance = distance[max_index]
-    if max_distance < 4 and max(gofr) > 0.01:
-        # determine index of min value for initial analysis:
-        end_index = (np.abs(distance - 5)).argmin()  # the first minimum should not be larger than 5 Ang.
-        temp_cut_distance = distance[max_index:end_index]
-        temp_cut_gofr = gofr[max_index:end_index]
-        min_index = np.argmin(temp_cut_gofr)  # determine index of min y value
-        min_distance = temp_cut_distance[min_index] # this is the estimated location of the first min
-        conditions = True
-        if min_distance > 5:
-            warning_message1 = True
-            conditions = False
+def shell_values(r,g,gs,coord,xmax,ymax,xmin):#Coordination number and mean distance of the first shell ending at xmin
+    dr = r[1]-r[0]
+    inshell = r < xmin
+    r2g = (r[inshell]**2*g[inshell]).sum()
+    return dict(xmax=xmax,ymax=ymax,xmin=xmin,ymin=float(np.interp(xmin,r,gs)),
+                coord=float(np.interp(xmin,r+0.5*dr,coord)),#Int(A-B) of gofr_umd.py runs up to the outer edge of each bin
+                rmean=(r[inshell]**3*g[inshell]).sum()/r2g if r2g > 0 else np.nan)
 
-    ##  Here I record if the atom pair has already occurred in reverse order (e.g., Si-O and O-Si)
-    list_atom1.append(atom1)
-    list_atom2.append(atom2)
-    this_is_a_repeat_pair = False
-    for atom in list_atom2:
-        # record atom1's that have already occurred as atom2's, omitting same-element pairs (Si-Si)
-        if (atom == atom1) and (atom1 != atom2):
-            indices.append(i)
-        i = i + 1  # assign indices to the atom pairs, so that we can find them for repeat pairs (Si-O -> O-Si)
-    for x in indices:
-        # in the list of elements that have already occurred, check if the reverse couple has already occurred
-        atom1_pair = list_atom1[x]
-        if atom1_pair == atom2:
-            this_is_a_repeat_pair = True
-            matching_index = x
-    xaxismin=0
-    xaxismax=8
-#    conditions = True
-    if conditions == True:  # check if the peak is located at physically-relevant distances
-        # if the pair has already been processed (e.g., Si-O vs. O-Si):
-        # we use the same values for bond distances and max/min positions, but update the coordination
-        warnings.filterwarnings('ignore') #ignore standard python warnings, as we make our own
-        if this_is_a_repeat_pair is True:
-            max_bonds.append(max_bonds[int(matching_index)])
-            avg_bonds.append(avg_bonds[int(matching_index)])
-            peak_heights.append(peak_heights[int(matching_index)])
-            xmin_click_pair = xmin_clicks[matching_index]
-            min_index = (np.abs(distance - float(xmin_click_pair))).argmin()  # index of the closest value to clicked value
-            # determine start and end cols for fitting the polynomial for the min region:
-            start_imin = int(min_index - min_index * left_min)
-            end_imin = int(min_index + min_index * right_min)
-            if end_imin > (orig_size - 1):  # for rare cases where the min distance is out of bounds
-                end_imin = orig_size - 1  # subtract one because cols start at 0
-            # define the regions that need to be fitted for min area using the clicked min:
-            fit_min_dist = distance[int(start_imin):int(end_imin + 1)]  # ranges do not include last element, so add one
-            fit_min_gofr = gofr[int(start_imin):int(end_imin + 1)]
-            intgofr = intgofr[int(start_imin):int(end_imin + 1)]
-            order = 3  # order of the polynomials
-            min_fit = np.poly1d(np.polyfit(fit_min_dist, fit_min_gofr, order))
-            intgofr_fit = np.poly1d(np.polyfit(fit_min_dist, intgofr, order))
-            xaxis_min = np.linspace(distance[int(start_imin)], distance[int(end_imin)], 1000)  # create new x values for the fitted min region
-            yaxis_min = min_fit(xaxis_min)  # create new y values for fitted min region
-            poly_min_i = np.argmin(yaxis_min)  # determine index of min y value
-            yaxis_intgofr = intgofr_fit(xaxis_min)
-            y_intgofr = yaxis_intgofr[int(poly_min_i)]  # y value of the integral of gofr that corresponds to the min x value of gofr
-            avg_coord.append(str(y_intgofr))
-            xmin_clicks.append(xmin_clicks[int(matching_index)])
-            data.append(str(avg_bonds[int(matching_index)]))  # equivalent to data.append(str(xmax_gofr))
-            data.append(peak_heights[int(matching_index)])   # equivalent to data.append(str(ymax_gofr))
-            data.append(str(max_bonds[int(matching_index)])) # equivalent to data.append(str(xmin_gofr))
-            data.append(str(y_intgofr)) # equivalent to data.append(str(y_intgofr))
 
+def first_shell(r,g,coord,sigma):#First maximum and minimum of one g(r) ; returns the shell values and a note, or None and the reason
+    dr = r[1]-r[0]
+    if not np.any(g > 0):
+        return None, 'no pairs'
+    s = sigma/dr
+    gs = gaussian_filter1d(g,s,mode='nearest') if s > 0 else g.copy()
+    noise = smoothed_noise(g,s)
+    peaks, props = find_peaks(gs,prominence=0)
+    peaks = peaks[props['prominences'] > NOISE_PEAKS*noise[peaks]]
+    first = peaks[gs[peaks] > 1.0]#a shell is denser than the average : g > 1 at its maximum
+    if len(first) == 0:
+        return None, 'no peak above the noise and above 1'
+    ip = first[0]
+    later = peaks[peaks > ip]
+    iend = later[0] if len(later) > 0 else len(r)-1
+    im = ip+int(np.argmin(gs[ip:iend+1]))
+    if im >= len(r)-3:
+        return None, 'no minimum up to '+'%.2f' % r[-1]+' A'
+    xmax, ymax = refine_max(r,g,gs,ip,im)
+    xmin = refine_min(r,g,gs,ip,im,iend)
+    values = shell_values(r,g,gs,coord,xmax,ymax,xmin)
+    note = ''
+    if values['ymin'] > SHALLOW*values['ymax']:
+        note = 'shallow minimum'
+    return values, note
+
+
+def curves(an,pair):#g(r), its smoothed curve and the running coordination number of a pair
+    k = an['pairs'].index(pair)
+    r, g = an['r'], an['G'][:,k]
+    gs = gaussian_filter1d(g,an['sigma']/(r[1]-r[0]),mode='nearest') if an['sigma'] > 0 else g.copy()
+    return r, g, gs, an['C'][:,k]
+
+
+def set_shell(an,pair,values,note):#Sets the first shell of a pair and of its reverse : same g(r), so same positions, each its own coordination number
+    a, b = pair.split('-')
+    for p in (pair,b+'-'+a):
+        if p not in an['results'] or (p != pair and an['results'][p]['note'] == 'not analyzed'):
+            continue
+        if values is None:
+            an['results'][p] = dict(values=None,note=note)
         else:
-            plt.close()
-            xmax_auto = float(max_distance)
-            max_index = (np.abs(distance - xmax_auto)).argmin()  # index of the closest value to clicked value
-            # determine start and end cols for fitting the polynomial:
-            end_imax = int(max_index + max_index * right_max)
-            start_imax = int(max_index - max_index * left_max)
-            if end_imax > (orig_size - 1):  # for rare cases where the max distance is out of bounds
-                end_imax = orig_size - 1  # subtract one because cols start at 0
-
-            # define the regions that need to be fitted for the max area:
-            fit_max_dist = distance[int(start_imax):int(end_imax + 1)]  # ranges do not include last element, so add one
-            fit_max_gofr = gofr[int(start_imax):int(end_imax + 1)]
-
-            order = 3  # order of the polynomials
-            max_fit = np.poly1d(np.polyfit(fit_max_dist, fit_max_gofr, order))
-            xaxis_max = np.linspace(distance[int(start_imax)], distance[int(end_imax)], 1000)  # create new x values
-            yaxis_max = max_fit(xaxis_max)  # create new y values for fitted max region
-            poly_max_i = np.argmax(yaxis_max)  # determine index of max y value
-
-            xmax_gofr = xaxis_max[int(poly_max_i)]  # x value of the max (x,y) of the max region of gofr
-            ymax_gofr = yaxis_max[int(poly_max_i)]  # max y value of the max region of gofr
-
-            end_index = (np.abs(distance - 5)).argmin()  # the first minimum should not be larger than 5 Ang.
-            temporary_cut_distance = distance[max_index:end_index]
-            temporary_cut_gofr = gofr[max_index:end_index]
-            min_index = np.argmin(temporary_cut_gofr)  # determine index of min y value
-            xmin_auto = temporary_cut_distance[min_index]
-
-            min_index = (np.abs(distance - xmin_auto)).argmin()  # index of the closest value to clicked value
-            # determine start and end cols for fitting the polynomial for the min region:
-            start_imin = int(min_index - min_index * left_min)
-            end_imin = int(min_index + min_index * right_min)
-            if end_imin > (orig_size - 1):  # for rare cases where the min distance is out of bounds
-                end_imin = orig_size - 1  # subtract one because cols start at 0
-            # define the regions that need to be fitted for min area using the clicked min:
-            fit_min_dist = distance[int(start_imin):int(end_imin + 1)]  # ranges do not include last element, so add one
-            fit_min_gofr = gofr[int(start_imin):int(end_imin + 1)]
-            cut_intgofr = intgofr[int(start_imin):int(end_imin + 1)]
-
-            min_fit = np.poly1d(np.polyfit(fit_min_dist, fit_min_gofr, order))
-            intgofr_fit = np.poly1d(np.polyfit(fit_min_dist, cut_intgofr, order))
-            xaxis_min = np.linspace(distance[int(start_imin)], distance[int(end_imin)], 1000)
-            yaxis_min = min_fit(xaxis_min)  # create new y values for fitted min region
-            poly_min_i = np.argmin(yaxis_min)  # determine index of min y value
-            yaxis_intgofr = intgofr_fit(xaxis_min)
-
-            xmin_gofr = xaxis_min[int(poly_min_i)]  # x value of the min (x,y) of the min region of gofr
-            ymin_gofr = yaxis_min[int(poly_min_i)]  # x value of the min (x,y) of the min region of gofr
-            y_intgofr = yaxis_intgofr[
-                int(poly_min_i)]  # y value of the integral of gofr that corresponds to the min x value of gofr
-
-            class Decision(object):
-                def good(self, event):
-                    global value_array
-                    plt.close(fig)  # close and move to next plot
-                    print(atom1, '-', atom2, '  average bond =', "%.2f" % round(xmax_gofr, 2), '  maximum bond =',
-                          "%.2f" % round(xmin_gofr, 2))
-                    xmin_auto_save = xmin_auto
-                    undo = False
-                    manual_auto = False
-                    value_array = (xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_auto_save, undo, manual_auto)
-                    return value_array
-
-                def bad(self, event):
-                    global value_array
-                    plt.close(fig)  # close and move to next plot
-                    print(atom1, '-', atom2, '  zeros will be placed for the bond distances')
-                    xmax_gofr = 0
-                    ymax_gofr = 0
-                    xmin_gofr = 0
-                    y_intgofr = 0
-                    xmin_auto_save = 0
-                    undo = False
-                    manual_auto = False
-                    value_array = (xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_auto_save, undo, manual_auto)
-                    return value_array
-
-                def redo(self, event):
-                    global value_array
-                    plt.close(fig)  # close and move to next plot
-                    xmax_gofr = 0
-                    ymax_gofr = 0
-                    xmin_gofr = 0
-                    y_intgofr = 0
-                    xmin_auto_save = 0
-                    undo = True
-                    manual_auto = False
-                    value_array = (xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_auto_save, undo, manual_auto)
-                    return value_array
-
-                def manual(self, event):
-                    global value_array
-                    plt.close(fig)  # close and move to next plot
-                    xmax_gofr = 0
-                    ymax_gofr = 0
-                    xmin_gofr = 0
-                    y_intgofr = 0
-                    xmin_auto_save = 0
-                    undo = True
-                    manual_auto = True
-                    value_array = (xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_auto_save, undo, manual_auto)
-                    return value_array
-
-            fig = plt.figure()  # show figure with the newly fitted minimum curve
-#            plt.xlim(xaxismin, xaxismax)
-            ax = fig.add_subplot(111)
-            plt.subplots_adjust(bottom=0.2)
-            ax.set_title(file.split('.gofr.dat')[0])
-            plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-            ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-            ax.plot(distance[0:-1], gofr[0:-1], 'o', markersize=2.5, color='grey', markerfacecolor='white')
-            ax.plot(xaxis_max, max_fit(xaxis_max), '-', color='blue', linewidth=1.5)
-            ax.plot(xmax_gofr, ymax_gofr, 'o', markersize=6, color='blue')
-            ax.plot(xaxis_min, min_fit(xaxis_min), '-', color='red', linewidth=1.5)
-            ax.plot(xmin_gofr, ymin_gofr, 'o', markersize=6, color='red')
-
-            plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-            plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-            plt.ylim(-0.02, max(gofr) * 1.05)
-            ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-            ax.tick_params(labelsize=11)
-            plt.xticks(fontname="Arial")
-            plt.yticks(fontname="Arial")
-            fig.subplots_adjust(bottom=0.25)
-            fig.subplots_adjust(left=0.15)
-
-            if warning_message1 == True:
-                plt.text(0.56, 0.935, 'Non-physical bond distance', fontsize=12, color='red', fontname='Arial', transform=ax.transAxes)
-
-            class Exit(object):
-                def exit(self, event):
-                    print('Exiting the fitting procedure without completing it.')
-                    plt.close(fig)
-                    sys.exit()
-
-            callback = Decision()
-
-            click_Exit = Exit()
-            bexit = Button(plt.axes([0.17, 0.05, 0.12, 0.078]), 'Quit')
-            bexit.on_clicked(click_Exit.exit)
-
-            bmanual = Button(plt.axes([0.32, 0.05, 0.12, 0.078]), 'Redo -\nmanual')
-            bmanual.on_clicked(callback.manual)
-            bmanual.ax.set_facecolor('#E2E3A0')
-            bmanual.label.set_fontsize(9.5)
-
-            bredo = Button(plt.axes([0.47, 0.05, 0.12, 0.078]), 'Redo -\nfitting')
-            bredo.on_clicked(callback.redo)
-            bredo.ax.set_facecolor('#E2E3A0')
-            bredo.label.set_fontsize(9.5)
-
-            bbad = Button(plt.axes([0.62, 0.05, 0.12, 0.078]), 'Discard')
-            bbad.on_clicked(callback.bad)
-            bbad.ax.set_facecolor('#F1B6A6')
-
-            bgood = Button(plt.axes([0.77, 0.05, 0.12, 0.078]), 'Save') #left, bottom, width, height
-            bgood.on_clicked(callback.good)
-            bgood.ax.set_facecolor('#98D49A')
-
-            plt.savefig(file.split('.gofr.dat')[0] + '_' + atom1 + '_' + atom2 + '.jpg', dpi=400)
-            plt.show()
-
-            undo = value_array[5]
-            manual_click = value_array[6]
-
-            while undo == True:
-                if manual_click == False:
-                    plt.close()
-                    fig = plt.figure()
-#                    plt.xlim(xaxismin, xaxismax)
-                    ax = fig.add_subplot(111)
-                    plt.subplots_adjust(bottom=0.2)
-                    ax.set_title(file.split('.gofr.dat')[0])
-                    plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-                    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                    plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-                    plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-                    plt.ylim(-0.02, max(gofr) * 1.05)
-                    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-                    ax.tick_params(labelsize=11)
-                    plt.xticks(fontname="Arial")
-                    plt.yticks(fontname="Arial")
-                    fig.subplots_adjust(bottom=0.25)
-                    fig.subplots_adjust(left=0.15)
-                    ax.plot(distance[0:-1], gofr[0:-1], 'o', markersize=2.5, color='grey', markerfacecolor='white')  # plot the fitted max
-
-                    def onclick(event):
-                        global xmax_click
-                        xmax_click = event.xdata  # record x value of click
-                        if isinstance(xmax_click, float) == False:
-                            xmax_click = float(max_distance)
-                        plt.close()
-
-                    fig.canvas.mpl_connect('button_press_event', onclick)
-                    plt.show()
-                    max_index = (np.abs(distance - xmax_click)).argmin()  # index of the closest value to clicked value
-
-                    # determine start and end cols for fitting the polynomial:
-                    end_imax = int(max_index + max_index * right_max)
-                    start_imax = int(max_index - max_index * left_max)
-                    if end_imax > (orig_size - 1):  # for rare cases where the max distance is out of bounds
-                        end_imax = orig_size - 1  # subtract one because cols start at 0
-
-                    # define the regions that need to be fitted for the max area:
-                    fit_max_dist = distance[int(start_imax):int(end_imax + 1)]
-                    fit_max_gofr = gofr[int(start_imax):int(end_imax + 1)]
-
-                    order = 3  # order of the polynomials
-                    max_fit = np.poly1d(np.polyfit(fit_max_dist, fit_max_gofr, order))
-                    xaxis_max = np.linspace(distance[int(start_imax)], distance[int(end_imax)], 1000)
-                    yaxis_max = max_fit(xaxis_max)  # create new y values for fitted max region
-                    poly_max_i = np.argmax(yaxis_max)  # determine index of max y value
-
-                    xmax_gofr = xaxis_max[int(poly_max_i)]  # x value of the max (x,y) of the max region of gofr
-                    ymax_gofr = yaxis_max[int(poly_max_i)]  # max y value of the max region of gofr
-
-                    fig = plt.figure()
-#                    plt.xlim(xaxismin, xaxismax)
-                    ax = fig.add_subplot(111)
-                    plt.subplots_adjust(bottom=0.2)
-                    ax.set_title(file.split('.gofr.dat')[0])
-                    plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-                    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                    ax.plot(distance[0:-1], gofr[0:-1], 'o',  markersize=2.5, color='grey', markerfacecolor='white')
-                    ax.plot(xaxis_max, max_fit(xaxis_max), '-', color='blue', linewidth=1.5)
-                    ax.plot(xmax_gofr, ymax_gofr, 'o', markersize=6, color='blue')
-                    plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-                    plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-                    plt.ylim(-0.02, max(gofr) * 1.05)
-                    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-                    ax.tick_params(labelsize=11)
-                    plt.xticks(fontname="Arial")
-                    plt.yticks(fontname="Arial")
-                    fig.subplots_adjust(bottom=0.25)
-                    fig.subplots_adjust(left=0.15)
-
-                    if xmax_gofr < 0.5 or xmax_gofr > 2.8:
-                        warning_message2 = True
-                    else:
-                        warning_message2 = False
-
-                    if warning_message2 == True:
-                        plt.text(0.56, 0.935, 'Non-physical bond distance', fontsize=12, color='blue', fontname='Arial',
-                                 transform=ax.transAxes)
-
-                    def onclick(event):
-                        global xmin_click
-                        xmin_click = event.xdata  # record x value of click
-                        if isinstance(xmin_click, float) == False:
-                            end_index = (np.abs(distance - 5)).argmin() # the first minimum should not be larger than 5 Ang.
-                            temporary_cut_distance = distance[max_index:end_index]
-                            temporary_cut_gofr = gofr[max_index:end_index]
-                            min_index = np.argmin(temporary_cut_gofr)  # determine index of min y value
-                            xmin_click = temporary_cut_distance[min_index]
-                        plt.close()
-
-                    fig.canvas.mpl_connect('button_press_event', onclick)
-                    plt.show()
-                    min_index = (np.abs(distance - xmin_click)).argmin()  # index of the closest value to clicked value
-                    # determine start and end cols for fitting the polynomial for the min region:
-                    start_imin = int(min_index - min_index * left_min)
-                    end_imin = int(min_index + min_index * right_min)
-                    if end_imin > (orig_size - 1):  # for rare cases where the min distance is out of bounds
-                        end_imin = orig_size - 1  # subtract one because cols start at 0
-                    # define the regions that need to be fitted for min area using the clicked min:
-                    fit_min_dist = distance[int(start_imin):int(end_imin + 1)]
-                    fit_min_gofr = gofr[int(start_imin):int(end_imin + 1)]
-                    cut_intgofr = intgofr[int(start_imin):int(end_imin + 1)]
-
-                    min_fit = np.poly1d(np.polyfit(fit_min_dist, fit_min_gofr, order))
-                    intgofr_fit = np.poly1d(np.polyfit(fit_min_dist, cut_intgofr, order))
-                    xaxis_min = np.linspace(distance[int(start_imin)], distance[int(end_imin)], 1000)  # create new x values
-                    yaxis_min = min_fit(xaxis_min)  # create new y values for fitted min region
-                    poly_min_i = np.argmin(yaxis_min)  # determine index of min y value
-                    yaxis_intgofr = intgofr_fit(xaxis_min)
-
-                    xmin_gofr = xaxis_min[int(poly_min_i)]  # x value of the min (x,y) of the min region of gofr
-                    ymin_gofr = yaxis_min[int(poly_min_i)]  # x value of the min (x,y) of the min region of gofr
-                    y_intgofr = yaxis_intgofr[int(poly_min_i)]  # y value of the integral of gofr that corresponds to the min x value of gofr
-
-                    class Decision(object):
-                        def good(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            print(
-                            atom1, '-', atom2, '  average bond =', "%.2f" % round(xmax_gofr, 2), '  maximum bond =',
-                            "%.2f" % round(xmin_gofr, 2))
-                            xmin_click_save = xmin_click
-                            undo = False
-                            manual_click = False
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                        def bad(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            print(atom1, '-', atom2, '  zeros will be placed for the bond distances')
-                            xmax_gofr = 0
-                            ymax_gofr = 0
-                            xmin_gofr = 0
-                            y_intgofr = 0
-                            xmin_click_save = 0
-                            undo = False
-                            manual_click = False
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                        def redo(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            xmax_gofr = 0
-                            ymax_gofr = 0
-                            xmin_gofr = 0
-                            y_intgofr = 0
-                            xmin_click_save = 0
-                            undo = True
-                            manual_click = False
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                        def manual(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            xmax_gofr = 0
-                            ymax_gofr = 0
-                            xmin_gofr = 0
-                            y_intgofr = 0
-                            xmin_click_save = 0
-                            undo = True
-                            manual_click = True
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                    fig = plt.figure()  # show figure with the newly fitted minimum curve
-#                    plt.xlim(xaxismin, xaxismax)
-                    ax = fig.add_subplot(111)
-                    plt.subplots_adjust(bottom=0.2)
-                    ax.set_title(file.split('.gofr.dat')[0])
-                    plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-                    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                    ax.plot(distance[0:-1], gofr[0:-1], 'o',  markersize=2.5, color='grey', markerfacecolor='white')
-                    ax.plot(xaxis_max, max_fit(xaxis_max), '-', color='blue', linewidth=1.5)
-                    ax.plot(xmax_gofr, ymax_gofr, 'o', markersize=6, color='blue')
-                    ax.plot(xaxis_min, min_fit(xaxis_min), '-', color='red', linewidth=1.5)
-                    ax.plot(xmin_gofr, ymin_gofr, 'o', markersize=6, color='red')
-
-                    plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-                    plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-                    plt.ylim(-0.02, max(gofr) * 1.05)
-                    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-                    ax.tick_params(labelsize=11)
-                    plt.xticks(fontname="Arial")
-                    plt.yticks(fontname="Arial")
-                    fig.subplots_adjust(bottom=0.25)
-                    fig.subplots_adjust(left=0.15)
-
-                    if xmin_gofr > 4:
-                        warning_message1 = True
-                    else:
-                        warning_message1 = False
-
-                    if warning_message1 == True:
-                        plt.text(0.56, 0.935, 'Non-physical bond distance', fontsize=12, color='red', fontname='Arial',
-                                 transform=ax.transAxes)
-
-                    class Exit(object):
-                        def exit(self, event):
-                            print('Exiting the fitting procedure without completing it.')
-                            plt.close(fig)
-                            sys.exit()
-
-                    callback = Decision()
-
-                    click_Exit = Exit()
-                    bexit = Button(plt.axes([0.17, 0.05, 0.12, 0.078]), 'Quit')
-                    bexit.on_clicked(click_Exit.exit)
-
-                    bmanual = Button(plt.axes([0.32, 0.05, 0.12, 0.078]), 'Redo -\nmanual')
-                    bmanual.on_clicked(callback.manual)
-                    bmanual.ax.set_facecolor('#E2E3A0')
-                    bmanual.label.set_fontsize(9.5)
-
-                    bredo = Button(plt.axes([0.47, 0.05, 0.12, 0.078]), 'Redo -\nfitting')
-                    bredo.on_clicked(callback.redo)
-                    bredo.ax.set_facecolor('#E2E3A0')
-                    bredo.label.set_fontsize(9.5)
-
-                    bbad = Button(plt.axes([0.62, 0.05, 0.12, 0.078]), 'Discard')
-                    bbad.on_clicked(callback.bad)
-                    bbad.ax.set_facecolor('#F1B6A6')
-
-                    bgood = Button(plt.axes([0.77, 0.05, 0.12, 0.078]), 'Save')  # left, bottom, width, height
-                    bgood.on_clicked(callback.good)
-                    bgood.ax.set_facecolor('#98D49A')
-
-                    plt.savefig(file.split('.gofr.dat')[0] + '_' + atom1 + '_' + atom2 + '.jpg', dpi=400)
-                    plt.show()
-
-                    undo = value_array[5]
-                    manual_click = value_array[6]
-
-                else: ### if manual_click == True
-                    plt.close()
-                    fig = plt.figure()
-#                    plt.xlim(xaxismin, xaxismax)
-                    ax = fig.add_subplot(111)
-                    plt.subplots_adjust(bottom=0.2)
-                    ax.set_title(file.split('.gofr.dat')[0])
-                    plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-                    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                    plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-                    plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-                    plt.ylim(-0.02, max(gofr) * 1.05)
-                    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-                    ax.tick_params(labelsize=11)
-                    plt.xticks(fontname="Arial")
-                    plt.yticks(fontname="Arial")
-                    fig.subplots_adjust(bottom=0.25)
-                    fig.subplots_adjust(left=0.15)
-                    ax.plot(distance[0:-1], gofr[0:-1], 'o', markersize=2.5, color='grey', markerfacecolor='white')  # plot the fitted max
-
-                    def onclick(event):
-                        global xmax_click
-                        global ymax_click
-                        xmax_click = event.xdata  # record x value of click
-                        ymax_click = event.ydata  # record x value of click
-                        if isinstance(xmax_click, float) == False:
-                            xmax_click = float(max_distance)
-                            max_index = (np.abs(distance - xmax_click)).argmin()
-                            ymax_click = gofr[max_index]
-                        plt.close()
-
-                    fig.canvas.mpl_connect('button_press_event', onclick)
-                    plt.show()
-                    max_index = (np.abs(distance - xmax_click)).argmin()  # index of the closest value to clicked value
-
-                    xmax_gofr = distance[max_index]  # x value of the max (x,y) of the max region of gofr
-                    ymax_gofr = gofr[max_index]  # max y value of the max region of gofr
-
-                    fig = plt.figure()
-#                    plt.xlim(xaxismin, xaxismax)
-                    ax = fig.add_subplot(111)
-                    plt.subplots_adjust(bottom=0.2)
-                    ax.set_title(file.split('.gofr.dat')[0])
-                    plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-                    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                    ax.plot(distance[0:-1], gofr[0:-1], 'o',  markersize=2.5, color='grey', markerfacecolor='white')
-                    ax.plot(xmax_click, ymax_click, 'o', markersize=6, color='blue')
-                    plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-                    plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-                    plt.ylim(-0.02, max(gofr) * 1.05)
-                    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-                    ax.tick_params(labelsize=11)
-                    plt.xticks(fontname="Arial")
-                    plt.yticks(fontname="Arial")
-                    fig.subplots_adjust(bottom=0.25)
-                    fig.subplots_adjust(left=0.15)
-
-                    if xmax_click < 0.5 or xmax_click > 2.8:
-                        warning_message2 = True
-                    else:
-                        warning_message2 = False
-
-                    if warning_message2 == True:
-                        plt.text(0.56, 0.935, 'Non-physical bond distance', fontsize=12, color='blue', fontname='Arial',
-                                 transform=ax.transAxes)
-
-                    def onclick(event):
-                        global xmin_click
-                        global ymin_click
-                        xmin_click = event.xdata  # record x value of click
-                        ymin_click = event.ydata  # record x value of click
-                        if isinstance(xmin_click, float) == False:
-                            end_index = (np.abs(distance - 5)).argmin() # the first minimum should not be larger than 5 Ang.
-                            temporary_cut_distance = distance[max_index:end_index]
-                            temporary_cut_gofr = gofr[max_index:end_index]
-                            min_index = np.argmin(temporary_cut_gofr)  # determine index of min y value
-                            xmin_click = temporary_cut_distance[min_index]
-                            ymin_click = temporary_cut_gofr[min_index]
-                        plt.close()
-
-                    fig.canvas.mpl_connect('button_press_event', onclick)
-                    plt.show()
-                    min_index = (np.abs(distance - xmin_click)).argmin()  # index of the closest value to clicked value
-
-                    xmin_gofr = distance[min_index]  # x value of the min (x,y) of the min region of gofr
-                    ymin_gofr = gofr[min_index]  # x value of the min (x,y) of the min region of gofr
-                    y_intgofr = intgofr[min_index]  # y value of the integral of gofr that corresponds to the min x value of gofr
-
-                    class Decision(object):
-                        def good(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            print(
-                            atom1, '-', atom2, '  average bond =', "%.2f" % round(xmax_gofr, 2), '  maximum bond =',
-                            "%.2f" % round(xmin_gofr, 2))
-                            xmin_click_save = xmin_click
-                            undo = False
-                            manual_click = False
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                        def bad(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            print(atom1, '-', atom2, '  zeros will be placed for the bond distances')
-                            xmax_gofr = 0
-                            ymax_gofr = 0
-                            xmin_gofr = 0
-                            y_intgofr = 0
-                            xmin_click_save = 0
-                            undo = False
-                            manual_click = False
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                        def redo(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            xmax_gofr = 0
-                            ymax_gofr = 0
-                            xmin_gofr = 0
-                            y_intgofr = 0
-                            xmin_click_save = 0
-                            undo = True
-                            manual_click = False
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                        def manual(self, event):
-                            global value_array
-                            plt.close(fig)  # close and move to next plot
-                            xmax_gofr = 0
-                            ymax_gofr = 0
-                            xmin_gofr = 0
-                            y_intgofr = 0
-                            xmin_click_save = 0
-                            undo = True
-                            manual_click = True
-                            value_array = (
-                            xmax_gofr, ymax_gofr, xmin_gofr, y_intgofr, xmin_click_save, undo, manual_click)
-                            return value_array
-
-                    fig = plt.figure()  # show figure with the newly fitted minimum curve
-#                    plt.xlim(xaxismin, xaxismax)
-                    ax = fig.add_subplot(111)
-                    plt.subplots_adjust(bottom=0.2)
-                    ax.set_title(file.split('.gofr.dat')[0])
-                    plt.text(0.03, 0.92, couple, fontsize=14, color='black', fontname='Arial', transform=ax.transAxes)
-                    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                    ax.plot(distance[0:-1], gofr[0:-1], 'o',  markersize=2.5, color='grey', markerfacecolor='white')
-                    ax.plot(xmax_click, ymax_click, 'o', markersize=6, color='blue')
-                    ax.plot(xmin_click, ymin_click, 'o', markersize=6, color='red')
-                    plt.xlabel('Distance (Å)', fontsize=11.5, fontname='Arial', labelpad=1)
-                    plt.ylabel('Pair distribution function, g(r)', fontsize=12, fontname='Arial', labelpad=8)
-                    plt.ylim(-0.02, max(gofr) * 1.05)
-                    ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-                    ax.tick_params(labelsize=11)
-                    plt.xticks(fontname="Arial")
-                    plt.yticks(fontname="Arial")
-                    fig.subplots_adjust(bottom=0.25)
-                    fig.subplots_adjust(left=0.15)
-
-                    if xmin_click > 4:
-                        warning_message1 = True
-                    else:
-                        warning_message1 = False
-
-                    if warning_message1 == True:
-                        plt.text(0.56, 0.935, 'Non-physical bond distance', fontsize=12, color='red', fontname='Arial',
-                                 transform=ax.transAxes)
-
-                    class Exit(object):
-                        def exit(self, event):
-                            print('Exiting the fitting procedure without completing it.')
-                            plt.close(fig)
-                            sys.exit()
-
-                    callback = Decision()
-
-                    click_Exit = Exit()
-                    bexit = Button(plt.axes([0.17, 0.05, 0.12, 0.078]), 'Quit')
-                    bexit.on_clicked(click_Exit.exit)
-
-                    bmanual = Button(plt.axes([0.32, 0.05, 0.12, 0.078]), 'Redo -\nmanual')
-                    bmanual.on_clicked(callback.manual)
-                    bmanual.ax.set_facecolor('#E2E3A0')
-                    bmanual.label.set_fontsize(9.5)
-
-                    bredo = Button(plt.axes([0.47, 0.05, 0.12, 0.078]), 'Redo -\nfitting')
-                    bredo.on_clicked(callback.redo)
-                    bredo.ax.set_facecolor('#E2E3A0')
-                    bredo.label.set_fontsize(9.5)
-
-                    bbad = Button(plt.axes([0.62, 0.05, 0.12, 0.078]), 'Discard')
-                    bbad.on_clicked(callback.bad)
-                    bbad.ax.set_facecolor('#F1B6A6')
-
-                    bgood = Button(plt.axes([0.77, 0.05, 0.12, 0.078]), 'Save')  # left, bottom, width, height
-                    bgood.on_clicked(callback.good)
-                    bgood.ax.set_facecolor('#98D49A')
-
-                    plt.savefig(file.split('.gofr.dat')[0] + '_' + atom1 + '_' + atom2 + '.jpg', dpi=400)
-                    plt.show()
-
-                    undo = value_array[5]
-                    manual_click = value_array[6]
-
-            xmax_gofr = value_array[0]
-            ymax_gofr = value_array[1]
-            xmin_gofr = value_array[2]
-            y_intgofr = value_array[3]
-            xmin_click_save = value_array[4]
-            max_bonds.append(str(xmin_gofr))
-            peak_heights.append(str(ymax_gofr))
-            avg_bonds.append(str(xmax_gofr))
-            avg_coord.append(str(y_intgofr))
-
-            xmin_clicks.append(str(xmin_click_save))
-            data.append(str(xmax_gofr))
-            data.append(str(ymax_gofr))
-            data.append(str(xmin_gofr))
-            data.append(str(y_intgofr))
-
+            r, g, gs, coord = curves(an,p)
+            an['results'][p] = dict(values=shell_values(r,g,gs,coord,values['xmax'],values['ymax'],values['xmin']),note=note)
+
+
+def analyze_file(gofrfile,sigma,couples):#First shell of every pair of a gofr file
+    pairs, r, G, C = read_gofr(gofrfile)
+    an = dict(file=gofrfile,pairs=pairs,r=r,G=G,C=C,sigma=sigma,results={})
+    for pair in pairs:
+        a, b = pair.split('-')
+        if couples and pair not in couples and b+'-'+a not in couples:
+            an['results'][pair] = dict(values=None,note='not analyzed')
+        elif pair not in an['results']:
+            r, g, gs, coord = curves(an,pair)
+            an['results'][pair] = {}
+            set_shell(an,pair,*first_shell(r,g,coord,sigma))
+    return an
+
+
+def print_results(an):
+    print('\n',an['file'])
+    print('%-8s %8s %8s %8s %8s %8s %8s  %s' % ('pair','xmax(A)','g(xmax)','xmin(A)','g(xmin)','coord','rmean(A)','note'))
+    for pair in an['pairs']:
+        v, note = an['results'][pair]['values'], an['results'][pair]['note']
+        if v is None:
+            print('%-8s %8s %8s %8s %8s %8s %8s  %s' % (pair,'-','-','-','-','-','-',note))
+        else:
+            print('%-8s %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f  %s' % (pair,v['xmax'],v['ymax'],v['xmin'],v['ymin'],v['coord'],v['rmean'],note))
+
+
+def write_inputs(an):#The three files read by bonding_umd.py -i : the first minima (bond cutoffs), the first maxima and the coordination numbers
+    base = an['file'][:-9] if an['file'].endswith('.gofr.dat') else os.path.splitext(an['file'])[0]
+    for suffix, key in (('.maximum_bonds.inp','xmin'),('.average_bonds.inp','xmax'),('.coordinations.inp','coord')):
+        with open(base+suffix,'w') as f:
+            for pair in an['pairs']:
+                v = an['results'][pair]['values']
+                f.write('\t'.join(pair.split('-'))+'\t'+('%.4f' % v[key] if v is not None else '0')+'\n')
+    print('Files ',base+'.maximum_bonds.inp, .average_bonds.inp and .coordinations.inp written')
+
+
+def write_summary(analyses,dirpath):#One line per gofr file of the folder ; the columns are the union of the pairs of all the files
+    pairs = []
+    for an in analyses:
+        pairs += [p for p in an['pairs'] if p not in pairs]
+    keys = ('xmax','ymax','xmin','coord','ymin','rmean')
+    summary = os.path.join(dirpath,'gofrs_summary.txt')
+    with open(summary,'w') as f:
+        f.write('file\t'+'\t'.join(p for p in pairs for _ in keys)+'\n')
+        f.write('file\t'+'\t'.join(k for _ in pairs for k in keys)+'\n')
+        for an in analyses:
+            line = [os.path.basename(an['file'])]
+            for p in pairs:
+                v = an['results'][p]['values'] if p in an['results'] else None
+                line += ['%.4f' % v[k] for k in keys] if v is not None else ['nan']*len(keys)
+            f.write('\t'.join(line)+'\n')
+    print('File ',summary,' written')
+
+
+def draw_pair(ax,an,pair):#g(r), its smoothed curve, the first maximum and minimum ; coordination numbers and mean distance in the title
+    r, g, gs, coord = curves(an,pair)
+    v, note = an['results'][pair]['values'], an['results'][pair]['note']
+    ax.clear()
+    ax.plot(r,g,'o',markersize=2,color='0.6',markerfacecolor='white',label='g(r)')
+    if an['sigma'] > 0:
+        ax.plot(r,gs,'-',color='k',linewidth=1,label='smoothed')
+    rev = pair.split('-')[1]+'-'+pair.split('-')[0]
+    title = os.path.basename(an['file'])+'   '+pair
+    if v is not None:
+        ax.plot(v['xmax'],v['ymax'],'o',color='tab:blue',markersize=7,label='maximum %.3f A' % v['xmax'])
+        ax.plot(v['xmin'],v['ymin'],'o',color='tab:red',markersize=7,label='minimum %.3f A' % v['xmin'])
+        ax.axvline(v['xmin'],color='tab:red',linestyle='--',linewidth=0.8)
+        title += '\ncoord '+pair+' = %.3f' % v['coord']
+        if rev != pair and rev in an['results'] and an['results'][rev]['values'] is not None:
+            title += ',  '+rev+' = %.3f' % an['results'][rev]['values']['coord']
+        title += ',  mean distance %.3f A' % v['rmean']
     else:
-        xmax_gofr = 0
-        ymax_gofr = 0
-        xmin_gofr = 0
-        y_intgofr = 0
-        xmin_click_save = 0
-        max_bonds.append(str(xmin_gofr))
-        peak_heights.append(str(ymax_gofr))
-        avg_bonds.append(str(xmax_gofr))
-        avg_coord.append(str(y_intgofr))
-        xmin_clicks.append(str(xmin_click_save))
-        data.append(str(xmax_gofr))
-        data.append(str(ymax_gofr))
-        data.append(str(xmin_gofr))
-        data.append(str(y_intgofr))
+        title += '\nno first shell : '+note
+    if note and v is not None:
+        title += '  ('+note+')'
+    ax.set_title(title,fontsize='medium')
+    ax.set_xlabel('distance (A)')
+    ax.set_ylabel('g(r)')
+    ax.set_ylim(-0.02*max(g.max(),1.0),1.05*max(g.max(),1.0))
+    ax.grid(alpha=0.3)
+    ax.legend(loc='upper right',fontsize='small')
 
-    cutdistance = 0  # re initialization of variables for the next loop
-    fit_min_dist = 0
-    fit_max_dist = 0
-    fit_min_gofr = 0
-    fit_max_gofr = 0
-    gofr = 0
-    intgofr = 0
-    indices = []
-    return (data, max_bonds, peak_heights, avg_bonds, avg_coord, col, xmin_clicks)
 
-xmin_click = []
-xmax_click = []
+def unique_pairs(an):#A-B and B-A have the same g(r) : one of them is shown
+    shown = []
+    for pair in an['pairs']:
+        a, b = pair.split('-')
+        if b+'-'+a not in shown and an['results'][pair]['note'] != 'not analyzed':
+            shown.append(pair)
+    return shown
 
-def analyze_gofrs_interactive(data, file, couples):
-    """ extraction of the min, max and coordination number using fits and interactive plot """
-    distance = np.loadtxt(file, usecols=(0,), skiprows=1, unpack=True)
-    col = 0
-    max_bonds = []
-    peak_heights = []
-    avg_bonds = []
-    avg_coord = []
-    xmin_clicks = []
-    list_atom1 = []
-    list_atom2 = []
-    for couple in couples:
-        data, max_bonds, peak_heights, avg_bonds, avg_coord, col, xmin_clicks = interactive_fit(data, file, couples, distance, col, max_bonds, peak_heights, avg_bonds, avg_coord, xmin_clicks, couple, list_atom1, list_atom2)
-    return (data, max_bonds, peak_heights, avg_bonds, avg_coord)
+
+def clicked(an,pair,x,kind,snap):#Maximum or minimum moved to a click : with snap, the extremum of the smoothed g(r) within 0.1 A, refined
+    r, g, gs, coord = curves(an,pair)                              #as the automatic ones ; without, the clicked distance
+    i = int(np.argmin(np.abs(r-x)))
+    if snap:
+        near = np.where(np.abs(r-x) <= 0.1)[0]
+        i = near[np.argmax(gs[near])] if kind == 'max' else near[np.argmin(gs[near])]
+    v = an['results'][pair]['values']
+    if kind == 'max':
+        im = int(np.argmin(np.abs(r-v['xmin']))) if v is not None else len(r)-1
+        xmax, ymax = refine_max(r,g,gs,i,max(im,i+1)) if snap else (x,float(np.interp(x,r,gs)))
+        return dict(xmax=xmax,ymax=ymax,xmin=v['xmin'] if v is not None else np.nan)
+    ip = int(np.argmin(np.abs(r-v['xmax']))) if v is not None else 0
+    xmin = refine_min(r,g,gs,min(ip,i-1),i,len(r)-1) if snap else x
+    return dict(xmax=v['xmax'] if v is not None else np.nan,ymax=v['ymax'] if v is not None else np.nan,xmin=xmin)
+
+
+def check_plots(analyses):#One plot per pair, with Previous/Next ; left click moves the maximum, right click the minimum
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import Button
+    items = [(an,pair) for an in analyses for pair in unique_pairs(an)]
+    if not items:
+        return
+    fig, ax = plt.subplots(figsize=(9,6))
+    fig.subplots_adjust(bottom=0.2)
+    state = {'i':0,'snap':True,'pending':{}}
+    def draw():
+        an, pair = items[state['i']]
+        draw_pair(ax,an,pair)
+        fig.suptitle('%d/%d    left click: maximum, right click: minimum' % (state['i']+1,len(items)),x=0.98,ha='right',fontsize='small')
+        fig.canvas.draw_idle()
+    def step(delta):
+        state['i'] = (state['i']+delta) % len(items)
+        state['pending'] = {}
+        draw()
+    def onclick(event):
+        if event.inaxes is not ax or event.button not in (1,3) or (fig.canvas.toolbar is not None and fig.canvas.toolbar.mode != ''):
+            return
+        an, pair = items[state['i']]
+        kind = 'max' if event.button == 1 else 'min'
+        new = clicked(an,pair,event.xdata,kind,state['snap'])
+        if an['results'][pair]['values'] is None:#no shell yet : both the maximum and the minimum are needed
+            state['pending'][kind] = new
+            if len(state['pending']) < 2:
+                ax.axvline(event.xdata,color='tab:blue' if kind == 'max' else 'tab:red',linewidth=0.8)
+                fig.canvas.draw_idle()
+                return
+            new = dict(xmax=state['pending']['max']['xmax'],ymax=state['pending']['max']['ymax'],xmin=state['pending']['min']['xmin'])
+            state['pending'] = {}
+        set_shell(an,pair,new,'set by hand')
+        draw()
+    def discard(event):
+        an, pair = items[state['i']]
+        set_shell(an,pair,None,'discarded')
+        draw()
+    def automatic(event):
+        an, pair = items[state['i']]
+        r, g, gs, coord = curves(an,pair)
+        set_shell(an,pair,*first_shell(r,g,coord,an['sigma']))
+        draw()
+    def togglesnap(event):
+        state['snap'] = not state['snap']
+        bsnap.label.set_text('Snap: on' if state['snap'] else 'Snap: off')
+        fig.canvas.draw_idle()
+    buttons = []
+    for label, pos, func in (('Discard',0.10,discard),('Automatic',0.26,automatic),('Snap: on',0.42,togglesnap),
+                             ('Previous',0.62,lambda e: step(-1)),('Next',0.78,lambda e: step(1))):
+        bt = Button(fig.add_axes([pos,0.04,0.14,0.07]),label)
+        bt.on_clicked(func)
+        buttons.append(bt)
+    bsnap = buttons[2]
+    fig._umd_buttons = buttons      #keeps the buttons alive, otherwise they are garbage-collected and stop responding
+    fig.canvas.mpl_connect('button_press_event',onclick)
+    draw()
+    plt.show()
+
+
+def save_plots(an):#One png per pair
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    base = an['file'][:-9] if an['file'].endswith('.gofr.dat') else os.path.splitext(an['file'])[0]
+    for pair in unique_pairs(an):
+        fig, ax = plt.subplots(figsize=(8,5))
+        draw_pair(ax,an,pair)
+        fig.tight_layout()
+        fig.savefig(base+'.gofr.'+pair+'.png',dpi=150)
+        plt.close(fig)
+    print('Plots ',base+'.gofr.<pair>.png written')
 
 
 def main(argv):
-    """     ********* Main program *********     """
+    gofrfile = ''
+    couples = []
+    sigma = 0.03
+    view = False
+    plots = False
+    usage = 'analyze_gofr.py [-f <gofr file>] [-a <pairs>] [-g <smoothing>] [-v] [-p]'
     try:
-        options, arg = getopt.getopt(argv, "h")
+        opts, arg = getopt.getopt(argv,"hf:a:g:vp",["fgofrfile","aatoms","gsmoothing"])
     except getopt.GetoptError:
-        print('analyze_gofr.py')
-        sys.exit()
-    for opt, arg in options:
-        if opt == '-h' or opt == '--h':
-            print('*******')
-            print('Analyze g(r) program to extract bond information from the gofr.dat files created by the script gofrs.py')
-            print('This program should be run from the folder containing your gofr.dat files')
-            print('WARNING! You have to click FIRST on the maximum, and THEN on the minimum')
-            print(' ')
-            print('This code produces four files: *coordination.inp, *average_bonds.inp, *maximum_bonds.inp and gofrs_summary.txt')
-            print('The resulting *maximum_bonds.inp files may be used for the speciation analysis.')
-            print('The summary_gofrs.txt file contains the following information for each atom pair: ')
-            print('xmax (x-coordinate of the first peak)')
-            print('ymax (y-coordinate of the first peak)')
-            print('xmin (x-coordinate of the first minimum)')
-            print('')
-            print('')
-            print('*******')
-            print(' ')
+        print(usage)
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('First maximum, first minimum, coordination number and mean distance of the first shell of every pair of elements,')
+            print('from the gofr files of gofr_umd.py. Usage:')
+            print(usage)
+            print('-f : one gofr file. Default : every *.gofr.dat in the current folder and below it, with one summary per folder.')
+            print('-a : pairs to analyze, e.g. Si-O,Mg-O (B-A is included with A-B). The other pairs get 0 in the .inp files, i.e. no bond.')
+            print('     Default : all the pairs.')
+            print('-g : sigma of the gaussian smoothing used to find the peaks, in A. Default 0.03. 0 : no smoothing. The positions are then')
+            print('     fitted to the g(r) itself. Increase it for noisy g(r) (few atoms of an element, short runs).')
+            print('-v : check each pair in a plot (Previous/Next). Left click moves the maximum (blue), right click the minimum (red);')
+            print('     with Snap on they go to the extremum of the smoothed g(r) within 0.1 A of the click, fitted as the automatic ones,')
+            print('     with Snap off they stay where clicked. For a pair without a shell, click both. Discard : no shell for this pair')
+            print('     (0 in the .inp files). Automatic : back to the automatic values. A-B and B-A are changed together. Clicks are ignored')
+            print('     while the zoom or pan of the toolbar is active. Close the window to write the files.')
+            print('-p : save one plot per pair, <base>.gofr.<pair>.png.')
+            print('Method : the g(r) is smoothed; its first peak more prominent than '+str(NOISE_PEAKS)+' times the local noise (from the scatter')
+            print('of the g(r) around the smoothed curve) is the first shell, and its first minimum is the lowest point before the next such')
+            print('peak. The maximum is a cubic fitted to the g(r) over the top quarter of the peak; the minimum a parabola over its bottom')
+            print('tenth, or the middle of this region when it is flat (g = 0 between the shells of a molecule: any cutoff inside it gives')
+            print('the same bonds). The coordination number is Int(A-B) at the minimum; the mean distance is the mean of r over the shell,')
+            print('int r^3 g / int r^2 g up to the minimum. A minimum higher than '+str(SHALLOW)+' times the maximum is flagged: there the end of')
+            print('the shell, hence the bonds, depend on the cutoff. Pairs without a peak above the noise, or without a minimum before the')
+            print('largest distance of the g(r), get 0. Check the noisy pairs with -v.')
+            print('Outputs, for each gofr file <base>.gofr.dat (A B value, the format read by bonding_umd.py -i):')
+            print('   <base>.maximum_bonds.inp : first minima, the bond cutoffs for bonding_umd.py and the speciation.')
+            print('   <base>.average_bonds.inp : first maxima (most probable bond lengths).')
+            print('   <base>.coordinations.inp : coordination numbers.')
+            print('and gofrs_summary.txt in each folder : one line per file, for each pair xmax ymax xmin coord ymin rmean (nan: no shell).')
             sys.exit()
-    #print('\n')
-    print('********************************************************************************')
-    print('Procedure: (1) Check the quality of the fits (2) choose to Redo, Discard or Save')
-    #print('Redo: you may choose to manually select the max/min values or refit the data.')
-    print('   Redo manually: Select the max/min values without any fits')
-    print('   Redo fitting: Select the max/min values with a local fit')
-    print('   Click on the position of the first max and then on the first min')
-    print('   Please make sure that all of gofr files have the same composition')
-    print('********************************************************************************')
-    files = sorted(glob.glob('*.gofr.dat'))  # I list every gofr files in alphabetic order
-    if files != []:
-        f, couples = headerfile(files[0])  # I create the first newfile for gofr and save the list of element couples
-        for file in files:
-            data = [file]
-            b, atom1, atom2 = atoms_columns_max(file)
-            b_avg, atom1_avg, atom2_avg = atoms_columns_avg(file)
-            b_coord, atom1_coord, atom2_coord = atoms_columns_coord(file)
-            data, max_bonds, peak_heights, avg_bonds, avg_coord = analyze_gofrs_interactive(data, file, couples)
-            writer = csv.writer(b, delimiter='\t')
-            writer.writerows(zip(atom1, atom2, max_bonds))
-            b.close()
-            writer = csv.writer(b_avg, delimiter='\t')
-            writer.writerows(zip(atom1_avg, atom2_avg, avg_bonds))
-            b_avg.close()
-            writer = csv.writer(b_coord, delimiter='\t')
-            writer.writerows(zip(atom1_coord, atom2_coord, avg_coord))
-            b_avg.close()
-            f.write("\t".join(x for x in data) + "\n")  # we write in the file the result line
-        f.close
-        print('The fitting procedure is complete.')
+        elif opt in ("-f","--fgofrfile"):
+            gofrfile = str(arg)
+        elif opt in ("-a","--aatoms"):
+            couples = arg.split(',')
+        elif opt in ("-g","--gsmoothing"):
+            sigma = float(arg)
+        elif opt == '-v':
+            view = True
+        elif opt == '-p':
+            plots = True
+    if gofrfile != '':
+        if not os.path.isfile(gofrfile):
+            print('gofr file ',gofrfile,' does not exist')
+            sys.exit()
+        folders = [(os.path.dirname(gofrfile) or os.curdir,[gofrfile])]
+    else:
+        folders = []
+        for dirpath, dirnames, filenames in os.walk(os.curdir):
+            files = sorted(glob.glob(os.path.join(dirpath,'*.gofr.dat')))
+            if files:
+                folders.append((dirpath,files))
+        if not folders:
+            print('no *.gofr.dat file in the current folder or below it')
+            sys.exit()
+    analyses = []
+    for dirpath, files in folders:
+        for f in files:
+            an = analyze_file(f,sigma,couples)
+            print_results(an)
+            analyses.append((dirpath,an))
+    if view:
+        check_plots([an for _, an in analyses])
+        for _, an in analyses:#the values after the checks
+            print_results(an)
+    for dirpath, files in folders:
+        group = [an for d, an in analyses if d == dirpath]
+        for an in group:
+            write_inputs(an)
+            if plots:
+                save_plots(an)
+        write_summary(group,dirpath)
 
-# ********* Execution *********
+
 if __name__ == "__main__":
     main(sys.argv[1:])
-
-
-

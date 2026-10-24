@@ -58,8 +58,7 @@ umd2xyz.py
 
     structural properties:
 gofrs_umd.py
-analyze_1gofr.py
-analyze_gofr_semi_automatic.py
+analyze_gofr.py
 speciation_umd.py
 
     transport properties:
