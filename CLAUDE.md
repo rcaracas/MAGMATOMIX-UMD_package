@@ -66,7 +66,7 @@ Human-readable ASCII: one header section per snapshot followed by per-atom lines
 Each script imports `crystallography` and `umd_processes_fast`; most also load a dedicated C library for the heavy computation.
 
 **Structural:**
-- `gofr_umd.py` — pair distribution functions (uses `c_gofr_new_alt`)
+- `gofr_umd.py` — pair distribution functions (uses `c_gofr_new_alt`), for orthogonal and non-orthogonal cells. `gofr_new_notcubic.py` and its `c_gofr_new.c` (a duplicate, never compiled) were removed; their one advantage, a C routine filling a numpy array passed by the caller instead of returning a malloc'ed one copied element by element, is a 3.0 optimization candidate for `gofr_umd.py`.
 - `analyze_gofr.py` / `analyze_gofr_semi_automatic.py` — post-process gofr output, find bond lengths
 - `bonding_umd.py` — bond analysis (uses `c_bonds_full`)
 - `speciation_and_angles.py` — chemical speciation and interatomic angles (uses `c_clusters`)
