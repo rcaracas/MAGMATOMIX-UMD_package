@@ -1,219 +1,123 @@
 #!/usr/bin/env python3
 # coding: utf-8
 
-# In[139]:
+#Separates the species of a popul file (any -r, typically r1) into liquid and vapor, from the clusters of an r0 step file :
+#an atom is in the vapor at a step when its r0 cluster has fewer than -l atoms ; a species is in the liquid when one of its atoms is.
 
-
-#A script that separates the r1 calculated stat and popul files for liquid and vapor species
-
-
-# In[140]:
-
-
-import glob
-import os
-import getopt
 import sys
+import getopt
 import re
-import numpy as np
 from itertools import groupby
 
 
-# In[141]:
+def read_step(stepfile,length):#Liquid atoms of each step of an r0 step file, and the steps
+    liquid = {}
+    with open(stepfile,'r') as f:
+        lines = f.readlines()
+    step = None
+    for line in lines[1:]:
+        entry = line.rstrip('\n').split('\t')
+        if entry[0] == 'step':
+            step = int(entry[1])
+            liquid[step] = set()
+        elif step is not None and len(entry) == 3 and entry[1].isdigit():
+            if int(entry[1]) >= length:
+                liquid[step].update(int(k) for k in entry[2].strip('[]').split(','))
+    return liquid
 
 
-####################################Grab user inputs#################
-argv=sys.argv[1:]
-try:
-    opts, args = getopt.getopt(argv, "hs:p:l:")
-except:
-    print('Error')
-for opt, arg in opts:
-    if opt=='-h':
-        print('-s file.r0.step.dat -p file_r1.popul.dat file -l cutoff length for vapor species (default is 12 atoms)')
-    if opt in ['-s']:
-        step=str(arg)
-    if opt in ['-p']:
-        popul=str(arg)
-    if opt in ['-l']:
-        length=int(arg)
-    else:
-        length=12
+def read_popul(populfile):#Header values and species of a popul file
+    with open(populfile,'r') as f:
+        lines = f.readlines()
+    found = re.search(r'-s=(\d+)',lines[0])
+    nsteps = int(found.group(1)) if found else 1                             #sampling of the speciation run, in steps of the bonding file
+    found = re.search(r'timestep\s+([0-9.eE+-]+)\s*fs',lines[0])
+    timestep = float(found.group(1)) if found else None                     #time between two steps of the bonding file
+    species = []
+    for line in lines[2:]:
+        entry = line.rstrip('\n').split('\t')
+        if len(entry) < 5: continue
+        species.append([entry[0],int(entry[1]),int(entry[2]),float(entry[3]),entry[4]])
+    return nsteps, timestep, species
 
 
-# In[8]:
+def write_phase(filename,species,phasesteps,nsteps,dt):#popul and stat files of one phase ; phasesteps : for each species, its steps in this phase
+    with open(filename+'.popul.dat','w') as nf:
+        nf.write('Formula\tBegin (step)\tEnd (step)\tLifetime (fs)\tComposition\n')
+        stats = {}
+        total = 0.0
+        for (formula,begin,end,lifetime,composition),steps in zip(species,phasesteps):
+            for _,run in groupby(enumerate(steps),lambda x: x[1]//nsteps - x[0]):#consecutive snapshots
+                run = [s for _,s in run]
+                life = len(run)*nsteps*dt
+                nf.write(formula+'\t'+str(run[0])+'\t'+str(run[-1])+'\t'+str(life)+'\t'+composition+'\n')
+                total += life
+                if formula in stats:
+                    stats[formula][0] += life
+                else:
+                    stats[formula] = [life,len(composition.split(','))]
+    with open(filename+'.stat.dat','w') as nf:
+        nf.write('Cluster\tTime (fs)\tPercent\tNumber of atoms\n')
+        for formula in stats:
+            nf.write(formula+'\t'+str(stats[formula][0])+'\t'+str(stats[formula][0]/total)+'\t'+str(stats[formula][1])+'\n')
 
 
-#Read in data from step.dat file in groups, separated by timestep
-def get_groups(seq, group_by):
-    data = []
-    for line in seq:
-        # Here the `startswith()` logic can be replaced with other
-        # condition(s) depending on the requirement.
-        if line.startswith(group_by):
-            if data:
-                yield data
-                data = []
-        data.append(line)
+def main(argv):
+    stepfile = ''
+    populfile = ''
+    length = 12
+    usage = 'liquid_and_vapor_speciation.py -s <file.r0.step.dat> -p <file.r1.popul.dat> -l <length>'
+    try:
+        opts, args = getopt.getopt(argv,"hs:p:l:")
+    except getopt.GetoptError:
+        print(usage)
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('Separates the species of a popul file into liquid and vapor species, from the r0 clusters of a step file of the same bonding file.')
+            print(usage)
+            print('-s : step file of speciation_and_angles.py -r 0 : an atom is in the vapor at a step when its r0 cluster has fewer than -l atoms.')
+            print('-p : popul file (typically -r 1) : a species is in the liquid at a step when one of its atoms is. Its steps must be in the step file')
+            print('     (same sampling -s of speciation_and_angles.py, or a denser one for the step file).')
+            print('-l : smallest r0 cluster of the liquid, in atoms. Default 12.')
+            print('Output : <popul base>.vapor.popul.dat, .vapor.stat.dat, .liquid.popul.dat, .liquid.stat.dat (popul and stat formats).')
+            sys.exit()
+        elif opt == '-s':
+            stepfile = str(arg)
+        elif opt == '-p':
+            populfile = str(arg)
+        elif opt == '-l':
+            length = int(arg)
 
-    if data:
-        yield data
-
-
-# In[94]:
-
-
-#From the r0 step file, get a list of all vapor and liquid atoms at each timestep
-vapor_atoms_dict={}
-liquid_atoms_dict={}
-with open(step, 'r') as f:
-    next(f)
-    for i, group in enumerate(get_groups(f, 'step'), start=1):
-        if i==2:
-            ts=float(group[1].split('\t')[1].strip('\n'))
-        vapor_atoms=[]
-        liquid_atoms=[]
-        timestep=float(group[0].split('\t')[1].strip('\n'))
-        for j in range(3,len(group)):
-            if int(group[j].split('\t')[1])<length:
-                for k in group[j].split('\t')[2].strip('\n'+'['+']').split(','):
-                    vapor_atoms.append(int(k))
+    liquid = read_step(stepfile,length)
+    nsteps, timestep, species = read_popul(populfile)
+    if timestep is None:#older popul files : the time step from the step file
+        steps = sorted(liquid)
+        with open(stepfile,'r') as f:
+            times = [float(line.split('\t')[1]) for line in f if line.startswith('time\t')]
+        timestep = (times[1]-times[0])/(steps[1]-steps[0])
+    vaporsteps = []
+    liquidsteps = []
+    for formula,begin,end,lifetime,composition in species:
+        atoms = [int(j) for j in composition.strip('[]').split(',')]
+        vapor = []
+        liq = []
+        for step in range(begin,end+1,nsteps):
+            if step not in liquid:
+                print('ERROR : step',step,'of',populfile,'is not in',stepfile,': use the same sampling (-s) in speciation_and_angles.py')
+                sys.exit(1)
+            if any(at in liquid[step] for at in atoms):
+                liq.append(step)
             else:
-                for k in group[j].split('\t')[2].strip('\n'+'['+']').split(','):
-                    liquid_atoms.append(int(k))
-        vapor_atoms_dict[timestep]=vapor_atoms
-        liquid_atoms_dict[timestep]=liquid_atoms
+                vapor.append(step)
+        vaporsteps.append(vapor)
+        liquidsteps.append(liq)
+
+    base = populfile[:-10] if populfile.endswith('.popul.dat') else populfile
+    write_phase(base+'.vapor',species,vaporsteps,nsteps,timestep)
+    write_phase(base+'.liquid',species,liquidsteps,nsteps,timestep)
+    print('Vapor and liquid species written in',base+'.vapor.popul.dat,',base+'.vapor.stat.dat,',base+'.liquid.popul.dat,',base+'.liquid.stat.dat')
 
 
-# In[85]:
-
-
-#Make lists for every cluster, the timesteps in which it is alive in the liquid phase, the vapor phase, 
-#and all the atoms making up the cluster.
-formula_list=[]
-liquid_time_list=[]
-vapor_time_list=[]
-composition_list=[]
-with open(popul, 'r') as f:
-    next(f)
-    next(f)
-    for line in f:
-        split_line=line.strip('\n').split('\t')
-        formula_list.append(split_line[0])
-        liquid_time=[]
-        vapor_time=[]
-        composition_list.append(split_line[4])
-        for i in range(int(split_line[1]),int(split_line[2])+1):
-            counter=0
-            for j in split_line[4].strip('['+']').split(','):
-                if int(j) in liquid_atoms_dict[i]:
-                    counter=counter+1
-            if counter>0:
-                liquid_time.append(i)
-            else:
-                vapor_time.append(i)
-        liquid_time_list.append(liquid_time)
-        vapor_time_list.append(vapor_time)
-
-
-# In[106]:
-
-
-#Write the population file for r1 vapor phases
-nf=open(popul[:-9]+'vapor.popul.dat', 'w')
-nf.write('Formula\tBegin (step)\tEnd (step)\tLifetime (fs)\tComposition\n')
-for i in range(len(formula_list)):
-    begin=[]
-    end=[]
-    if vapor_time_list[i] != []:
-        if sorted(vapor_time_list[i]) == list(range(min(vapor_time_list[i]), max(vapor_time_list[i])+1)):
-            begin.append(min(vapor_time_list[i]))
-            end.append(max(vapor_time_list[i]))
-        else:
-            out = []
-            for _, g in groupby(enumerate(vapor_time_list[i]), lambda x: x[0] - x[1]):
-                out.append([v for _, v in g])
-            for j in out:
-                begin.append(min(j))
-                end.append(max(j))
-        for j in range(len(begin)):
-            lifetime=(end[j]-begin[j]+1)*ts
-            nf.write(formula_list[i]+'\t'+str(begin[j])+'\t'+str(end[j])+'\t'+str(lifetime)+'\t'
-                     +composition_list[i]+'\n')
-nf.close()
-
-
-# In[136]:
-
-
-#Write the population file for r1 liquid phases
-nf=open(popul[:-9]+'liquid.popul.dat', 'w')
-nf.write('Formula\tBegin (step)\tEnd (step)\tLifetime (fs)\tComposition\n')
-for i in range(len(formula_list)):
-    begin=[]
-    end=[]
-    if liquid_time_list[i] != []:
-        if sorted(liquid_time_list[i]) == list(range(min(liquid_time_list[i]), max(liquid_time_list[i])+1)):
-            begin.append(min(liquid_time_list[i]))
-            end.append(max(liquid_time_list[i]))
-        else:
-            out = []
-            for _, g in groupby(enumerate(liquid_time_list[i]), lambda x: x[0] - x[1]):
-                out.append([v for _, v in g])
-            for j in out:
-                begin.append(min(j))
-                end.append(max(j))
-        for j in range(len(begin)):
-            lifetime=(end[j]-begin[j]+1)*ts
-            nf.write(formula_list[i]+'\t'+str(begin[j])+'\t'+str(end[j])+'\t'+str(lifetime)+'\t'
-                     +composition_list[i]+'\n')
-nf.close()
-
-
-# In[137]:
-
-
-#Write a new stat.dat file for vapor species
-species_dict={}
-nf=open(popul[:-9]+'vapor.stat.dat', 'w')
-nf.write('Cluster\tTime (fs)\tPercent\tNumber of atoms\n')
-with open(popul[:-9]+'vapor.popul.dat', 'r') as f:
-    next(f)
-    time=0
-    for line in f:
-        split_line=line.strip('\n').split('\t')
-        time=time+float(split_line[3])
-        if split_line[0] in species_dict:
-            species_dict[split_line[0]]=[species_dict[split_line[0]][0]+float(split_line[3]),
-            len(split_line[4].split(','))]
-        else:
-            species_dict[split_line[0]]=[float(split_line[3]), len(split_line[4].split(','))]
-for key in species_dict.keys():
-    nf.write(key+'\t'+str(species_dict[key][0])+'\t'+str(species_dict[key][0]/time)+'\t'+str(species_dict[key][1])
-             +'\n')
-nf.close()
-
-
-# In[138]:
-
-
-#Write a new stat.dat file for liquid species
-species_dict={}
-nf=open(popul[:-9]+'liquid.stat.dat', 'w')
-nf.write('Cluster\tTime (fs)\tPercent\tNumber of atoms\n')
-with open(popul[:-9]+'liquid.popul.dat', 'r') as f:
-    next(f)
-    time=0
-    for line in f:
-        split_line=line.strip('\n').split('\t')
-        time=time+float(split_line[3])
-        if split_line[0] in species_dict:
-            species_dict[split_line[0]]=[species_dict[split_line[0]][0]+float(split_line[3]),
-            len(split_line[4].split(','))]
-        else:
-            species_dict[split_line[0]]=[float(split_line[3]), len(split_line[4].split(','))]
-for key in species_dict.keys():
-    nf.write(key+'\t'+str(species_dict[key][0])+'\t'+str(species_dict[key][0]/time)+'\t'+str(species_dict[key][1])
-             +'\n')
-nf.close()
-
+if __name__ == "__main__":
+    main(sys.argv[1:])

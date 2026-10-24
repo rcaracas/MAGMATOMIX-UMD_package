@@ -21,7 +21,8 @@ def ana_popul(MyCrystal,AbsXcart,TimeStep,POPname,MinLife,ClusterMaxSize,Nsteps)
     masses = np.array([float(MyCrystal.masses[MyCrystal.typat[iatom]]) for iatom in range(MyCrystal.natom)])
     population = {}                                                                             #cluster name -> list of the MSDs of its individual instances
     ff = open(POPname,'r')
-    ff.readline()
+    found = re.search(r'timestep\s+([0-9.eE+-]+)\s*fs',ff.readline())      #time between two steps of the popul file, written by speciation_and_angles.py since Oct 2026
+    poptimestep = float(found.group(1)) if found else None
     ff.readline()
     while True:
         line = ff.readline()
@@ -34,8 +35,12 @@ def ana_popul(MyCrystal,AbsXcart,TimeStep,POPname,MinLife,ClusterMaxSize,Nsteps)
         if len(atoms) > ClusterMaxSize: continue
         begin = int(entry[1])
         end = int(entry[2])
-        #the Begin/End steps of the popul file are counted in its own sampling ; the lifetime column (fs) gives the conversion to UMD snapshots
-        ratio = max(1, int(round(float(entry[3]) / ((end-begin+1)*TimeStep))))
+        #the Begin/End steps of the popul file are counted in the steps of its bonding file : converted to UMD snapshots with its timestep,
+        #or for older popul files with the lifetime column (fs)
+        if poptimestep is not None:
+            ratio = max(1, int(round(poptimestep / TimeStep)))
+        else:
+            ratio = max(1, int(round(float(entry[3]) / ((end-begin+1)*TimeStep))))
         first = begin*ratio
         last = min(end*ratio, len(AbsXcart)-1)
         if last - first < MinLife: continue

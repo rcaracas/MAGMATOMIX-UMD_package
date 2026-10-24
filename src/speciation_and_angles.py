@@ -160,9 +160,14 @@ def clustering(SnapshotBonds,SnapshotBondIndexes,SnapshotXCart,cell,step,maxStep
         else:
             Clusters[-1].append(atom)
     clust_lib.free_memory_int(Np)#Freeing memory
-
     if Clusters ==[[]]:
-        return [],{}
+        Clusters = []
+
+    #The central and adjacent atoms in no cluster are species of their own (with r = 0 the C code already returns them)
+    inCluster = np.zeros(natom,dtype=bool)
+    for cluster in Clusters :
+        inCluster[cluster] = True
+    Clusters += [[at] for at in np.nonzero(~inCluster & (in_set(CentIndexes,natom) | in_set(OutIndexes,natom)))[0].tolist()]
 
     Angles = {}#Angles within each cluster, keyed by the sorted cluster
     if r==1 and AngleCalc:
@@ -172,13 +177,6 @@ def clustering(SnapshotBonds,SnapshotBondIndexes,SnapshotXCart,cell,step,maxStep
                 Angles[str(sorted(cluster))] = [float(a) for a in bond_angles(X,cell,cluster[0],cluster[1:])]
 
     return [sorted(c) for c in Clusters],Angles
-
-
-def is_in(at,Indexes):
-    for i in range(int(len(Indexes)/2)):
-        if (at<=Indexes[2*i+1] and at>=Indexes[2*i]):
-            return True
-    return False
 
 
 def main(argv):
@@ -212,7 +210,7 @@ def main(argv):
             print ('-r : rings = 1 default, all adjacent atoms bind to central atoms ; rings = 0, polymerization, all adjacent atoms bind to central AND other adjacent atoms ; rings = x>0, all adjacent atoms bind to central then to other adjacent atoms to form a xth-coordination polyhedra')
             print ('-s : one snapshot of the bonding file out of s is used. Default 1.')
             print ('-m : minimal duration of existence for a chemical species to be taken into account (fs) ; default 1')
-            print ('-p : 1 (default) or 0. Chemical species, written in <base>.r<r>.popul.dat (each cluster with its beginning, end and lifetime), <base>.r<r>.stat.dat')
+            print ('-p : 1 (default) or 0. Chemical species, including the single atoms, written in <base>.r<r>.popul.dat (each cluster with its beginning, end and lifetime), <base>.r<r>.stat.dat')
             print ('     (total time and proportion of each species) and <base>.r<r>.step.dat (the species of every snapshot).')
             print ('-t : 0 (default) or 1. The angles adjacent - central - adjacent of every central atom in every snapshot, written in <base>.angles.dat ;')
             print ('     with -r 1 and -p 1, the mean angles of each cluster are also added to the popul and stat files. Needs the umd file (-f).')
@@ -288,6 +286,7 @@ def main(argv):
 
     if CentIndexes == -1 :#For the GUI to display an error message whenever an element is missing
         return AdjIndexes
+    header = header + ' timestep ' + str(TimeStep/Nsteps) + ' fs'#time between two steps of the bonding file, the unit of the steps written (Begin/End of popul, step of step and angles)
 
     if flagbondlife==1 :
         print("Calculating the lifetimes of the bonds...")
@@ -356,8 +355,6 @@ def main(argv):
         fs.write(st)
         fs.write(headstring)
         Clusts = clusters[step]
-        vapor = [at for at in range(MyCrystal.natom)]#The lonely atoms are considered to be vapor, and the others will be gradually pruned from this list
-
         for clust in Clusts :
             index=[0 for _ in range(MyCrystal.ntypat)]
             name=''
@@ -369,11 +366,6 @@ def main(argv):
                     name+=MyCrystal.elements[elem]+'_'+str(index[elem])
             newstring = name +'\t'+ str(len(clust)) +'\t'+ str(clust)+'\n'
             fs.write(newstring)
-            for at in clust :
-                vapor[at]=-1
-        for at in vapor :#The remaining not -1 atoms are considered to be vapors
-            if at !=-1 and (is_in(at,CentIndexes) or is_in(at,AdjIndexes)) :
-                fs.write(MyCrystal.elements[MyCrystal.typat[at]]+'_1\t1\t['+str(at)+']\n')
 
     fs.close()
 

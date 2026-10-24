@@ -352,7 +352,7 @@ def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, 
     MyCrystal,TimeStep = Crystallization(UMDfile)
     return np.repeat(np.array(MyCrystal.rprimd,dtype=float)[None],nsnap,axis=0)
 
-def read_bonds(BondFile,centEls,adjEls,Nsteps=1,mode="Indexes",nCores = None):
+def read_bonds(BondFile,centEls,adjEls,Nsteps=1,nCores = None):#Bonds of every Nsteps-th snapshot of a bonding file, between the central and adjacent elements
     
     MyCrystal,TimeStep = Crystallization(BondFile)
 
@@ -454,29 +454,7 @@ def read_bonds(BondFile,centEls,adjEls,Nsteps=1,mode="Indexes",nCores = None):
             
     Bonds = [D[0] for D in Data]
     BondsIndexes = [D[1] for D in Data]
-    if mode == "Indexes":
-        return CentIndexes, AdjIndexes, MyCrystal, [Bonds, BondsIndexes], TimeStep*Nsteps
-
-    elif mode == "Dictionary":
-        BondDicos = []
-        
-        for i in range(len(Bonds)) :
-            Dico = {}
-            SnapBonds = Bonds[i]
-#            print(Bonds[i])
-            SnapBondsIndexes = BondsIndexes[i]
-#            print(SnapBondsIndexes)
-#            sys.exit()
-            for j in range(len(CentIndexes)//2):
-                CentMin = CentIndexes[2*j]
-                CentMax = CentIndexes[2*j+1]
-                for atom in range(CentMin,CentMax+1):
-                    bondsList = SnapBonds[SnapBondsIndexes[atom]:SnapBondsIndexes[atom+1]]
-                    if len(bondsList)>1:
-                        Dico[atom]=bondsList
-            BondDicos.append(Dico)
-        
-        return CentIndexes, AdjIndexes, MyCrystal, BondDicos, TimeStep*Nsteps
+    return CentIndexes, AdjIndexes, MyCrystal, [Bonds, BondsIndexes], TimeStep*Nsteps#TimeStep*Nsteps : time between two snapshots used
 
 def read_stresses_4visc(UMDfile):
     #print(' in read_stresses_4visc')
