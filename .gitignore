@@ -7,6 +7,8 @@ obsolete files/
 
 # Compiled C extensions / local archives (not for GitHub)
 *.dylib
+*.o
+*.dll
 get-pip.py
 umd_latest_src.tar
 
