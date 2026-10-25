@@ -11,7 +11,7 @@ import umd_processes_fast as umdpf
 import time
 import ast
 import numpy as np
-from analyze_msd import calculation_diffusivities, block_diffusivity_error, diffusion_exponent, regime_warning
+from analyze_msd import calculation_diffusivities, block_diffusivity_error, diffusion_exponent, regime_warning, fit_end
 
 
 def msd_fft(x):#Mean square displacement of each column of x (time along axis 0), averaged over all the time origins
@@ -65,6 +65,85 @@ def msd_elements(total,proj,typat,ntypat):#Mean over the atoms of each element ;
     return MSD
 
 
+TensorAxes = np.array([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[0,1,1],[1,0,1]])/np.linalg.norm([[1,0,0],[0,1,0],[0,0,1],[1,1,0],[0,1,1],[1,0,1]],axis=1)[:,None]
+TensorLabels = ['xx','yy','zz','xy','yz','zx']
+
+
+def tensor_components(proj):#MSDs projected on x, y, z, (x+y)/sqrt2, (y+z)/sqrt2, (z+x)/sqrt2 (last axis) -> components <dx dx>, <dy dy>, <dz dz>, <dx dy>,
+    #<dy dz>, <dz dx> of the MSD tensor : <du^2> = (<di^2> + <dj^2>)/2 + <di dj> along u = (i+j)/sqrt2
+    T = proj.copy()
+    for k,(i,j) in enumerate(((0,1),(1,2),(2,0))):
+        T[...,3+k] = proj[...,3+k]-0.5*(proj[...,i]+proj[...,j])
+    return T
+
+
+def tensor(D6):#3x3 symmetric tensor from its components xx, yy, zz, xy, yz, zx
+    return np.array([[D6[0],D6[3],D6[5]],[D6[3],D6[1],D6[4]],[D6[5],D6[4],D6[2]]])
+
+
+def principal(D6):#Principal values (decreasing) and directions (columns) of a tensor given by its 6 components
+    w, v = np.linalg.eigh(tensor(D6))
+    order = np.argsort(w)[::-1]
+    v = v[:,order]
+    v *= np.sign(v[np.argmax(np.abs(v),axis=0),np.arange(3)])          #largest component of each direction positive
+    return w[order], v
+
+
+def plane_directions(arg,step=5):#Unit vectors every step degrees in the plane of two vectors (orthonormalized : true angles)
+    P = np.array([float(x) for x in ast.literal_eval(arg)]).reshape(2,3)
+    a = P[0]/np.linalg.norm(P[0])
+    b = P[1]-(P[1] @ a)*a
+    if np.linalg.norm(b) < 1e-8:
+        print('ERROR : the two vectors of the plane -p are parallel.')
+        sys.exit()
+    b /= np.linalg.norm(b)
+    thetas = np.arange(0,180,step)
+    return thetas, np.cos(np.radians(thetas))[:,None]*a+np.sin(np.radians(thetas))[:,None]*b, a, b
+
+
+def write_tensor(filename,umdfile,elements,Dfull,Dblocks,tmin,tmax,tend,plane):#Diffusion tensor of each element, principal values and directions, and D in a plane
+    #Dfull[element] : the 6 components (m2/s) ; Dblocks[element] : the 6 components fitted on each block (list), or [] ; errors from the spread over the blocks,
+    #scaled as block_diffusivity_error : stdev * sqrt(tmax/(nblocks*tend))
+    def err(values):#values : one row per block
+        return np.std(values,axis=0,ddof=1)*np.sqrt(tmax/(len(values)*tend))
+    f = open(filename,'w')
+    f.write('# Diffusion tensors from '+umdfile+' : <dr_i dr_j> = 2 D_ij t, fit between '+str(tmin)+' and '+str(tmax)+' fs ; D in m2/s ; '
+            +('errors from '+str(len(Dblocks[0]))+' blocks' if len(Dblocks[0]) > 1 else 'no errors (no blocks)')+'\n')
+    f.write('# D along a unit vector n : n.D.n ; isotropic D = trace/3 (= D of the total MSD) ; principal directions : cartesian unit vectors\n')
+    for el,D6,B in zip(elements,Dfull,Dblocks):
+        B = np.array(B)
+        blocks = len(B) > 1
+        e6 = err(B) if blocks else np.full(6,np.nan)
+        w, v = principal(D6)
+        ew = err([principal(b)[0] for b in B]) if blocks else np.full(3,np.nan)
+        iso = np.trace(tensor(D6))/3.0
+        eiso = err([np.trace(tensor(b))/3.0 for b in B]) if blocks else np.nan
+        f.write('\nelement '+el+'\n')
+        f.write('component\tD_(m2/s)\terror\n')
+        for lab,d,e in zip(TensorLabels,D6,e6):
+            f.write(lab+'\t'+str(d)+'\t'+str(e)+'\n')
+        f.write('isotropic\t'+str(iso)+'\t'+str(eiso)+'\n')
+        f.write('principal\tD_(m2/s)\terror\tx\ty\tz\n')
+        for k in range(3):
+            f.write('D'+str(k+1)+'\t'+str(w[k])+'\t'+str(ew[k])+'\t'+'\t'.join('%.6f' % c for c in v[:,k])+'\n')
+        f.write('anisotropy D1/D3\t'+str(w[0]/w[2] if w[2] > 0 else float('nan'))+'\n')
+        print('{:<4s} D (m2/s) isotropic {:.4e} +/- {:.1e} ; principal {:.4e} {:.4e} {:.4e} (+/- {:.1e} {:.1e} {:.1e})'.format(el,iso,eiso,*w,*ew))
+        for k in range(3):
+            print('       D'+str(k+1)+' along ['+', '.join('%.3f' % c for c in v[:,k])+']')
+    if plane is not None:
+        thetas, dirs, a, b = plane
+        f.write('\nD along the directions cos(theta) a + sin(theta) b of the plane a = ['+', '.join('%.6f' % c for c in a)+'], b = ['+', '.join('%.6f' % c for c in b)+'] (orthonormalized)\n')
+        f.write('theta_(deg)\t'+'\t'.join(el+'\t'+el+'_error' for el in elements)+'\n')
+        for th,n in zip(thetas,dirs):
+            row = [str(th)]
+            for D6,B in zip(Dfull,Dblocks):
+                row.append(str(n @ tensor(D6) @ n))
+                row.append(str(err([n @ tensor(bb) @ n for bb in B])) if len(B) > 1 else 'nan')
+            f.write('\t'.join(row)+'\n')
+    f.close()
+    print('Diffusion tensors printed in file ',filename)
+
+
 def main(argv):
     vv = 1
     ballistic = 0
@@ -77,8 +156,9 @@ def main(argv):
     AxesMode = None
     Axes = None
     nCores=None
+    planearg = None
     try:
-        opts, arg = getopt.getopt(argv,"hf:z:v:b:e:n:m:a:k:",["fumdfile","zHorizontalJump","vVerticalJump","bBallistic","eFitEnd","nBlocks","mMode","aAxes","knCores"])
+        opts, arg = getopt.getopt(argv,"hf:z:v:b:e:n:m:a:k:p:",["fumdfile","zHorizontalJump","vVerticalJump","bBallistic","eFitEnd","nBlocks","mMode","aAxes","knCores","pPlane"])
     except getopt.GetoptError:
         print ('msd_umd.py -f <UMD_filename> -v <VerticalJump> -b <Ballistic> -e <FitEnd> -n <nBlocks> -m <Mode> -a <Axes> -k <nCores>')
         sys.exit(2)
@@ -106,6 +186,12 @@ def main(argv):
             print ('             calculates the MSD along the axes [1,0,0], [0,1,0] and [0,1,1].')
             print ('     Each axis component is the MSD of the displacement projected on the unit vector of that axis,')
             print ('     so that the diffusion coefficient along the axis is D = slope / 2 (D = slope / 6 for the total MSD).')
+            print ('     tensor : the components xx, yy, zz, xy, yz, zx of the MSD tensor <dr_i dr_j> (from the MSDs along x, y, z and the three')
+            print ('             diagonals (i+j)/sqrt2), fitted as 2 D_ij t, and <base>.diffusion.tensor.dat : the diffusion tensor of each element with')
+            print ('             its errors, its principal values D1 >= D2 >= D3 and directions, the isotropic D (trace/3) and the anisotropy D1/D3.')
+            print ('             D along any unit vector n is n.D.n. Noise makes D1 > D3 even for an isotropic system : compare D1 - D3 with the errors.')
+            print ('-p : with -a tensor, D along the directions of a plane, every 5 degrees, given by two vectors [a1,a2,a3,b1,b2,b3] (made orthonormal),')
+            print ('     added to <base>.diffusion.tensor.dat (formerly MSDdistrib.py).')
             print ('-k : nCores. number of cores used to read the UMD file. Default is all.')
             print ('Output : <base>.msd.dat, one time column (fs), then one column per element (or per atom and per element)')
             print (' named El for the total MSD, and El_x, El_a, El_1 ... for the components along the axes. MSD in A^2.')
@@ -142,6 +228,8 @@ def main(argv):
                 AxesMode = "cart"
             elif arg in ("cryst","abc","Auto"):
                 AxesMode = "cryst"
+            elif arg == "tensor":
+                AxesMode = "tensor"
             else :
                 AxesMode = "custom"
                 try :
@@ -154,6 +242,8 @@ def main(argv):
                     sys.exit()
         elif opt in ("-k","--nCores"):
             nCores = int(arg)
+        elif opt in ("-p","--pPlane"):
+            planearg = arg
 
 
     if (os.path.isfile(umdfile)):
@@ -173,9 +263,16 @@ def main(argv):
         elif AxesMode == "custom":
             U = np.array(Axes).reshape(-1,3)
             AxesLabels = [str(i+1) for i in range(len(U))]
+        elif AxesMode == "tensor":
+            U = TensorAxes
+            AxesLabels = TensorLabels
         else :
             U = None
             AxesLabels = []
+        if planearg is not None and AxesMode != "tensor":
+            print('ERROR : the plane -p needs -a tensor.')
+            sys.exit()
+        plane = plane_directions(planearg) if planearg is not None else None
         if U is not None:
             norms = np.linalg.norm(U,axis=1)
             if np.any(norms==0.0):
@@ -210,6 +307,8 @@ def main(argv):
             sys.exit()
 
         total, proj = msd_atoms(X,lags,U,AxesMode=="cart")
+        if AxesMode == "tensor":
+            proj = tensor_components(proj)
 
         #MSD[species][0] is the total MSD, MSD[species][1+k] its component along axis k
         typat = np.array(MyCrystal.typat)
@@ -224,6 +323,8 @@ def main(argv):
                 print('Calculating the MSD of ',nBlocks,' blocks of ',blocklen,' steps')
                 for kk in range(nBlocks):
                     tb, pb = msd_atoms(X[kk*blocklen:(kk+1)*blocklen],blocklags,U,AxesMode=="cart",progress=False)
+                    if AxesMode == "tensor":
+                        pb = tensor_components(pb)
                     BlockMSD.append(msd_elements(tb,pb,typat,MyCrystal.ntypat))
         if Mode == "atoms":
             MSDat = np.zeros((MyCrystal.natom,1+nAxes,len(lags)))
@@ -289,6 +390,10 @@ def main(argv):
         print ('{:<10s}{:>14s}{:>14s}{:>10s}{:>8s}'.format('column','D (m2/s)','error','R^2','alpha'))
         icol = 0
         lowalpha = False
+        Dtensor = []        #6 components of each element (tensor mode), on the full trajectory and on each block
+        Dtensorblocks = []
+        blocktimes = blocklags*TimeStep
+        tend = min(fit_end(blocktimes),tmax) if BlockMSD != [] else tmax
         for itypat in range(MyCrystal.ntypat):
             for jj in range(1+nAxes):
                 lab = ellabels[icol]
@@ -296,14 +401,21 @@ def main(argv):
                 dimension = 3 if jj == 0 else 1
                 D, D_err, R2, slope, intercept = calculation_diffusivities(times,MSDel[itypat][jj],tmin,dimension,tmax)
                 if BlockMSD != []:
-                    D_err = block_diffusivity_error(blocklags*TimeStep,[BlockMSD[kk][itypat][jj] for kk in range(nBlocks)],tmin,tmax,dimension)
-                alpha = diffusion_exponent(times,MSDel[itypat][jj],tmin,tmax)#1 for normal diffusion, < 1 if the window is still sub-diffusive
+                    D_err = block_diffusivity_error(blocktimes,[BlockMSD[kk][itypat][jj] for kk in range(nBlocks)],tmin,tmax,dimension)
+                offdiagonal = AxesMode == "tensor" and jj > 3          #<dr_i dr_j> with i != j : of any sign, no exponent
+                alpha = float('nan') if offdiagonal else diffusion_exponent(times,MSDel[itypat][jj],tmin,tmax)#1 for normal diffusion, < 1 if the window is still sub-diffusive
                 f.write(lab+'\t'+str(D)+'\t'+str(D_err)+'\t'+str(R2)+'\t'+str(alpha)+'\n')
                 print ('{:<10s}{:>14.4e}{:>14.4e}{:>10.4f}{:>8.2f}'.format(lab,D,D_err,R2,alpha))
-                if regime_warning(alpha) != '':
+                if not offdiagonal and regime_warning(alpha) != '':
                     lowalpha = True
+            if AxesMode == "tensor":
+                Dtensor.append([calculation_diffusivities(times,MSDel[itypat][1+k],tmin,1,tmax)[0] for k in range(6)])
+                Dtensorblocks.append([[calculation_diffusivities(blocktimes,BlockMSD[kk][itypat][1+k],tmin,1,tend)[0] for k in range(6)] for kk in range(nBlocks)] if BlockMSD != [] else [])
         f.close()
         print ('Diffusion coefficients printed in file ',difffile)
+        if AxesMode == "tensor":
+            print('')
+            write_tensor(base+'.diffusion.tensor.dat',umdfile,MyCrystal.elements,Dtensor,Dtensorblocks,tmin,tmax,tend,plane)
         if lowalpha:
             print ('WARNING : alpha is outside 0.9-1.1 for some columns : the fit window is not in the diffusive regime (MSD ~ t^alpha) ;')
             print ('          alpha < 0.9 (sub-diffusive) : consider a larger -e ; alpha > 1.1 (ballistic) : consider a larger -b and -e.')
