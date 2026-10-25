@@ -14,6 +14,7 @@ from scipy.spatial.transform import Rotation
 from scipy.sparse.csgraph import connected_components
 import crystallography as cr
 import umd_processes_fast as umdpf
+from vibrations_umd import KB, AMU_A2FS2                          #Boltzmann constant (eV/K), 1 amu.(A/fs)^2 in eV
 
 
 class Structure:#One configuration : cell (rows a, b, c, A), element of each atom, reduced coordinates, velocities (A/fs), whether each atom has a velocity
@@ -350,11 +351,11 @@ def velocities(st,temperature,redraw,rng):#Maxwell-Boltzmann velocities at tempe
     if n == 0:
         return st
     masses = st.masses()[draw]
-    v = rng.standard_normal((n,3))*np.sqrt(8.617333262E-05*temperature/(masses*1.0364269E-4))[:,None]     #sqrt(kB T/m) in A/fs
+    v = rng.standard_normal((n,3))*np.sqrt(KB*temperature/(masses*AMU_A2FS2))[:,None]                  #sqrt(kB T/m) in A/fs
     if n > 1:
         v -= (masses[:,None]*v).sum(axis=0)/masses.sum()
-        ekin = 0.5*(masses[:,None]*v**2).sum()*1.0364269E-4
-        v *= np.sqrt(1.5*(n-1)*8.617333262E-05*temperature/ekin)
+        ekin = 0.5*(masses[:,None]*v**2).sum()*AMU_A2FS2
+        v *= np.sqrt(1.5*(n-1)*KB*temperature/ekin)
     vels = st.vels.copy()
     vels[draw] = v
     print('velocities : Maxwell-Boltzmann at',temperature,'K for',n,'atoms'+(' (all)' if redraw else ' without velocities'))
@@ -465,9 +466,9 @@ def write_umd(filename,st,zelec):#One snapshot ; positions, velocities, cell, de
     MyCrystal.rprimd = [list(vec) for vec in st.cell]
     masses = st.masses()
     MyCrystal.density = masses.sum()/6.02214076E23/(abs(np.linalg.det(st.cell))*1E-24)
-    ekin = 0.5*(masses[:,None]*st.vels**2).sum()*1.0364269E-4         #amu A^2/fs^2 -> eV
+    ekin = 0.5*(masses[:,None]*st.vels**2).sum()*AMU_A2FS2
     MyCrystal.kineticenergy = ekin
-    MyCrystal.temperature = 2.0*ekin/(3.0*len(masses)*8.617333262E-05)
+    MyCrystal.temperature = 2.0*ekin/(3.0*len(masses)*KB)
     xcart = st.xred @ st.cell
     MyCrystal.atoms = [cr.Atom() for _ in range(MyCrystal.natom)]
     for inew,i in enumerate(order):
