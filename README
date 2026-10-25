@@ -48,13 +48,15 @@ UMND is open-source software, distributed under licence GNU-GPL v3 and CeCILL v2
 COMPONENTS
     general libraries:
 crystallography.py
-umd_process.py
+umd_processes_fast.py
 
     I/O:
 VaspParser.py
 QBoxParser.py
-umd2poscar.py
-umd2xyz.py
+LAMMPSParser2umd.py
+repair_umd.py
+umd2out.py
+build_umd.py
 
     structural properties:
 gofr_umd.py
