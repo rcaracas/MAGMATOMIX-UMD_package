@@ -53,7 +53,9 @@ def concatstatfile(FileName,population,iround,clusterlength,lifetime,chemistry):
         if not line: break
         line=line.strip()
         entry=line.split()
+        if len(entry) < 4: continue
         molec_size = int(entry[3])                  # atom count is in column 3
+        if float(entry[1]) < lifetime: continue     # species living less than -t fs in this run are left out
         flagcluster = -1        #flag to check the existence of the cluster
         totaltime = totaltime + float(entry[1])
         if molec_size <= clusterlength:             # cluster is in the gas
@@ -101,99 +103,11 @@ def concatstatfile(FileName,population,iround,clusterlength,lifetime,chemistry):
 
 
 
-def relativespecies(FileName,population,header):#not actually used
-    ff = open(FileName,'w')
-    ff.write(header)
-    string = '\n'
-    ff.write(string)
-    SortedPopul = sorted(population)                 #SortedPopul = population sorted alphabetically over the first column, with the name of the clusters
-    element = 'Me'
-    oldelem = element
-    currstart = 0                #line number at which a new series of central cations start to be listed
-    instances = [0.0 for _ in range(len(population[0])-1)]            #stores the number of times clusters starting with a given element occur for all densities
-    for ipop in range(len(SortedPopul)):
-        if SortedPopul[ipop][0] != 'cluster':                #identifies the first element in each cluster
-            cluster = SortedPopul[ipop][0]
-            cluster = cluster.split('_')
-            ilength = len(cluster[0])           #assumes all the string is only one element
-            for ichar in range(1,len(cluster[0])):
-                if cluster[0][ichar].isupper():
-                    ilength = ichar             #stops at the first capital letter, corresponding to the new element in the cluster
-                    break
-            element = cluster[0][:ilength]      #reads to the first capital letter or to the end of the cluster
-            
-            if element == oldelem:      #takes into account all the clusters starting with the same element
-                for icol in range(1,len(population[0])):
-                    if len(SortedPopul[ipop][icol])>0:               #counts only the entries which exist (as some clusters don't exist at some densities)
-                        instances[icol-1] = instances[icol-1] + float(SortedPopul[ipop][icol])
-            else:                       #this is a new element
-#                if ipop == 0:           #this is the very first time we analyze clusters
-                    #                    string = SortedPopul[ipop][0]
-                    #                    oldelement = cluster[0]
-#                    for icol in range(1,len(population[0])):
-#                        if len(SortedPopul[ipop][icol])>0:
-                            #print('ipop ',ipop,' column ',icol,' SortedPopul ',SortedPopul[ipop][icol])
-                            #instances[icol] = instances[icol] + float(SortedPopul[ipop][icol])
-#                            instances[icol-1] = float(SortedPopul[ipop][icol])
-#                        print(' for each density instances are:  ',instances)
-#                else:
-                if ipop > 0:        #th
-                    #print('dealing first with the former element',oldelem)
-                    #print('   summing up from ',currstart,' till ',ipop-1)
-                    #print('   former values of the instances',instances)
-                    string = '\n'
-                    ff.write(string)
-                    for iline in range(currstart,ipop):
-                        #print('iline now to be printed is ',iline,' with ',SortedPopul[iline])
-                        #print(instances)
-                        string = SortedPopul[iline][0]
-                        for icol in range(1,len(population[0])):
-                            if len(SortedPopul[iline][icol])>0:
-                                string = string + '\t' + str( float(SortedPopul[iline][icol]) / instances[icol-1] )
-                            else:
-                                string = string + '\t'
-                        string = string +'\n'
-                        ff.write(string)
-                        string = SortedPopul[iline][0]
-                    for icol in range(2,len(population[0])):
-                        if len(SortedPopul[ipop][icol])>0:               #counts only the entries which exist (as some clusters don't exist at some densities)
-                            instances[icol-1] = 	float(SortedPopul[ipop][icol])
-                        else:
-                            instances[icol-1] = 0.0
-
-                    currstart = ipop
-                oldelem = element
-                for icol in range(2,len(population[0])):
-                    if len(SortedPopul[ipop][icol])>0:
-                        instances[icol-1] = float(SortedPopul[ipop][icol])
-
-        else:
-        #print('hit the last line of the file')
-        #print('dealing first with the last element',oldelem)
-        #print(' summing up from ',currstart,' till ',ipop-1)
-        #print('current values of the instances',instances)
-            string = '\n'
-            ff.write(string)
-            for iline in range(currstart,ipop):
-                string = SortedPopul[iline][0]
-                for icol in range(1,len(population[0])):
-                    if len(SortedPopul[iline][icol])>0:
-                        string = string +  '\t' + str( float(SortedPopul[iline][icol]) / instances[icol-1] )
-                    else:
-                        string = string + '\t'
-                string = string +'\n'
-                ff.write(string)
-    ff.close()
-
-
-
-
-
 def main(argv):
     logfile = 'cond.spec.'
     lifetime = 0
     clusterlength = 9999
-    rings = 0
+    rings = 0                                       #r0 stat files only : the liquid and the vapor are told apart by the size of the r0 clusters
     chemistry = '_'
     try:
         opts, arg = getopt.getopt(argv,"hf:l:t:r:c:",["flogfile","lLength","tLifeTime","rRings","cChemistry"])
@@ -203,12 +117,19 @@ def main(argv):
     for opt, arg in opts:
         if opt == '-h':
             print ('stat-concentrate.py program to concentrate all the stat files into one multi-column file  -f logfile -l max_length_gas_molecs> -t lifetime  -r polymerization_type -c Chemistry')
+            print ('Concentrates the statistics of independent runs at the same P and T : all the *.r0.stat.dat files of the current folder')
+            print ('(speciation_and_angles.py -r 0), with the liquid / vapor partitioning of the atoms of -c.')
+            print ('-l : largest vapor species, in atoms ; larger r0 clusters are liquid.')
+            print ('-t : species whose total time in a run is shorter than t fs are left out of this run.')
+            print ('-c : elements whose partitioning is computed, separated by commas ; _ for all.')
+            print ('-r : only 0 (r0 clusters).')
             print ('Defaults are: -f cond.spec. -l 9999 -t 0 -r 0 -c _(all chemistry) ')
             sys.exit()
         elif opt in ("-f","-flogfile"):
             logfile = str(arg)
         elif opt in ("-t","--tLifeTime"):
-            lifetime = int(arg)
+            lifetime = float(arg)
+            if lifetime == int(lifetime): lifetime = int(lifetime)#keeps the output name of integer lifetimes
         elif opt in ("-l","--lMaxLength"):
             clusterlength = float(arg)
         elif opt in ("-r","--rRings"):
@@ -219,13 +140,10 @@ def main(argv):
     print('Considering species with min lifetime of ',lifetime)
     print('Maximum vapor species size is ',clusterlength)
     print('L/V partitioning for species containing ',chemistry)
-    if rings == 0:
-        list_of_files = glob.glob('./*.r0.stat.dat')  #$list_of_files = glob.glob('./*.r0.popul.dat')
-    elif rings == 1:
-        list_of_files = glob.glob('./*.r1.stat.dat')  #list_of_files = glob.glob('./*.r1.popul.dat')
-    else:
-        print('Cluster type should be either 0 or 1, but this was  ',rings,'  This is not allowed')
+    if rings != 0:
+        print('stat-concentrate works on the r0 stat files only (the liquid and the vapor are told apart by the size of the r0 clusters), not -r',rings)
         sys.exit()
+    list_of_files = glob.glob('./*.r0.stat.dat')
     list_of_files = sorted(list_of_files)
     #print ('files are :',list_of_files)
     if len(list_of_files)>0:

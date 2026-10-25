@@ -41,21 +41,54 @@ def read_popul(populfile):#Header values and species of a popul file
     return nsteps, timestep, species
 
 
-def write_phase(filename,species,phasesteps,nsteps,dt):#popul and stat files of one phase ; phasesteps : for each species, its steps in this phase
+def phase_runs(species,phasesteps,nsteps,dt):#Species of one phase : each run of consecutive snapshots of a species in this phase ; phasesteps : for each species, its steps in this phase
+    runs = []
+    for (formula,begin,end,lifetime,composition),steps in zip(species,phasesteps):
+        for _,run in groupby(enumerate(steps),lambda x: x[1]//nsteps - x[0]):#consecutive snapshots
+            run = [s for _,s in run]
+            runs.append([formula,run[0],run[-1],len(run)*nsteps*dt,composition])
+    return runs
+
+
+def split(populfile,stepfile,length):#Vapor and liquid species of a popul file (formula, begin, end, lifetime, composition), from an r0 step file
+    liquid = read_step(stepfile,length)
+    nsteps, timestep, species = read_popul(populfile)
+    if timestep is None:#older popul files : the time step from the step file
+        steps = sorted(liquid)
+        with open(stepfile,'r') as f:
+            times = [float(line.split('\t')[1]) for line in f if line.startswith('time\t')]
+        timestep = (times[1]-times[0])/(steps[1]-steps[0])
+    vaporsteps = []
+    liquidsteps = []
+    for formula,begin,end,lifetime,composition in species:
+        atoms = [int(j) for j in composition.strip('[]').split(',')]
+        vapor = []
+        liq = []
+        for step in range(begin,end+1,nsteps):
+            if step not in liquid:
+                print('ERROR : step',step,'of',populfile,'is not in',stepfile,': use the same sampling (-s) in speciation_and_angles.py')
+                sys.exit(1)
+            if any(at in liquid[step] for at in atoms):
+                liq.append(step)
+            else:
+                vapor.append(step)
+        vaporsteps.append(vapor)
+        liquidsteps.append(liq)
+    return phase_runs(species,vaporsteps,nsteps,timestep), phase_runs(species,liquidsteps,nsteps,timestep)
+
+
+def write_phase(filename,runs):#popul and stat files of one phase
     with open(filename+'.popul.dat','w') as nf:
         nf.write('Formula\tBegin (step)\tEnd (step)\tLifetime (fs)\tComposition\n')
         stats = {}
         total = 0.0
-        for (formula,begin,end,lifetime,composition),steps in zip(species,phasesteps):
-            for _,run in groupby(enumerate(steps),lambda x: x[1]//nsteps - x[0]):#consecutive snapshots
-                run = [s for _,s in run]
-                life = len(run)*nsteps*dt
-                nf.write(formula+'\t'+str(run[0])+'\t'+str(run[-1])+'\t'+str(life)+'\t'+composition+'\n')
-                total += life
-                if formula in stats:
-                    stats[formula][0] += life
-                else:
-                    stats[formula] = [life,len(composition.split(','))]
+        for formula,begin,end,life,composition in runs:
+            nf.write(formula+'\t'+str(begin)+'\t'+str(end)+'\t'+str(life)+'\t'+composition+'\n')
+            total += life
+            if formula in stats:
+                stats[formula][0] += life
+            else:
+                stats[formula] = [life,len(composition.split(','))]
     with open(filename+'.stat.dat','w') as nf:
         nf.write('Cluster\tTime (fs)\tPercent\tNumber of atoms\n')
         for formula in stats:
@@ -89,33 +122,10 @@ def main(argv):
         elif opt == '-l':
             length = int(arg)
 
-    liquid = read_step(stepfile,length)
-    nsteps, timestep, species = read_popul(populfile)
-    if timestep is None:#older popul files : the time step from the step file
-        steps = sorted(liquid)
-        with open(stepfile,'r') as f:
-            times = [float(line.split('\t')[1]) for line in f if line.startswith('time\t')]
-        timestep = (times[1]-times[0])/(steps[1]-steps[0])
-    vaporsteps = []
-    liquidsteps = []
-    for formula,begin,end,lifetime,composition in species:
-        atoms = [int(j) for j in composition.strip('[]').split(',')]
-        vapor = []
-        liq = []
-        for step in range(begin,end+1,nsteps):
-            if step not in liquid:
-                print('ERROR : step',step,'of',populfile,'is not in',stepfile,': use the same sampling (-s) in speciation_and_angles.py')
-                sys.exit(1)
-            if any(at in liquid[step] for at in atoms):
-                liq.append(step)
-            else:
-                vapor.append(step)
-        vaporsteps.append(vapor)
-        liquidsteps.append(liq)
-
+    vapor, liquid = split(populfile,stepfile,length)
     base = populfile[:-10] if populfile.endswith('.popul.dat') else populfile
-    write_phase(base+'.vapor',species,vaporsteps,nsteps,timestep)
-    write_phase(base+'.liquid',species,liquidsteps,nsteps,timestep)
+    write_phase(base+'.vapor',vapor)
+    write_phase(base+'.liquid',liquid)
     print('Vapor and liquid species written in',base+'.vapor.popul.dat,',base+'.vapor.stat.dat,',base+'.liquid.popul.dat,',base+'.liquid.stat.dat')
 
 
