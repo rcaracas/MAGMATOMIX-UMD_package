@@ -71,42 +71,12 @@ def read_umd(UMDname,first,sampling):#Snapshots first, first+sampling, ... (only
     return structures, dict(zip(MyCrystal.elements,MyCrystal.zelec))
 
 
-def read_poscar(PoscarFile):#VASP5 POSCAR/CONTCAR (element line), reduced or Cartesian coordinates, optional selective dynamics and Cartesian velocities
-    with open(PoscarFile,'r') as ff:
-        lines = ff.readlines()
-    scale = float(lines[1].split()[0])
-    if scale < 0.0:
-        print('Negative (volume-based) scaling factors in POSCAR files are not supported.')
-        sys.exit()
-    cell = np.array([[float(x) for x in lines[2+ii].split()[0:3]] for ii in range(3)])*scale
-    elements = lines[5].split()
-    if all(x.lstrip('-').isdigit() for x in elements):
-        print('The POSCAR file',PoscarFile,'has no element-symbols line (VASP4 format). Please use a VASP5-style POSCAR, such as the ones exported by VESTA.')
-        sys.exit()
-    counts = [int(x) for x in lines[6].split()]
-    natom = sum(counts)
-    lineno = 7
-    if lines[lineno].strip()[0] in 'sS':                                #selective dynamics
-        lineno += 1
-    mode = lines[lineno].strip()[0]
-    coords = np.array([[float(x) for x in lines[lineno+1+ii].split()[0:3]] for ii in range(natom)])
-    xred = coords if mode in 'dD' else (coords*scale) @ np.linalg.inv(cell)
-    vels = np.zeros((natom,3))
-    hasvel = False
-    lineno += 1+natom
-    rest = [line for line in lines[lineno:]]
-    if len(rest) > natom:                                               #velocity block : a mode line (blank, Cartesian or Direct), then one line per atom
-        if rest[0].strip()[:1] in ('d','D'):
-            print('WARNING : velocities in direct coordinates in',PoscarFile,'are not read')
-        else:
-            try:
-                vels = np.array([[float(x) for x in rest[1+ii].split()[0:3]] for ii in range(natom)])
-                hasvel = True
-            except (ValueError,IndexError):
-                vels = np.zeros((natom,3))
-    symbols = [el for el,n in zip(elements,counts) for _ in range(n)]
-    print('Read',natom,'atoms from',PoscarFile,'with elements',elements,'and counts',counts,'' if hasvel else '; no velocities')
-    return Structure(cell,symbols,xred,vels,PoscarFile,hasvel=np.full(natom,hasvel))
+def read_poscar(PoscarFile):#VASP5 POSCAR/CONTCAR, read by umd_processes_fast.read_poscar
+    title, cell, symbols, xred, vels = umdpf.read_poscar(PoscarFile)
+    elements = sorted(set(symbols),key=symbols.index)
+    print('Read',len(symbols),'atoms from',PoscarFile,'with elements',elements,'and counts',[symbols.count(el) for el in elements],'' if vels is not None else '; no velocities')
+    hasvel = np.full(len(symbols),vels is not None)
+    return Structure(cell,symbols,xred,vels if vels is not None else np.zeros((len(symbols),3)),PoscarFile,hasvel=hasvel)
 
 
 #****Operations
@@ -399,21 +369,9 @@ def ordered(st):#Atoms grouped by element (VASP and UMD), in the order of first 
     return elements, counts, np.array(order,dtype=int)
 
 
-def write_poscar(filename,st):#Direct coordinates, Cartesian velocities in A/fs
+def write_poscar(filename,st):#Direct coordinates, Cartesian velocities in A/fs, by umd_processes_fast.write_poscar
     elements, counts, order = ordered(st)
-    with open(filename,'w') as ff:
-        ff.write(st.title+'\n')
-        ff.write('  1.0\n')
-        for vec in st.cell:
-            ff.write('  {:.10f}  {:.10f}  {:.10f}\n'.format(*vec))
-        ff.write('  '+'  '.join(elements)+'\n')
-        ff.write('  '+'  '.join(str(n) for n in counts)+'\n')
-        ff.write('Direct\n')
-        for x in st.xred[order]:
-            ff.write('  {:.10f}  {:.10f}  {:.10f}\n'.format(*x))
-        ff.write('Cartesian\n')
-        for v in st.vels[order]:
-            ff.write('  {:.10e}  {:.10e}  {:.10e}\n'.format(*v))
+    umdpf.write_poscar(filename,st.title,st.cell,elements,counts,st.xred[order],st.vels[order])
 
 
 def write_xyz(filename,st):
@@ -462,7 +420,7 @@ def main(argv):
     box = None
     operations = []
     factor = None
-    mindist = 1.0
+    mindist = 1.5
     ntries = 100
     rcut = 2.0
     temperature = 1500.0
@@ -499,7 +457,7 @@ def main(argv):
             print('     cell divided by size) and permutes them at random with their atoms and velocities : the local structure inside the sub-cells is')
             print('     kept, the global configuration is randomized. Every permutation brings atoms too close at the interfaces of the sub-cells : of')
             print('     --tries random permutations (default 100) the one with the smallest overlaps is kept, then the atoms closer than -d (A, default')
-            print('     1.0) are pushed apart along the line joining them, the lighter one more ; no pair is pushed beyond its distance before the')
+            print('     1.5) are pushed apart along the line joining them, the lighter one more ; no pair is pushed beyond its distance before the')
             print('     shuffle, so the bonds inside the sub-cells are kept (e.g. O-H shorter than -d) and only the contacts made by the shuffle are')
             print('     pushed. -c f instead of -d : minimum distance of each pair of elements = f x its shortest distance before the shuffle (large')
             print('     for rare elements).')

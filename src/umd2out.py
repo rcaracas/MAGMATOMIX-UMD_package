@@ -6,6 +6,7 @@ Created on Tue Jun  6 11:00:43 2023
 """
 
 import sys,getopt,os
+import numpy as np
 import crystallography as cr
 import umd_processes_fast as umdpf
 
@@ -26,33 +27,16 @@ def print_xyz(outputfile, MyCrystal, AllSnapshots, UMDname, firststep=0, iterste
     ff.close()
 
 def print_poscar(outputfile, MyCrystal, AllSnapshots, UMDname, firststep=0, iterstep=1):
+    #one POSCAR per snapshot, written by umd_processes_fast.write_poscar : the cell of the snapshot (NPT), the positions and the velocities
+    cells = umdpf.read_cells(UMDname, len(AllSnapshots), iterstep, firststep)
+    order = sorted(range(MyCrystal.natom), key=lambda iatom: MyCrystal.typat[iatom])     #grouped by element
     for istep in range(len(AllSnapshots)):
         real_step = firststep + istep * iterstep
         print("writing snapshot ", real_step)
         poscarfile = outputfile[:-6] + '_' + str(real_step) + '_.POSCAR.vasp'
-        ff = open(poscarfile, 'w')
-        ff.write(UMDname + ' snapshot ' + str(real_step) + '\n')
-        ff.write('  1.0 \n')
-        for ivec in range(3):
-            ff.write('   '
-                     + str(MyCrystal.rprimd[ivec][0]) + '  '
-                     + str(MyCrystal.rprimd[ivec][1]) + '  '
-                     + str(MyCrystal.rprimd[ivec][2]) + '\n')
-        string = '  '
-        for itype in range(MyCrystal.ntypat):
-            string = string + MyCrystal.elements[itype] + '  '
-        ff.write(string + '\n')
-        string = '  '
-        for itype in range(MyCrystal.ntypat):
-            string = string + str(MyCrystal.types[itype]) + '  '
-        ff.write(string + '\n')
-        ff.write('Direct\n')
-        for iatom in range(MyCrystal.natom):
-            ff.write(str(AllSnapshots[istep][12*iatom]) + ' '
-                     + str(AllSnapshots[istep][12*iatom+1]) + ' '
-                     + str(AllSnapshots[istep][12*iatom+2]) + '\n')
-        ff.write('\n')
-        ff.close()
+        values = np.array(AllSnapshots[istep]).reshape(MyCrystal.natom, 12)        #xred, xcart, absxcart, velocities
+        umdpf.write_poscar(poscarfile, UMDname + ' snapshot ' + str(real_step), cells[istep], MyCrystal.elements, MyCrystal.types,
+                           values[order, 0:3] % 1.0, values[order, 9:12])
 
 def print_lammps(outputfile,MyCrystal,AllSnapshots,UMDname):
     print("Printing Lammps")

@@ -195,32 +195,6 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         self.cartlatt()
         self.compangles()
         print ('\t',self.acell[0],'\t',self.acell[1],'\t',self.acell[2],'\t',self.angles[0],'\t',self.angles[1],'\t',self.angles[2])
-    def printcontcar(self,filetype):
-        self.makerprimd()
-        filename=self.name+'_.'+filetype
-        f=open(filename,'w')
-        string = self.name + '\n'
-        f.close()
-        f=open(filename,'a')
-        f.write(string)
-        f.write('  1.0\n')
-        for ii in range(3):
-            string = '      ' + str(self.rprimd[ii][0]) + '  ' + str(self.rprimd[ii][1]) + '  ' + str(self.rprimd[ii][2]) +  '\n'
-            f.write(string)
-        string = ' '
-        for ii in range(self.ntypat):
-            string = string + '   ' + str(self.elements[ii])
-        string = string+'\n'
-        f.write(string)
-        string = ' '
-        for ii in range(self.ntypat):
-            string = string + '   ' + str(self.typat[ii])
-        string = string+'\n'
-        f.write(string)
-        f.write('Direct\n')
-        for iatom in range(self.natom):
-            string = '  ' + str(self.atoms[iatom].xred[0]) + '  ' + str(self.atoms[iatom].xred[1]) + '  ' + str(self.atoms[iatom].xred[2])+'\n'
-            f.write(string)
     def derive_types_from_typat(self):
         """
         Derive the 'types' attribute from the 'typat' attribute.

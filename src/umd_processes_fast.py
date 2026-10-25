@@ -551,6 +551,59 @@ def sort_umd(MyCrystal):
     # Return the indices that would sort the AtomicOrdering array
     return (np.argsort(AtomicOrdering),symbols,type_counts)
 
+def write_poscar(filename,title,cell,elements,counts,xred,vels=None):#VASP5 POSCAR : cell (rows a, b, c, A), the atoms grouped by element (counts[k] atoms
+    #of elements[k], in this order), direct coordinates, and Cartesian velocities (A/fs) if given ; the only POSCAR writer of the package
+    with open(filename,'w') as ff:
+        ff.write(title+'\n')
+        ff.write('  1.0\n')
+        for vec in cell:
+            ff.write('  {:.10f}  {:.10f}  {:.10f}\n'.format(*vec))
+        ff.write('  '+'  '.join(elements)+'\n')
+        ff.write('  '+'  '.join(str(n) for n in counts)+'\n')
+        ff.write('Direct\n')
+        for x in xred:
+            ff.write('  {:.10f}  {:.10f}  {:.10f}\n'.format(*x))
+        if vels is not None:
+            ff.write('Cartesian\n')
+            for v in vels:
+                ff.write('  {:.10e}  {:.10e}  {:.10e}\n'.format(*v))
+
+
+def read_poscar(filename):#VASP5 POSCAR/CONTCAR (element line), reduced or Cartesian coordinates, optional selective dynamics and Cartesian velocities ;
+    #returns the title, the cell (rows a, b, c, A), the element of each atom, the reduced coordinates and the velocities (A/fs ; None if absent)
+    with open(filename,'r') as ff:
+        lines = ff.readlines()
+    scale = float(lines[1].split()[0])
+    if scale < 0.0:
+        print('Negative (volume-based) scaling factors in POSCAR files are not supported.')
+        sys.exit()
+    cell = np.array([[float(x) for x in lines[2+ii].split()[0:3]] for ii in range(3)])*scale
+    elements = lines[5].split()
+    if all(x.lstrip('-').isdigit() for x in elements):
+        print('The POSCAR file',filename,'has no element-symbols line (VASP4 format). Please use a VASP5-style POSCAR, such as the ones exported by VESTA.')
+        sys.exit()
+    counts = [int(x) for x in lines[6].split()]
+    natom = sum(counts)
+    lineno = 7
+    if lines[lineno].strip()[0] in 'sS':                                #selective dynamics
+        lineno += 1
+    mode = lines[lineno].strip()[0]
+    coords = np.array([[float(x) for x in lines[lineno+1+ii].split()[0:3]] for ii in range(natom)])
+    xred = coords if mode in 'dD' else (coords*scale) @ np.linalg.inv(cell)
+    vels = None
+    rest = lines[lineno+1+natom:]
+    if len(rest) > natom:                                               #velocity block : a mode line (blank, Cartesian or Direct), then one line per atom
+        if rest[0].strip()[:1] in ('d','D'):
+            print('WARNING : velocities in direct coordinates in',filename,'are not read')
+        else:
+            try:
+                vels = np.array([[float(x) for x in rest[1+ii].split()[0:3]] for ii in range(natom)])
+            except (ValueError,IndexError):
+                vels = None
+    symbols = [el for el,n in zip(elements,counts) for _ in range(n)]
+    return lines[0].strip(), cell, symbols, xred, vels
+
+
 def print_header(FileName,MyCrystal):
     newfile = FileName + '.umd.dat'
     nf = open(newfile,'a')
