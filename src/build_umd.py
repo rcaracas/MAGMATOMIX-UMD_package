@@ -2,14 +2,15 @@
 """
 @author: Razvan Caracas, Tim Bögels
 Builds new structures - UMD files and VASP POSCAR files - from a snapshot of a UMD file, a POSCAR file or an empty box, by
-operations applied in the order of the command line : supercell, shuffle of sub-cells, insertion of molecules, scaling of the cell ;
-the atoms without velocities get Maxwell-Boltzmann velocities.
+operations applied in the order of the command line : supercell, shuffle of sub-cells, insertion of molecules, scaling of the cell,
+replacement of atoms, removal of molecules ; the atoms without velocities get Maxwell-Boltzmann velocities.
 Merges build_supercell.py, box_shuffle.py and insert_umd.py.
 """
 
-import sys, getopt, os
+import sys, getopt, os, re
 import numpy as np
 from scipy.spatial.transform import Rotation
+from scipy.sparse.csgraph import connected_components
 import crystallography as cr
 import umd_processes_fast as umdpf
 
@@ -299,6 +300,78 @@ def scale(st,arg,density):#Scales the lengths of the cell by f, or fa, fb, fc al
     return new
 
 
+def replace(st,arg,rng):#Replaces atoms of element A by element B : all, n random ones, or a fraction (A:B, A:B:n, A:B:0.25) ; the velocities are scaled by
+    #sqrt(m_A/m_B), which keeps the kinetic energy of each atom
+    parts = arg.split(':')
+    if len(parts) not in (2,3):
+        print('--replace takes A:B, A:B:n or A:B:fraction, e.g. Fe:Mg:4')
+        sys.exit()
+    old, new = parts[0], parts[1]
+    candidates = np.array([i for i,el in enumerate(st.symbols) if el == old],dtype=int)
+    if len(parts) == 2:
+        n = len(candidates)
+    elif '.' in parts[2]:
+        n = int(round(float(parts[2])*len(candidates)))
+    else:
+        n = int(parts[2])
+    if n > len(candidates):
+        print('--replace',arg,': only',len(candidates),'atoms of',old)
+        sys.exit()
+    chosen = rng.choice(candidates,n,replace=False) if n < len(candidates) else candidates
+    symbols = list(st.symbols)
+    vels = st.vels.copy()
+    vels[chosen] *= np.sqrt(st.mass(old)/st.mass(new))
+    for i in chosen:
+        symbols[i] = new
+    print('replace :',n,'of',len(candidates),old,'by',new,'(velocities x','%.4f' % np.sqrt(st.mass(old)/st.mass(new))+')')
+    return st.new(st.cell,symbols,st.xred,vels,st.hasvel)
+
+
+def read_cutoffs(bondfile,length):#Bond cutoffs : a function of two elements, from a file of lines "A B cutoff" (e.g. maximum_bonds.inp of analyze_gofr.py ;
+    #pairs absent : no bond) or one length for all the pairs
+    if bondfile:
+        cutoffs = {}
+        with open(bondfile,'r') as f:
+            for line in f:
+                entry = line.split()
+                if len(entry) >= 3:
+                    cutoffs[(entry[0],entry[1])] = cutoffs[(entry[1],entry[0])] = float(entry[2])
+        return lambda a,b: cutoffs.get((a,b),0.0)
+    if length:
+        return lambda a,b: length
+    print('--remove needs the bond lengths : -l <length> or -b <file of lines "A B cutoff">')
+    sys.exit()
+
+
+def composition(formula):#'H2O' or 'H_2O_1' -> {'H': 2, 'O': 1}
+    comp = {}
+    for el,n in re.findall(r'([A-Z][a-z]?)_?(\d*)',formula):
+        comp[el] = comp.get(el,0)+(int(n) if n else 1)
+    return comp
+
+
+def remove(st,arg,cutoff,rng):#Removes whole molecules of a formula : all, or n chosen at random (H2O, H2O:3) ; a molecule = a group of atoms connected by bonds
+    #(nearest images) with exactly this composition, so O alone means free O atoms
+    formula, _, count = arg.partition(':')
+    target = composition(formula)
+    elements = sorted(set(st.symbols),key=st.symbols.index)
+    limit = np.array([[cutoff(a,b) for b in elements] for a in elements])
+    typat = np.array([elements.index(el) for el in st.symbols])
+    bonds = distances(st.xred,st.cell) < limit[typat][:,typat]
+    ncomp, label = connected_components(bonds,directed=False)
+    molecules = [np.nonzero(label == c)[0] for c in range(ncomp)]
+    found = [m for m in molecules if composition(''.join(st.symbols[i] for i in m)) == target]
+    n = len(found) if not count else int(count)
+    if n > len(found):
+        print('--remove',arg,': only',len(found),'molecules',formula,'found with these bond lengths')
+        sys.exit()
+    chosen = [found[k] for k in rng.choice(len(found),n,replace=False)] if n < len(found) else found
+    drop = np.concatenate(chosen) if chosen else np.zeros(0,dtype=int)
+    keep = np.setdiff1d(np.arange(len(st.symbols)),drop)
+    print('remove :',n,'of',len(found),'molecules',formula,'(',len(drop),'atoms ) ;',len(molecules),'molecules in all, the largest of',max(len(m) for m in molecules),'atoms')
+    return st.new(st.cell,[st.symbols[i] for i in keep],st.xred[keep],st.vels[keep],st.hasvel[keep])
+
+
 def velocities(st,temperature,redraw,rng):#Maxwell-Boltzmann velocities at temperature for the atoms without velocities (all with redraw) : no net
     #momentum of the drawn atoms, their kinetic temperature set to temperature (3(n-1) degrees of freedom) ; one atom : a plain draw
     draw = np.ones(len(st.symbols),dtype=bool) if redraw else ~st.hasvel
@@ -394,24 +467,26 @@ def main(argv):
     rcut = 2.0
     temperature = 1500.0
     redraw = False
+    bondfile = ''
+    length = 0.0
     nconfig = 1
     seed = None
     outputs = ['umd','poscar']
     name = ''
     umdpf.headerumd()
     usage = ('build_umd.py -f <UMD or POSCAR file> -i <snapshot> -s <sampling> -a <empty box> --supercell <na,nb,nc> --shuffle <sub-cells> '
-             '--insert <molecules file> --scale <factors> --density <g/cm3> -d <min distance> -c <factor> --tries <tries> -r <cutoff> -t <temperature> '
-             '--velocities all -n <configurations> --seed <seed> -o <outputs> --name <name>')
+             '--insert <molecules file> --scale <factors> --density <g/cm3> --replace <A:B:n> --remove <formula:n> -d <min distance> -c <factor> '
+             '--tries <tries> -r <cutoff> -l <bond length> -b <bond file> -t <temperature> --velocities all -n <configurations> --seed <seed> -o <outputs> --name <name>')
     try:
-        opts, arg = getopt.getopt(argv,"hf:i:s:a:c:d:t:r:n:o:",["supercell=","shuffle=","insert=","scale=","density=","tries=","velocities=","seed=","name="])
+        opts, arg = getopt.getopt(argv,"hf:i:s:a:c:d:t:r:l:b:n:o:",["supercell=","shuffle=","insert=","scale=","density=","replace=","remove=","tries=","velocities=","seed=","name="])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print('build_umd.py : builds new structures (UMD, VASP POSCAR or xyz files) from a snapshot of a UMD file, a POSCAR file or an empty box,')
-            print('by the operations --supercell, --shuffle, --insert, --scale and --density, applied in the order of the command line ; each can be')
-            print('repeated. The atoms without velocities then get Maxwell-Boltzmann velocities (-t). Usage :')
+            print('by the operations --supercell, --shuffle, --insert, --scale, --density, --replace and --remove, applied in the order of the command')
+            print('line ; each can be repeated. The atoms without velocities then get Maxwell-Boltzmann velocities (-t). Usage :')
             print(usage)
             print('Input :')
             print('-f : a UMD file (*.umd.dat) or a VASP5 POSCAR/CONTCAR file (element line ; reduced or Cartesian coordinates ; Cartesian velocities read).')
@@ -437,6 +512,12 @@ def main(argv):
             print('--scale f, or fa,fb,fc : multiplies the lengths of the cell by f (or along a, b, c) ; the reduced coordinates and the velocities are')
             print('     kept, so all the distances, bonds included, scale too. The new density and the shortest distance are printed.')
             print('--density rho : scales the cell isotropically to the density rho (g/cm3), as --scale.')
+            print('--replace A:B, A:B:n or A:B:x : replaces all the atoms of element A by element B, or n of them, or a fraction x (with a decimal point),')
+            print('     chosen at random ; their velocities are scaled by sqrt(m_A/m_B), which keeps their kinetic energy.')
+            print('--remove formula or formula:n : removes all the molecules of this formula (e.g. H2O, CO2, O for free O atoms), or n of them chosen at')
+            print('     random. A molecule is a group of atoms connected by bonds (nearest images) with exactly this composition ; the bonds are the pairs')
+            print('     closer than -l (A, one length for all the pairs) or than the cutoffs of the file -b (lines "A B cutoff", e.g. the')
+            print('     maximum_bonds.inp of analyze_gofr.py ; absent pairs : no bond).')
             print('Velocities :')
             print('-t : temperature (K) of the Maxwell-Boltzmann velocities given to the atoms without velocities (inserted atoms, atoms of a POSCAR')
             print('     without velocities or of an empty box), with no net momentum and exactly this kinetic temperature. Default 1500.')
@@ -459,7 +540,7 @@ def main(argv):
         elif opt == '-a':
             box = [float(v) for v in arg.split(',')]
             box = box*3 if len(box) == 1 else box
-        elif opt in ('--supercell','--shuffle','--insert','--scale','--density'):
+        elif opt in ('--supercell','--shuffle','--insert','--scale','--density','--replace','--remove'):
             operations.append((opt[2:],arg))
         elif opt == '-c':
             factor = float(arg)
@@ -476,6 +557,10 @@ def main(argv):
             redraw = True
         elif opt == '-r':
             rcut = float(arg)
+        elif opt == '-l':
+            length = float(arg)
+        elif opt == '-b':
+            bondfile = arg
         elif opt == '-n':
             nconfig = int(arg)
         elif opt == '--seed':
@@ -526,6 +611,10 @@ def main(argv):
                     st = scale(st,arg,None)
                 elif op == 'density':
                     st = scale(st,None,float(arg))
+                elif op == 'replace':
+                    st = replace(st,arg,rng)
+                elif op == 'remove':
+                    st = remove(st,arg,read_cutoffs(bondfile,length),rng)
             st = velocities(st,temperature,redraw,rng)
             st.title = st.title+(' '+' '.join('--'+op+' '+arg for op,arg in operations) if operations else '')
             filebase = base+('.'+str(step) if step is not None else '')+'.build'+str(k)
