@@ -509,48 +509,6 @@ def headerumd():
     print ('    cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534,doi:10.3791/61534 (2021)' )
     print (' ')
 
-def sort_umd(MyCrystal):
-    iflag = -1
-    # To store unique atom types and their counts
-    types = []
-    symbols = []
-    type_counts = []
-    notypatoms = 0
-    AtomicOrdering = [-1 for _ in range(MyCrystal.natom)]
-
-    for iatom in range(MyCrystal.natom):
-        if AtomicOrdering[iatom] == -1:
-            # New atomic type
-            iflag += 1
-            notypatoms += 1
-            AtomicOrdering[iatom] = iflag
-            MyCrystal.typat[iatom] = notypatoms
-            # Add symbol to the unique types and symbols
-            atom_symbol = MyCrystal.atoms[iatom].symbol
-            if atom_symbol not in types:
-                types.append(atom_symbol)
-                symbols.append(atom_symbol)
-                type_counts.append(0)  # Initialize the count for this type
-
-            # Increment the count for this type
-            type_index = types.index(atom_symbol)
-            type_counts[type_index] += 1
-
-            # Find all other atoms with the same symbol and update their order
-            for jatom in range(iatom + 1, MyCrystal.natom):
-                if MyCrystal.atoms[jatom].symbol == atom_symbol:
-                    MyCrystal.typat[jatom] = notypatoms
-                    iflag += 1
-                    AtomicOrdering[jatom] = iflag
-                    # Increment the count for this type
-                    type_counts[type_index] += 1
-
-    print("Symbols:",symbols)
-    print("Counts :", type_counts)
-
-    # Return the indices that would sort the AtomicOrdering array
-    return (np.argsort(AtomicOrdering),symbols,type_counts)
-
 def write_poscar(filename,title,cell,elements,counts,xred,vels=None):#VASP5 POSCAR : cell (rows a, b, c, A), the atoms grouped by element (counts[k] atoms
     #of elements[k], in this order), direct coordinates, and Cartesian velocities (A/fs) if given ; the only POSCAR writer of the package
     with open(filename,'w') as ff:
@@ -643,27 +601,6 @@ def print_header(FileName,MyCrystal):
     nf.write(string)
     nf.close()
 
-def print_atomic_header(FileName,MyCrystal,iatom):
-    nf = open(FileName,'w')
-    string = 'natom  1\n'
-    nf.write(string)
-    string = 'ntypat 1\n'
-    nf.write(string)
-    string = 'types 1\n'
-    nf.write(string)
-    string = 'elements ' + str(MyCrystal.elements[MyCrystal.typat[iatom]]) + '\n'
-    nf.write(string)
-    string = 'masses ' + str(MyCrystal.masses[MyCrystal.typat[iatom]]) + '\n'
-    nf.write(string)
-    string = 'Zelectrons ' + str(MyCrystal.zelec[MyCrystal.typat[iatom]]) + '\n'
-    nf.write(string)
-    string = 'typat 0' + '\n\n'
-    nf.write(string)
-    string = 'lambda_ThermoInt' + ' ' +  str(MyCrystal.lambda_ThermoInt)
-    string = string + '\n\n'
-    nf.write(string)
-    nf.close()
-
 def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):
     newfile = FileName + '.umd.dat'
     nf = open(newfile,'a')
@@ -719,43 +656,6 @@ def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):
         string = string + str(round(MyCrystal.atoms[iatom].forces[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[2],5)) + ' '
         string = string + str(MyCrystal.atoms[iatom].charge) + ' ' + str(MyCrystal.atoms[iatom].magnet) + '\n'
         nf.write(string)
-    string='\n'
-    nf.write(string)
-    nf.close()
-    return(CurrentTime,TimeStep)
-
-def print_atomic_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords,iatom):
-    newfile = FileName + '.umd.dat'
-    nf = open(newfile,'a')
-    string = 'timestep ' + str(TimeStep) + ' fs\n' + 'time ' + str(CurrentTime) + ' fs\n'
-    nf.write(string)
-    string = 'Temperature ' + str(round(MyCrystal.temperature,1)) + ' K\n'
-    nf.write(string)
-    string = 'Pressure ' + str(round(MyCrystal.pressure,4)) + ' GPa\n'
-    nf.write(string)
-    string = 'acell ' + str(MyCrystal.acell[0]) + ' ' + str(MyCrystal.acell[1]) + ' ' + str(MyCrystal.acell[2]) + ' A\n'
-    nf.write(string)
-    string = 'rprim_a ' + str(MyCrystal.rprimd[0][0]/MyCrystal.acell[0]) + '  ' +str(MyCrystal.rprimd[0][1]/MyCrystal.acell[0]) + '  ' +str(MyCrystal.rprimd[0][2]/MyCrystal.acell[0]) + '\n'
-    nf.write(string)
-    string = 'rprim_b ' + str(MyCrystal.rprimd[1][0]/MyCrystal.acell[1]) + '  ' +str(MyCrystal.rprimd[1][1]/MyCrystal.acell[1]) + '  ' +str(MyCrystal.rprimd[1][2]/MyCrystal.acell[1]) + '\n'
-    nf.write(string)
-    string = 'rprim_c ' + str(MyCrystal.rprimd[2][0]/MyCrystal.acell[2]) + '  ' +str(MyCrystal.rprimd[2][1]/MyCrystal.acell[2]) + '  ' +str(MyCrystal.rprimd[2][2]/MyCrystal.acell[2]) + '\n'
-    nf.write(string)
-    string = 'rprimd_a ' + str(MyCrystal.rprimd[0][0]) + '  ' +str(MyCrystal.rprimd[0][1]) + '  ' +str(MyCrystal.rprimd[0][2]) + ' A\n'
-    nf.write(string)
-    string = 'rprimd_b ' + str(MyCrystal.rprimd[1][0]) + '  ' +str(MyCrystal.rprimd[1][1]) + '  ' +str(MyCrystal.rprimd[1][2]) + ' A\n'
-    nf.write(string)
-    string = 'rprimd_c ' + str(MyCrystal.rprimd[2][0]) + '  ' +str(MyCrystal.rprimd[2][1]) + '  ' +str(MyCrystal.rprimd[2][2]) + ' A\n'
-    nf.write(string)
-    string = 'atoms: reduced*3 cartesian*3(A) abs.diff.*3(A) velocity*3(A/fs) force*3(eV/A) charge(no.elec) magnetization(magneton-Bohr) \n'
-    nf.write(string)
-    string = str(round(MyCrystal.atoms[iatom].xred[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xred[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xred[2],5)) + ' '
-    string = string + str(round(MyCrystal.atoms[iatom].xcart[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xcart[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xcart[2],5)) + ' '
-    string = string + str(round(diffcoords[iatom][0],5)) + ' ' + str(round(diffcoords[iatom][1],5)) + ' ' + str(round(diffcoords[iatom][2],5)) + ' '
-    string = string + str(round(MyCrystal.atoms[iatom].vels[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].vels[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].vels[2],5)) + ' '
-    string = string + str(round(MyCrystal.atoms[iatom].forces[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[2],5)) + ' '
-    string = string + str(MyCrystal.atoms[iatom].charge) + ' ' + str(MyCrystal.atoms[iatom].magnet) + '\n'
-    nf.write(string)
     string='\n'
     nf.write(string)
     nf.close()

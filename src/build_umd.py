@@ -4,6 +4,7 @@
 Builds new structures - UMD files and VASP POSCAR files - from a snapshot of a UMD file, a POSCAR file or an empty box, by
 operations applied in the order of the command line : supercell, shuffle of sub-cells, insertion of molecules, scaling of the cell,
 replacement of atoms, removal of molecules ; the atoms without velocities get Maxwell-Boltzmann velocities.
+--extract writes instead the trajectory of a selection of atoms (formerly extratom_umd.py).
 Merges build_supercell.py, box_shuffle.py and insert_umd.py.
 """
 
@@ -360,6 +361,72 @@ def velocities(st,temperature,redraw,rng):#Maxwell-Boltzmann velocities at tempe
     return st.new(st.cell,st.symbols,st.xred,vels,np.ones(len(st.symbols),dtype=bool))
 
 
+#****Extraction of atoms : a trajectory
+
+def selection(arg,elements,typat):#Atoms of a selection : indices and ranges counted from 0, and element symbols, separated by commas (e.g. 12 ; 0-9,25 ; O,H ; Si,12)
+    chosen = set()
+    for item in arg.split(','):
+        if item in elements:
+            chosen.update(i for i,t in enumerate(typat) if elements[t] == item)
+        elif re.fullmatch(r'\d+(-\d+)?',item):
+            lo, _, hi = item.partition('-')
+            chosen.update(range(int(lo),int(hi or lo)+1))
+        else:
+            print('--extract : "'+item+'" is neither an element of the file',elements,'nor an atom index or range')
+            sys.exit()
+    if max(chosen) >= len(typat):
+        print('--extract : atom',max(chosen),'is not in the file (',len(typat),'atoms, counted from 0)')
+        sys.exit()
+    return sorted(chosen)
+
+
+def extract(UMDname,arg,first,sampling,outname):#Trajectory of the selected atoms, every sampling-th snapshot from first on, read and written line by line : the atom lines
+    #are copied, and so are the lines of each snapshot (energies, T, P, cell : those of the whole system), with the timestep multiplied by sampling
+    MyCrystal,TimeStep = umdpf.read_bigheader_umd(UMDname)
+    atoms = selection(arg,MyCrystal.elements,MyCrystal.typat)
+    keep = set(atoms)
+    present = sorted(set(MyCrystal.typat[i] for i in atoms))           #elements of the selection, in the order of the file
+    newtypat = [present.index(MyCrystal.typat[i]) for i in atoms]
+    counts = [newtypat.count(k) for k in range(len(present))]
+    header = {'natom': str(len(atoms)), 'ntypat': str(len(present)),
+              'types': ' '.join(str(n) for n in counts)+' ', 'elements': ' '.join(MyCrystal.elements[t] for t in present)+' ',
+              'masses': ' '.join(str(MyCrystal.masses[t]) for t in present)+' ', 'Zelectrons': ' '.join(str(MyCrystal.zelec[t]) for t in present)+' ',
+              'no.of.electrons': str(sum(MyCrystal.zelec[t]*n for t,n in zip(present,counts))), 'typat': ' '.join(str(t) for t in newtypat)+' '}
+    written = 0
+    with open(UMDname,'r') as fin, open(outname,'w') as fout:
+        isnap = -1
+        block = []
+        inheader = True
+        for line in fin:
+            word = line.split(' ',1)[0].strip()
+            if inheader:
+                if word == 'timestep':
+                    inheader = False
+                else:
+                    fout.write(word+' '+header[word]+'\n' if word in header else line)
+                    continue
+            if word == 'timestep':
+                isnap += 1
+                use = isnap >= first and (isnap-first) % sampling == 0
+                block = []
+            if not use:
+                continue
+            if word == 'timestep':
+                fout.write('timestep '+str(TimeStep*sampling)+' fs\n')
+            elif word == 'atoms:':
+                fout.write(line)
+                for iatom in range(MyCrystal.natom):
+                    atomline = next(fin)
+                    if iatom in keep:
+                        fout.write(atomline)
+                fout.write('\n')
+                written += 1
+            elif line.strip():
+                fout.write(line)
+    print('extract :',len(atoms),'atoms (',', '.join('%d %s' % (n,MyCrystal.elements[t]) for t,n in zip(present,counts)),') of',MyCrystal.natom,', ',written,
+          'snapshots (every',sampling,'from',first,') written in',outname)
+
+
 #****Output
 
 def ordered(st):#Atoms grouped by element (VASP and UMD), in the order of first appearance ; the order inside each element is kept
@@ -427,6 +494,8 @@ def main(argv):
     redraw = False
     bondfile = ''
     length = 0.0
+    extraction = None
+    firstgiven = False
     nconfig = 1
     seed = None
     outputs = ['umd','poscar']
@@ -434,9 +503,10 @@ def main(argv):
     umdpf.headerumd()
     usage = ('build_umd.py -f <UMD or POSCAR file> -i <snapshot> -s <sampling> -a <empty box> --supercell <na,nb,nc> --shuffle <sub-cells> '
              '--insert <molecules file> --scale <factors> --density <g/cm3> --replace <A:B:n> --remove <formula:n> -d <min distance> -c <factor> '
-             '--tries <tries> -r <cutoff> -l <bond length> -b <bond file> -t <temperature> --velocities all -n <configurations> --seed <seed> -o <outputs> --name <name>')
+             '--tries <tries> -r <cutoff> -l <bond length> -b <bond file> -t <temperature> --velocities all -n <configurations> --seed <seed> -o <outputs> --name <name>'
+             '\n       build_umd.py -f <UMD file> --extract <atoms> -i <first snapshot> -s <sampling> --name <name>')
     try:
-        opts, arg = getopt.getopt(argv,"hf:i:s:a:c:d:t:r:l:b:n:o:",["supercell=","shuffle=","insert=","scale=","density=","replace=","remove=","tries=","velocities=","seed=","name="])
+        opts, arg = getopt.getopt(argv,"hf:i:s:a:c:d:t:r:l:b:n:o:",["supercell=","shuffle=","insert=","scale=","density=","replace=","remove=","extract=","tries=","velocities=","seed=","name="])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -488,11 +558,18 @@ def main(argv):
             print('Files <name>[.<snapshot>].build<k>.umd.dat, .POSCAR, .xyz (k = 1 .. n). The atoms are grouped by element, in the order of first')
             print('appearance. UMD : one snapshot, with the cell, positions, velocities, density and kinetic temperature (the other fields are 0).')
             print('POSCAR : direct coordinates and Cartesian velocities (A/fs).')
+            print('Extraction (instead of the operations) :')
+            print('--extract <atoms> : writes the trajectory of a selection of atoms in a new UMD file : atom indices and ranges counted from 0, and')
+            print('     element symbols, separated by commas (e.g. 12 ; 0-9,25 ; O,H ; Si,12). Every -s-th snapshot (default 1) from -i (default 0).')
+            print('     The atom lines are copied as they are ; so are the lines of each snapshot (energies, temperature, pressure, cell), which are')
+            print('     those of the whole system, with the timestep multiplied by -s. Read and written line by line : no limit on the size of the')
+            print('     file. Output <name>.<atoms>.umd.dat (commas replaced by _), or --name.')
             sys.exit()
         elif opt == '-f':
             infile = arg
         elif opt == '-i':
             first = int(arg)
+            firstgiven = True
         elif opt == '-s':
             sampling = int(arg)
         elif opt == '-a':
@@ -500,6 +577,8 @@ def main(argv):
             box = box*3 if len(box) == 1 else box
         elif opt in ('--supercell','--shuffle','--insert','--scale','--density','--replace','--remove'):
             operations.append((opt[2:],arg))
+        elif opt == '--extract':
+            extraction = arg
         elif opt == '-c':
             factor = float(arg)
         elif opt == '-d':
@@ -527,6 +606,19 @@ def main(argv):
             outputs = arg.split(',')
         elif opt == '--name':
             name = arg
+
+    if extraction is not None:
+        if operations or box is not None:
+            print('--extract writes a trajectory : it cannot be combined with the operations or with -a')
+            sys.exit()
+        if not os.path.isfile(infile):
+            print('the UMD file',infile,'does not exist')
+            sys.exit()
+        nsnap = count_snapshots(infile)
+        start = (first if first >= 0 else first+nsnap) if firstgiven else 0
+        base = infile[:-8] if infile.endswith('.umd.dat') else infile
+        extract(infile,extraction,start,max(sampling,1),(name or base+'.'+extraction.replace(',','_'))+'.umd.dat')
+        return
 
     zelec = {}
     if box is not None:
