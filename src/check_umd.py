@@ -257,12 +257,14 @@ def main(argv):
     ndup = int((dts == 0).sum())
     ngap = int((dts > 1.5*ts[1:]).sum())
     nirreg = int((np.abs(dts-ts[1:]) > 1e-3*ts[1:]).sum())-ngap-ndup-nback
-    rep.write('   time from '+str(times[0])+' to '+str(times[-1])+' fs ; timestep field '+('constant '+str(ts[0]) if np.ptp(ts) == 0 else 'from '+str(ts.min())+' to '+str(ts.max()))+' fs')
+    varying = np.ptp(ts) > 1e-6*np.abs(ts).max()
+    rep.write('   time from '+str(times[0])+' to '+str(times[-1])+' fs ; timestep field '+('from '+str(ts.min())+' to '+str(ts.max()) if varying else 'constant '+str(ts[0]))+' fs')
     rep.write('   time differences : '+str(nback)+' backward, '+str(ndup)+' zero (duplicated time), '+str(ngap)+' gaps (> 1.5 timestep), '+str(nirreg)+' other irregular ; '
               +str(repeated)+' snapshots repeating the positions of the previous one read')
-    if nback or ndup or ngap or nirreg or repeated or np.ptp(ts) > 0:
+    if nback or ndup or ngap or nirreg or repeated or varying:
         bad = np.nonzero((dts <= 0) | (np.abs(dts-ts[1:]) > 1e-3*ts[1:]))[0][:5]
-        rep.result('WARNING','irregular times (first at snapshots '+', '.join(str(k+1) for k in bad)+') : badly concatenated restarts ? the MSD, VACF and viscosity assume a constant time step')
+        rep.result('WARNING',('irregular times (first at snapshots '+', '.join(str(k+1) for k in bad)+')' if len(bad) else 'the timestep field changes')
+                   +' : badly concatenated restarts ? the MSD, VACF and viscosity assume a constant time step')
     else:
         rep.result('OK')
 
