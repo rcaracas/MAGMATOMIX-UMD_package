@@ -108,16 +108,17 @@ def vdos_with_errors(V,gall,window,nBlocks,typat,ntypat,U,AxesAreCartesian,dt,np
     return vdos_errors(gblocks,gall,nsteps,specblock,window,taper,fwhm/(freq[1]-freq[0])), nSpec, specblock
 
 
-def mean_error(x):#Statistical error of the mean of the time series x, from its integrated autocorrelation time
+def mean_error(x,with_tau=False):#Statistical error of the mean of the time series x, from its integrated autocorrelation time tau (in steps, also returned with with_tau)
     t = np.arange(len(x))
     r = x-np.polyval(np.polyfit(t,x,1),t)#a drift would inflate the autocorrelation time and hide itself
     if r.std() == 0.0:
-        return 0.0
+        return (0.0,0.5) if with_tau else 0.0
     rho = acf_fft(r,len(r)//2)
     rho = rho/rho[0]
     cut = np.argmax(rho < 0.0) or len(rho)#sum up to the first zero
     tau = 0.5+rho[1:cut].sum()
-    return r.std()*np.sqrt(2.0*tau/len(x))
+    err = r.std()*np.sqrt(2.0*tau/len(x))
+    return (err,tau) if with_tau else err
 
 
 def check_zero_velocities(V,firststep):#Snapshots with all the velocities exactly zero : not physical, written by a parser that lost the previous positions

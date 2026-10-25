@@ -72,7 +72,6 @@ viscosity_umd.py
     thermodynamic properties:
 averages.py
 check_overlap.py
-fullaverages.py
 vibrations_umd.py
 
 

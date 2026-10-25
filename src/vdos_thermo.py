@@ -159,7 +159,7 @@ def main(argv):
             print('  quantum harmonic : zero-point energy ZPE, energy E (with the ZPE), free energy F, entropy S, heat capacity Cv')
             print('  classical harmonic : E_cl = 3 kB T, F_cl, S_cl, Cv_cl = 3 kB')
             print('  quantum corrections dE = E-E_cl, dF = F-F_cl, dS = S-S_cl, dCv = Cv-Cv_cl : add them to the classical values of the MD')
-            print('  (Berens et al., J. Chem. Phys. 79, 2375, 1983), e.g. to the InternalEnergy and Cv of averages.py and fullaverages.py.')
+            print('  (Berens et al., J. Chem. Phys. 79, 2375, 1983), e.g. to the energy E and the Cv of averages.py -a.')
             print('The frequencies are those of the MD at its temperature, so they include the anharmonicity at that temperature ; at other')
             print('temperatures -t the frequencies are kept (quasi-harmonic only for solids, and only near the MD temperature).')
             print('Liquids : the diffusive modes give a vDOS > 0 at zero frequency, for which the harmonic S and F are not defined : a warning')
