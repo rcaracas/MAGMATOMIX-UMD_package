@@ -352,6 +352,60 @@ def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, 
     MyCrystal,TimeStep = Crystallization(UMDfile)
     return np.repeat(np.array(MyCrystal.rprimd,dtype=float)[None],nsnap,axis=0)
 
+
+def read_snapshots(UMDfile,natom,first=0,sampling=1,fields=None,atoms=True):#Line by line, any file size : yields (snapshot, fields, atoms) for every
+    #snapshot ; fields = {name : list of the numbers of its line} (the names of fields, default all), atoms = array natom x columns (reduced*3,
+    #cartesian*3, unwrapped*3, velocity*3, force*3, charge, magnetization) of every sampling-th snapshot from first on, None for the others
+    with open(UMDfile,'r') as f:
+        values = None
+        isnap = -1
+        for line in f:
+            word = line.split(' ',1)[0].strip()
+            if word == 'timestep':
+                isnap += 1
+                values = {}
+            if values is None:
+                continue
+            if word == 'atoms:':
+                block = [next(f) for _ in range(natom)]
+                array = None
+                if atoms and isnap >= first and (isnap-first) % sampling == 0:
+                    array = np.array(' '.join(block).split(),dtype=float).reshape(natom,-1)
+                yield isnap, values, array
+                values = None
+            elif word and (fields is None or word in fields):
+                numbers = []
+                for x in line.split()[1:]:
+                    try:
+                        numbers.append(float(x))
+                    except ValueError:
+                        break
+                values[word] = numbers
+
+
+def cell_of(fields):#Lattice vectors (rows a, b, c, A) from the rprimd lines of a snapshot read by read_snapshots, else from acell (orthogonal), else None
+    if all(k in fields for k in ('rprimd_a','rprimd_b','rprimd_c')):
+        return np.array([fields['rprimd_a'][:3],fields['rprimd_b'][:3],fields['rprimd_c'][:3]])
+    if len(fields.get('acell',[])) >= 3:
+        return np.diag(fields['acell'][:3])
+    return None
+
+
+def xyz_frame(symbols,xcart,cell=None,info='',columns=()):#One frame of an extended XYZ file (plain XYZ readers see symbol x y z) : the number of atoms,
+    #the comment line (Lattice of the cell, Properties of the columns, pbc, then info, words key=value), one line per atom : symbol, position (A),
+    #then the columns, a list of (name, array natom x k)
+    props = 'species:S:1:pos:R:3' + ''.join(':'+name+':R:'+str(np.shape(c)[1]) for name,c in columns)
+    comment = 'Properties=' + props
+    if cell is not None:
+        comment = 'Lattice="' + ' '.join('%.8f' % x for x in np.ravel(cell)) + '" ' + comment + ' pbc="T T T"'
+    if info:
+        comment += ' ' + info
+    lines = [str(len(symbols)),comment]
+    data = np.hstack([np.asarray(xcart,dtype=float)]+[np.asarray(c,dtype=float) for name,c in columns])
+    for el,row in zip(symbols,data):
+        lines.append(el+' '+' '.join('%.6f' % x for x in row))
+    return '\n'.join(lines)+'\n'
+
 def read_bonds(BondFile,centEls,adjEls,Nsteps=1,nCores = None):#Bonds of every Nsteps-th snapshot of a bonding file, between the central and adjacent elements
     
     MyCrystal,TimeStep = Crystallization(BondFile)

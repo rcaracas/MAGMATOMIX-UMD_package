@@ -442,13 +442,11 @@ def write_poscar(filename,st):#Direct coordinates, Cartesian velocities in A/fs,
     umdpf.write_poscar(filename,st.title,st.cell,elements,counts,st.xred[order],st.vels[order])
 
 
-def write_xyz(filename,st):
+def write_xyz(filename,st):#Extended XYZ (with the cell), by umd_processes_fast.xyz_frame
     elements, counts, order = ordered(st)
     xcart = st.xred @ st.cell
     with open(filename,'w') as ff:
-        ff.write(str(len(st.symbols))+'\n'+st.title+'\n')
-        for i in order:
-            ff.write(st.symbols[i]+'  {:.6f}  {:.6f}  {:.6f}\n'.format(*xcart[i]))
+        ff.write(umdpf.xyz_frame([st.symbols[i] for i in order],xcart[order],st.cell,'title="'+st.title.replace('"',"'")+'"'))
 
 
 def write_umd(filename,st,zelec):#One snapshot ; positions, velocities, cell, density and kinetic temperature, the other fields 0

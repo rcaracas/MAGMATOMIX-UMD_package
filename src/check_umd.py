@@ -53,39 +53,6 @@ def read_radius(radiusfile):#Lines 'element radius unit' (unit A or Bohr) ; radi
     return radius
 
 
-def read_run(UMDname,natom,first,sampling):#Line by line : the fields of every snapshot, and the atom lines (array natom x columns) of every sampling-th
-    #snapshot from first on (None for the others) ; yields (snapshot, fields, atoms)
-    with open(UMDname,'r') as f:
-        fields = None
-        isnap = -1
-        for line in f:
-            word = line.split(' ',1)[0].strip()
-            if word == 'timestep':
-                isnap += 1
-                fields = {}
-            if fields is None:
-                continue
-            if word in FIELDS:
-                values = []
-                for x in line.split()[1:]:
-                    try:
-                        values.append(float(x))
-                    except ValueError:
-                        break
-                fields[word] = values
-            elif word == 'atoms:':
-                block = [next(f) for _ in range(natom)]
-                atoms = None
-                if isnap >= first and (isnap-first) % sampling == 0:
-                    atoms = np.array(' '.join(block).split(),dtype=float).reshape(natom,-1)
-                yield isnap, fields, atoms
-                fields = None
-
-
-def cell_of(fields):
-    return np.array([fields['rprimd_a'],fields['rprimd_b'],fields['rprimd_c']]) if all(k in fields for k in ('rprimd_a','rprimd_b','rprimd_c')) else None
-
-
 #****Geometry
 
 def lens_volume(d,r1,r2):#Volume of the intersection of two spheres of radii r1, r2 whose centres are d apart
@@ -216,12 +183,12 @@ def main(argv):
     percents = []
     read = []
     first_abs = previous = None
-    for isnap, fields, atoms in read_run(umdfile,natom,first,sampling):
+    for isnap, fields, atoms in umdpf.read_snapshots(umdfile,natom,first,sampling,FIELDS):
         steps.append(isnap)
         for k in FIELDS:
             v = fields.get(k)
             series[k].append(v if k in ('StressTensor','rprimd_a','rprimd_b','rprimd_c') else (v[0] if v else np.nan))
-        cell = cell_of(fields)
+        cell = umdpf.cell_of(fields)
         cells.append(cell)
         if atoms is None:
             continue
