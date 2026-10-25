@@ -164,6 +164,8 @@ def read_outcar(FileName,InitialStep,SkipStep):
                     if (entry[1]=='ion-electron'):   #the term T*Sel in the formula F = E - T*Sel, with F = Kohn-Sham energy and E = Kohn-Sham energy without the electronic entropy 
                         MyCrystal.electronicentropy=MyCrystal.internalenergy - float(entry[4])
                         MyCrystal.freeenergy = float(entry[4])
+                        #TotalElectronicEnergy : the free energy TOTEN, unscaled (/SCALEE) for the thermodynamic integration
+                        MyCrystal.toten = float(entry[4])/MyCrystal.lambda_ThermoInt if MyCrystal.lambda_ThermoInt > 0.0 else float(entry[4])
                 if (entry[0] == 'magnetization'):       #reading magnetization of individual atoms
 
                     line = ff.readline()

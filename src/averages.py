@@ -80,9 +80,15 @@ def statistics(x,nblocks=4):#Mean, stdev, error of the mean (integrated autocorr
     return x.mean(), x.std(), err, len(x)/(2.0*tau) < 50.0, drift
 
 
-def kinetic_included(IE,K,TEE):#Whether InternalEnergy contains KineticEnergyIons (VaspParser.py since 2024 ; not in older UMD files), and how it was found
+def kinetic_included(IE,K,TEE,ES=None):#Whether InternalEnergy contains KineticEnergyIons (VaspParser.py since 2024 ; not in older UMD files), and how it was found.
+    #TotalElectronicEnergy is the free energy TOTEN (VaspParser.py ; 0 in the files of its versions of 2026 before the fix), so InternalEnergy =
+    #TotalElectronicEnergy + ElectronicEntropy (+ KineticEnergyIons) ; otherwise (thermodynamic integration, SCALEE < 1) from the correlation
     if TEE is not None and np.any(TEE != 0.0):
-        return bool(np.allclose(IE,TEE+K,atol=1e-3)), 'InternalEnergy - TotalElectronicEnergy = KineticEnergyIons' if np.allclose(IE,TEE+K,atol=1e-3) else 'InternalEnergy - TotalElectronicEnergy differs from KineticEnergyIons'
+        E0 = TEE + (ES if ES is not None else 0.0)
+        if np.allclose(IE,E0+K,atol=1e-3):
+            return True, 'InternalEnergy = TotalElectronicEnergy + ElectronicEntropy + KineticEnergyIons'
+        if np.allclose(IE,E0,atol=1e-3):
+            return False, 'InternalEnergy = TotalElectronicEnergy + ElectronicEntropy'
     ratio = np.cov(IE,K)[0,1]/np.var(K) if np.var(K) > 0.0 else 0.0  #1 if included, 0 if not : potential and kinetic energies are uncorrelated in NVT
     return bool(ratio > 0.5), 'cov(InternalEnergy,KineticEnergyIons)/var(KineticEnergyIons) = ' + '%.2f' % ratio
 
@@ -92,7 +98,7 @@ def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kin
     natom = MyCrystal.natom
     mass = sum(cr.Elements2rest(el)[3]*n for el,n in zip(MyCrystal.elements,MyCrystal.types))/NA      #g per cell
     fields = {}
-    for name in ('Density','Pressure','Temperature','InternalEnergy','KineticEnergyIons','TotalElectronicEnergy','rprimd_a','acell'):
+    for name in ('Density','Pressure','Temperature','InternalEnergy','KineticEnergyIons','TotalElectronicEnergy','ElectronicEntropy','rprimd_a','acell'):
         data, unit = grep_pattern(FileName,name,SkipSteps,required=False)
         fields[name] = data
     notes = []
@@ -113,7 +119,8 @@ def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kin
     if fields['KineticEnergyIons'] is not None:
         K = fields['KineticEnergyIons'][0]
         TEE = fields['TotalElectronicEnergy'][0] if fields['TotalElectronicEnergy'] is not None else None
-        included, how = kinetic_included(IE,K,TEE)
+        ES = fields['ElectronicEntropy'][0] if fields['ElectronicEntropy'] is not None else None
+        included, how = kinetic_included(IE,K,TEE,ES)
         U = IE-K if included else IE                                     #potential energy
         E = U+K
         notes.append('InternalEnergy ' + ('includes' if included else 'does not include') + ' the kinetic energy of the ions (' + how + ')')

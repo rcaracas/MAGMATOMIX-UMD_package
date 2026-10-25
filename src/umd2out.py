@@ -14,7 +14,7 @@ from vibrations_umd import AMU_A2FS2
 FORMATS = {'1':'xyz','2':'poscar','3':'lammps','4':'deepmd','5':'lammpstrj'}
 GPA = 1.0/160.21766208                  #1 GPa in eV/A^3
 SETSIZE = 5000                          #frames per set.nnn folder of the DeepMD training set (the default of dpdata)
-ENERGYFIELDS = ('InternalEnergy','KineticEnergyIons','TotalElectronicEnergy')
+ENERGYFIELDS = ('InternalEnergy','KineticEnergyIons','TotalElectronicEnergy','ElectronicEntropy')
 
 
 #****Energies and stresses
@@ -24,10 +24,10 @@ def kinetic_in_internal(UMDname,natom):#Whether InternalEnergy contains KineticE
     for isnap, fields, atoms in umdpf.read_snapshots(UMDname,natom,fields=ENERGYFIELDS,atoms=False):
         for k in ENERGYFIELDS:
             series[k].append(fields[k][0] if fields.get(k) else np.nan)
-    IE, K, TEE = (np.array(series[k]) for k in ENERGYFIELDS)
+    IE, K, TEE, ES = (np.array(series[k]) for k in ENERGYFIELDS)
     if np.all(np.isnan(K)) or np.all(np.isnan(IE)):
         return False, 'no KineticEnergyIons'
-    return kinetic_included(IE,np.nan_to_num(K),None if np.all(np.isnan(TEE)) else np.nan_to_num(TEE))
+    return kinetic_included(IE,np.nan_to_num(K),None if np.all(np.isnan(TEE)) else np.nan_to_num(TEE),np.nan_to_num(ES))
 
 
 def free_energy(fields,included):#Potential energy of the ions minus T S_el (the Mermin free energy, of which the forces are the derivatives), eV
