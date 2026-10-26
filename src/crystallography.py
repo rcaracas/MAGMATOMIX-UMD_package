@@ -3,7 +3,6 @@
 ##AUTHORS: RAZVAN CARACAS
 ###
 
-import math
 import numpy as np
 
 class Atom(object):
@@ -14,27 +13,27 @@ class Atom(object):
         self.mass = mass
         self.magnet = magnet
         self.charge = charge
-        if xred == None:
+        if xred is None:
             self.xred = [0.0, 0.0, 0.0]
         else:
             self.xred = xred
-        if xcart == None:
+        if xcart is None:
             self.xcart = [0.0, 0.0, 0.0]
         else:
             self.xcart = xcart
-        if absxcart == None:
+        if absxcart is None:
             self.absxcart = [0.0, 0.0, 0.0]
         else:
             self.absxcart = absxcart
-        if vels == None:
+        if vels is None:
             self.vels = [0.0, 0.0, 0.0]
         else:
             self.vels = vels
-        if forces == None:
+        if forces is None:
             self.forces = [0.0, 0.0, 0.0]
         else:
             self.forces = forces
-        if diffcoords == None:
+        if diffcoords is None:
             self.diffcoords=[0.0, 0.0, 0.0]
         else:
             self.diffcoords = diffcoords    
@@ -81,60 +80,23 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         self.elecgap=elecgap
         self.noelectrons=noelectrons
         self.lambda_ThermoInt=lambda_ThermoInt
-    def allxred2xcart(self):
-        self.makerprimd()
-        for iatom in range(self.natom):
-            for ii in range(3):
-                self.atoms[iatom].xcart[ii]=0.0
-                for jj in range(3):
-                    self.atoms[iatom].xcart[ii] = self.atoms[iatom].xcart[ii] + self.rprimd[ii][jj]*self.atoms[iatom].xred[ii]
+    #Coordinates : xcart = xred @ rprimd (rows of rprimd = the vectors a, b, c), xred = xcart @ inverse(rprimd) ; the cell is rprimd as it is
     def xred2xcart(self,red):
-        self.makerprimd()
-        cart = [0.0,0.0,0.0]
-        for ii in range(3):
-            for jj in range(3):
-                cart[ii] = cart[ii] + self.rprimd[ii][jj]*red[ii]
-        return cart
-    def allxcart2xred(self,cart):
-        self.makerprimd()
-        self.makegprimd()
-        for iatom in range(self.natom):
-            for ii in range(3):
-                self.atoms[iatom].xred[ii]=0.0
-                for jj in range(3):
-                    self.atoms[iatom].xred[ii] = self.atoms[iatom].xred[ii]  + self.gprimd[ii][jj]*self.atoms[iatom].xcart[ii]
+        return np.dot(red,self.rprimd).tolist()
     def xcart2xred(self,cart):
-        self.makerprimd()
-        self.makegprimd()
-        red=[0.0,0.0,0.0]
-        for ii in range(3):
-            for jj in range(3):
-                red[ii] = red[ii] + self.gprimd[ii][jj]*cart[ii]
-        return red
+        return np.dot(cart,np.linalg.inv(self.rprimd)).tolist()
+    def absxcart2xred(self,abscart):#reduced coordinates of an unwrapped position, wrapped into [0,1)
+        red = np.dot(abscart,np.linalg.inv(self.rprimd))
+        return (red - np.floor(red)).tolist()
+    def allxred2xcart(self):
+        for atom in self.atoms[:self.natom]:
+            atom.xcart = self.xred2xcart(atom.xred)
+    def allxcart2xred(self,cart=None):#the cart argument is not used (kept for the former signature)
+        for atom in self.atoms[:self.natom]:
+            atom.xred = self.xcart2xred(atom.xcart)
     def allabsxcart2xred(self):
-        self.makerprimd()
-        self.makegprimd()
-        for iatom in range(self.natom):
-            for ii in range(3):
-                self.atoms[iatom].xred[ii]=0.0
-                for jj in range(3):
-                    self.atoms[iatom].xred[ii] = self.atoms[iatom].xred[ii]  + self.gprimd[ii][jj]*self.atoms[iatom].absxcart[ii]
-                while self.atoms[iatom].xred[ii] < 0.0:
-                    self.atoms[iatom].xred[ii] += 1.0
-                while self.atoms[iatom].xred[ii] >= 1.0:
-                    self.atoms[iatom].xred[ii] -= 1.0
-    def absxcart2xred(self,abscart):
-        self.makerprimd()
-        self.makegprimd()
-        red=[0.0,0.0,0.0]
-        for ii in range(3):
-            for jj in range(3):
-                red[ii] = red[ii] + self.gprimd[ii][jj]*abscart[ii]
-            while red[ii] < 0:
-                red[ii] += 1.0
-            while red[ii] >= 1.0:
-                red[ii] -= 1.0
-        return red
+        for atom in self.atoms[:self.natom]:
+            atom.xred = self.absxcart2xred(atom.absxcart)
     def makerprimd(self):                     #computes the basis metrics as rprimd = acell.rprim
         for ii in range(3):
             for jj in range(3):
@@ -142,27 +104,12 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
     def makevolume(self):
         cellvolume = np.abs(np.dot(np.cross(self.rprimd[0][:],self.rprimd[1][:]),self.rprimd[2][:]))
         return cellvolume
-    def makegprimd(self):
-        gprimd = [ [0.0 for _ in range(3)] for _ in range(3)]
-        t1 = self.rprimd[1][1] * self.rprimd[2][2] - self.rprimd[2][1] * self.rprimd[1][2]
-        t2 = self.rprimd[2][1] * self.rprimd[0][2] - self.rprimd[0][1] * self.rprimd[2][2]
-        t3 = self.rprimd[0][1] * self.rprimd[1][2] - self.rprimd[1][1] * self.rprimd[0][2]
-        det  = self.rprimd[0][0] * t1 + self.rprimd[1][0] * t2 + self.rprimd[2][0] * t3
-        dd = 1.0
-        if (det>1.0E-06):
-            dd = 1.0/det
-        else:
-            print ('The norm of the crystallographic space is 0.0 or negative. This is not allowed ')
-        gprimd[0][0] = t1 * dd
-        gprimd[1][0] = t2 * dd
-        gprimd[2][0] = t3 * dd
-        gprimd[0][1] = (self.rprimd[2][0]*self.rprimd[1][2]-self.rprimd[1][0]*self.rprimd[2][2]) * dd
-        gprimd[1][1] = (self.rprimd[0][0]*self.rprimd[2][2]-self.rprimd[2][0]*self.rprimd[0][2]) * dd
-        gprimd[2][1] = (self.rprimd[1][0]*self.rprimd[0][2]-self.rprimd[0][0]*self.rprimd[1][2]) * dd
-        gprimd[0][2] = (self.rprimd[1][0]*self.rprimd[2][1]-self.rprimd[2][0]*self.rprimd[1][1]) * dd
-        gprimd[1][2] = (self.rprimd[2][0]*self.rprimd[0][1]-self.rprimd[0][0]*self.rprimd[2][1]) * dd
-        gprimd[2][2] = (self.rprimd[0][0]*self.rprimd[1][1]-self.rprimd[1][0]*self.rprimd[0][1]) * dd
-        return gprimd
+    def makegprimd(self):#gprimd = inverse(rprimd) transposed : xred[i] = sum_j gprimd[i][j] xcart[j] ; any handedness
+        cell = np.array(self.rprimd,dtype=float)
+        if abs(np.linalg.det(cell)) < 1.0E-06:
+            print('The volume of the cell is 0 : no reduced coordinates')
+            return [[0.0 for _ in range(3)] for _ in range(3)]
+        return np.linalg.inv(cell).T.tolist()
     def getdensity(self):
         atomicname=''
         atomicnumber=0
@@ -171,99 +118,8 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         for itypat in range(self.ntypat):
             (atomicname,atomicsymbol, atomicnumber,self.masses[itypat])=Elements2rest(self.elements[itypat])
             density = density + self.masses[itypat] * self.types[itypat]
-        density = density / (6.022E+23 * self.cellvolume*1E-24)
+        density = density / (6.02214076E+23 * self.cellvolume*1E-24)
         return density
-    def compangles(self):                   #compute the angles between the lattice vectors
-        self.cartlatt()
-        index = -1
-        for ii in range(3):                 #loop over the first vector, ai   
-            for jj in range(ii+1,3):        #loop over the second vector, aj
-                cosa = 0.0
-                for kk in range(3):         #loop over the terms of the dot product ai.aj
-                    cosa = cosa + self.rprimd[ii][kk]*self.rprimd[jj][kk]
-                cosa = cosa / (self.acell[ii] * self.acell[jj])
-                index = index +1
-                self.angles[index] = math.acos(cosa) * 180.0 / math.pi
-    def printstruct(self):
-        print ('a,b,c =',self.acell)
-        print ('rprim =',self.rprim)
-        self.cartlatt()
-        print ('rprimd =',self.rprimd)
-        self.compangles()
-        print ('angles =',self.angles)
-    def niceprint(self):
-        self.cartlatt()
-        self.compangles()
-        print ('\t',self.acell[0],'\t',self.acell[1],'\t',self.acell[2],'\t',self.angles[0],'\t',self.angles[1],'\t',self.angles[2])
-    def derive_types_from_typat(self):
-        """
-        Derive the 'types' attribute from the 'typat' attribute.
-
-        The 'typat' attribute defines the type of each atom, and this method
-        extracts unique types into 'types' while preserving their original order.
-        """
-        if hasattr(self, "typat") and self.typat:
-            # Extract unique types from typat in the order of their first appearance
-            self.types = sorted(set(self.typat), key=self.typat.index)
-        else:
-            # Handle case where typat is not defined or is empty
-            self.types = []
-
-
-def TripleLattice(crystal):
-    #
-    #builds a 3x3x3 supercell centered on the initial cell
-    #this allows to take into account all the NN interactions
-    #
-    bigcrystal=Lattice()
-    bigcrystal.name='2x2x2_'+crystal.name
-    bigcrystal.acell[0] = crystal.acell[0]*3.0
-    bigcrystal.acell[1] = crystal.acell[1]*3.0
-    bigcrystal.acell[2] = crystal.acell[2]*3.0
-    bigcrystal.rprim = crystal.rprim
-    bigcrystal.natom = crystal.natom * 27
-    bigcrystal.ntypat = crystal.ntypat * 27
-    bigcrystal.typat = [0 for x in range(bigcrystal.ntypat)]
-    bigcrystal.elements = ['E' for x in range(bigcrystal.ntypat)]    
-    bigcrystal.atoms = [Atom() for iatom in range(bigcrystal.natom)]
-    jatom = 0
-    box = 0
-    for ix in range(-1,2):
-        for iy in range(-1,2):
-            for iz in range(-1,2):
-                bigcrystal.elements[box:box+crystal.ntypat]=crystal.elements
-                bigcrystal.typat[box:box+crystal.ntypat]=crystal.typat
-                box=box+crystal.ntypat
-                for iatom in range(crystal.natom):
-                    nx = (crystal.atoms[iatom].xred[0] + float(ix))/3.0
-                    ny = (crystal.atoms[iatom].xred[1] + float(iy))/3.0
-                    nz = (crystal.atoms[iatom].xred[2] + float(iz))/3.0
-                    bigcrystal.atoms[jatom].xred = [nx,ny,nz]
-                    bigcrystal.atoms[jatom].xcart = bigcrystal.cartatom(bigcrystal.atoms[jatom].xred)
-                    bigcrystal.atoms[jatom].symbol = crystal.atoms[iatom].symbol
-                    jatom = jatom + 1
-    return bigcrystal
-
-
-def distance(atom1,atom2):
-    dd = 0.0
-    for ii in range(3):
-        dd = dd + (atom1.xcart[ii]-atom2.xcart[ii])*(atom1.xcart[ii]-atom2.xcart[ii])
-    return math.sqrt(dd)
-
-
-def CheckAtoms(Crystal,cat,an):
-    flagcat=0
-    flagan =0
-    for ii in range(Crystal.ntypat):
-        if (Crystal.elements[ii] == cat):
-            flagcat = 1
-        if (Crystal.elements[ii] == an):
-            flagan = 1
-    if (flagcat + flagan == 2):
-        return 1
-    else:
-        return 0
 
 
 def Elements2rest(identifier):#Name, symbol, atomic number and mass of an element given by any of them ; None if unknown
