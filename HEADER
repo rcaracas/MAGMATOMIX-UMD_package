@@ -1,4 +1,4 @@
-__version__ = ‘2.8.3’
+__version__ = ‘2.8.4’
 __author__ = ‘See AUTHORS’
 __copyright__ = ‘Copyright 2019-2026 the Centre National de la Recherche Scientifique (CNRS), Institut de Physique du Globe de Paris, Universite Paris Cite, Paris, France & the Center for Planetary Habitability (PHAB), University of Oslo, Norway’
 __credits__ = ‘See CREDITS’
