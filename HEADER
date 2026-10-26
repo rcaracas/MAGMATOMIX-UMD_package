@@ -1,6 +1,6 @@
-__version__ = ‘1.0’
+__version__ = ‘2.7’
 __author__ = ‘See AUTHORS’
-__copyright__ = ‘Copyright 2019-2023 the Centre National de la Recherche Scientifique (CNRS), Institut de Physique du Globe de Paris, Universite Paris Cite, Paris, France & the Center for Planetary Habitability (PHAB), University of Oslo, Norway’
+__copyright__ = ‘Copyright 2019-2026 the Centre National de la Recherche Scientifique (CNRS), Institut de Physique du Globe de Paris, Universite Paris Cite, Paris, France & the Center for Planetary Habitability (PHAB), University of Oslo, Norway’
 __credits__ = ‘See CREDITS’
 __license__ = ‘GNU GPL v3, CeCILLv2’
 __maintainer__ = ‘Razvan Caracas’

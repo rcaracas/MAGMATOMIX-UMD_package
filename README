@@ -2,29 +2,40 @@ UMD = Universal python package for post-processing Molecular Dynamics runs.
 
 =====
 
-UMD is a Universal python package for post-processing Molecular Dynamics runs. UMd is based on a genrealized ascii-type free format of storing the atomic trajectories and the relevant thermodynamic information of the simulations.
-UMD includes two major libraries dealing with file formats and with crystallography.
+UMD is a universal Python package for post-processing molecular dynamics runs. UMD is based on a generalized ASCII free format, the .umd.dat files, which store the atomic trajectories and the relevant thermodynamic information of the simulations. Parsers convert the outputs of VASP, QBox and LAMMPS into this format; the analysis scripts read it.
+UMD includes two core libraries, one for the file formats (umd_processes_fast.py, with its C reader) and one for crystallography (crystallography.py).
 UMD allows for computation of:
-- structural properties: pair distribution functions, bond analysis, bond interconnectivity, atomic coordination, polymerization, chemical speciation, species lifetimes
-- dynamical properties: mean square displacements of atomic types, of individual atoms, of chemical species, diffusion coefficients, viscosity
-- thermodynamical properties: average thermodynamic potentials, including temperature, internal energy, pressure, self-correlation, vibrational spectra
+- structural properties: pair distribution functions and coordination numbers, bonds, polymerization, chemical speciation, interatomic angles, species and bond lifetimes, liquid/vapor partitioning
+- transport properties: mean square displacements of atomic types, of individual atoms, of chemical species, along any axes; diffusion coefficients and the diffusion tensor, with errors; viscosity
+- thermodynamic properties: averages of the thermodynamic quantities with their errors, heat capacity, velocity autocorrelation functions and vibrational densities of states, harmonic and two-phase (2PT) thermodynamics, quantum corrections, free energies and entropies by thermodynamic integration
+It also checks the quality of a run, builds new structures (supercells, shuffled, inserted, scaled, substituted), and converts UMD files to extended XYZ, VASP POSCAR, LAMMPS data and dump, and DeepMD training sets.
 The package is available via the github website as an open-access package and we encourage further collaborators.
 
 =====
 
 AUTHORS
 Razvan CARACAS
+Kevin JIGUET-COVEX
+Tim BOEGELS
+Adrien SAURETY
+Emma STOUTENBOURG
+Xi ZHU
+Former contributors:
+Anne H. DAVIS
 Anais KOBSCH
-Natalia V SOLOMATOVA
+Natalia SOLOMATOVA
 Zhi LI
-Francois SOUBIRAN
-Jean-Alexis HERNANDEZ
+Affiliations: see the file AUTHORS.
 
 
 =====
 
 USAGE
 The UMD package is a stand-alone collection of executable python scripts.
+Compile the C libraries first (see README.txt), then run the scripts from the src folder, e.g.:
+    python3 VaspParser.py -f OUTCAR
+    python3 gofr_umd.py -f OUTCAR.umd.dat
+Every script prints its options with -h.
 
 
 =====
@@ -33,48 +44,62 @@ DEPENDENCIES
 python3
 numpy
 scipy
-pylab
 matplotlib
+a C compiler (gcc) for the C libraries
 
 
 =====
 
 LICENSE
-UMND is open-source software, distributed under licence GNU-GPL v3 and CeCILL v2 (mutually compatible)
+UMD is open-source software, distributed under licence GNU-GPL v3 and CeCILL v2 (mutually compatible)
+
+
+=====
+
+CITATION
+Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534, doi:10.3791/61534 (2021)
 
 
 =====
 
 COMPONENTS
     general libraries:
-crystallography.py
-umd_processes_fast.py
+crystallography.py              cell, atoms, element data, coordinate conversions
+umd_processes_fast.py           reading and writing of UMD files (C library c_UMDprocess), POSCAR files
 
-    I/O:
-VaspParser.py
-QBoxParser.py
-LAMMPSParser2umd.py
-repair_umd.py
-umd2out.py
-build_umd.py
+    parsers, conversion and building:
+VaspParser.py                   VASP OUTCAR -> UMD
+QBoxParser.py                   QBox output -> UMD (not yet updated to the current package)
+LAMMPSParser2umd.py             LAMMPS dump and log -> UMD
+repair_umd.py                   repairs UMD files written by older versions of VaspParser.py
+umd2out.py                      UMD -> extended XYZ, POSCAR, LAMMPS data and dump, DeepMD
+build_umd.py                    new structures from a UMD snapshot, a POSCAR or an empty box; trajectories of selected atoms
+check_umd.py                    quality checks of a run
 
     structural properties:
-gofr_umd.py
-analyze_gofr.py
-bonding_umd.py
-speciation_and_angles.py
+gofr_umd.py                     pair distribution functions (C library c_gofr)
+analyze_gofr.py                 first maxima, minima and coordination numbers; bond cutoffs
+bonding_umd.py                  bonds of every snapshot (C library c_bonds_full)
+speciation_and_angles.py        chemical species, angles, bond lifetimes (C library c_clusters)
+lifetimes.py                    plots of the lifetimes of the species
+liquid_and_vapor_speciation.py  species of the liquid and of the vapor
+stat-concentrate.py             liquid/vapor partitioning over several runs
 
     transport properties:
-msd_clusters_umd.py
-msd_umd.py
-analyze_msd.py
-analyze_msd_clusters.py
-viscosity_umd.py
+msd_umd.py                      mean square displacements, diffusion coefficients and tensor
+msd_clusters_umd.py             mean square displacements of chemical species
+analyze_msd.py                  diffusion coefficients from MSD files
+analyze_msd_clusters.py         diffusion coefficients of chemical species
+viscosity_umd.py                shear viscosity (Green-Kubo)
 
     thermodynamic properties:
-averages.py
-check_umd.py
-vibrations_umd.py
+averages.py                     averages and errors of any quantity; full thermodynamics and heat capacity (-a)
+vibrations_umd.py               velocity autocorrelation functions, vibrational densities of states, diffusion
+vdos_thermo.py                  harmonic and 2PT thermodynamics, quantum corrections
+thermo_integration_umd.py       free energy and entropy by thermodynamic integration
+
+    graphical interface (to be removed in version 3.0):
+UMD_GUI.py, averages_forGUI.py, val_extract_umd.py
 
 
 =====
@@ -82,4 +107,31 @@ vibrations_umd.py
 CHANGELOG
 
 v 1.0, September 2019 - First production release
+v 1.1, August 2020 - insertion of molecules
+v 1.3, August 2020 - viscosity update
+v 1.4, November 2020 - interatomic distances on GPUs
+v 1.6, March 2022 - first visual scripts
+v 2.0, November 2023 - optimisation of all major routines, C sources, parallelisation on CPUs, portability on GPUs, first graphical interface
+v 2.1, October 2024 - cleaned-up version, umd2out.py
+v 2.2, October 2024 - thermodynamic integration
+v 2.3, May 2025 - bug fixes, new viscosity script
+v 2.4, January 2026 - VASP parser for on-the-fly machine-learning runs, corrected insertion script
+v 2.5, September 2026 - supercells, insertion fixes
+v 2.6, September 2026 - NPT simulations: the cell may change at every step
+v 2.7, October 2026 - VASP parser fixes (on-the-fly ML runs, any cell shape) and repair_umd.py; FFT mean square displacements with diffusion errors; viscosity rewritten; vibrations_umd.py and vdos_thermo.py
 
+Since v 2.7 (not yet released):
+- gofr_umd.py and bonding_umd.py: one method for any cell shape and for NPT runs; each bond counted once
+- analyze_gofr.py: automatic analysis of all pairs, with optional manual correction; replaces three scripts
+- speciation_and_angles.py: correct angles in any cell, bond lifetimes, single atoms as species; lifetimes.py and liquid_and_vapor_speciation.py rewritten
+- averages.py -a: full thermodynamics with correct energies, heat capacity and errors (replaces fullaverages.py)
+- msd_umd.py -a tensor: diffusion tensor and its principal axes
+- build_umd.py: supercells, shuffling, insertion, scaling, substitution, removal of molecules, extraction of atoms (replaces build_supercell.py, box_shuffle.py, insert_umd.py, extratom_umd.py); velocities fixed
+- check_umd.py: quality checks of a run (replaces check_overlap.py)
+- umd2out.py: extended XYZ, LAMMPS data and dump, DeepMD outputs
+- LAMMPSParser2umd.py rewritten: any box, NPT, units, thermo output matched by step
+- VaspParser.py writes the total electronic (free) energy again
+- thermo_integration_umd.py rewritten (Gauss-Legendre quadrature, errors)
+- crystallography.py: coordinate conversions correct for any cell
+- umd_processes_fast.py: faster and more robust reader of UMD files; the last snapshot is no longer missed with sampling
+- the header of the UMD files ends with a line stating the code that produced the run (origin)
