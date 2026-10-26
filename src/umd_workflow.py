@@ -6,7 +6,8 @@
 #and writes a summary of the results. Each script runs in its own process, in the folder of the UMD file, with its output appended to
 #umd_workflow.log of that folder. A step is done when its output files exist, newer than its inputs, written by the same command (kept in
 #umd_workflow.done, with the files written) : it is then not run again (-o runs it again). It is skipped when its inputs are missing (a step
-#before it failed). When a step runs again, the files it wrote in its former run and not now are removed (named in umd_workflow.done).
+#before it failed). When a step runs again, the files it wrote in its former run and not now are removed (named in umd_workflow.done) ;
+#when it fails they are kept, and the step runs again the next time.
 #The scripts often end without an error code, so a step succeeds only when it wrote its outputs.
 
 import sys, getopt, os, glob, time, subprocess, json, re
@@ -82,12 +83,13 @@ def run(step,folder,base,overwrite,results):#Runs one step ; its status is appen
         if step.pattern and not any(f not in step.makes for f in written):
             absent.append(step.pattern)
         done = read_done(folder)
-        stale = [f for f in done.get(step.key(),{}).get('files',[]) if f not in written and os.path.isfile(os.path.join(folder,f)) and mtime(f) < start-1]
+        former = done.get(step.key(),{}).get('files',[])
+        stale = [] if absent else [f for f in former if f not in written and os.path.isfile(os.path.join(folder,f)) and mtime(f) < start-1]
         for f in stale:#files written by this step in a former run of the workflow and not now (e.g. species no longer found)
             os.remove(os.path.join(folder,f))
-        if absent:
+        if absent:#the files of the former run are kept (the failure may be passing : a file of a sync folder that could not be read)
             status = 'FAILED : no '+', '.join(short(f) for f in absent)+' ; see '+LOG
-            done.pop(step.key(),None)
+            done[step.key()] = {'command':'FAILED','files':sorted(set(former)|set(written))}#run again the next time
         else:
             status = 'OK %7.1f s' % (time.time()-start)
             if step.pattern:
@@ -229,7 +231,8 @@ def main(argv):
             print('-o : runs every step again. Default : a step whose output files are newer than its inputs and were written by the same')
             print('     command (umd_workflow.done) is not run again, so that an interrupted workflow continues where it stopped and a panel')
             print('     can be added later ; a step whose options changed (-i, -s, -c, -a) runs again, and the steps that depend on it. The files')
-            print('     a step wrote in a former run and not in the new one (e.g. cluster MSDs of species no longer found) are removed.')
+            print('     a step wrote in a former run and not in the new one (e.g. cluster MSDs of species no longer found) are removed ; when')
+            print('     a step fails, they are kept and the step runs again the next time.')
             print('Each script runs with its default options, in the folder of its UMD file ; run it alone for other options. The output of the')
             print('scripts is appended to umd_workflow.log in that folder. No window is opened.')
             print('Output : umd_workflow.summary.dat in each folder, one line per UMD file of the folder with results : number of snapshots,')

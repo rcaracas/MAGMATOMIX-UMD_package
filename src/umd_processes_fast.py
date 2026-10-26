@@ -394,6 +394,7 @@ def run_on_all(argv,main,paired={},single=()):#-f all : main is run once for eac
         except Exception as e:#a crash on this file does not stop the others
             print('\nERROR on',f,':',type(e).__name__,e)
             stopped.append(f)
+        finish_outputs(f not in stopped)
     print('\n========== '+str(len(files))+' UMD files : '+', '.join(files)+((' ; stopped with an error : '+', '.join(stopped)) if stopped else ''))
     return True
 
@@ -448,11 +449,40 @@ def umd_outputs(folder):#The outputs of the package in folder (paths relative to
             found.append(n)
     return found
 
-def remove_former_outputs(paths):#Rule of the package : a script run again first removes the outputs of its former run, so that none is left stale
-    for path in paths:            #(e.g. after a failure, or when the new run writes fewer files) ; only these named files, never anything else
+_former = []        #outputs of a former run (path, modification time) and folders to remove when left empty, pending until the end of the run
+_failed = False     #an exception stopped the script
+
+def _note_failure(kind,value,trace):
+    global _failed
+    _failed = True
+    sys.__excepthook__(kind,value,trace)
+
+def remove_former_outputs(paths,folders=()):#Rule of the package : the outputs of the former run of a script that its new run does not write
+    #again are removed, so that none is left stale (e.g. when the new run writes fewer files) ; only these named files, never anything else.
+    #They are removed at the end of the run, and only those not written again : a file written again is overwritten in place, never deleted
+    #and created anew under the same name, which sync clients (Proton Drive, iCloud, OneDrive) turn into "name 2" copies and lost originals.
+    #When the run stops on an error (an exception), the former outputs are kept. folders : removed at the end when left empty.
+    if not _former:
+        import atexit
+        atexit.register(finish_outputs)
+        sys.excepthook = _note_failure
+    for path in paths:
         if os.path.lexists(path) and not os.path.isdir(path):
+            _former.append((path,os.lstat(path).st_mtime_ns))
+    _former.extend((d,None) for d in folders)
+
+def finish_outputs(ok=True):#End of a run (at the exit, or of each file of -f all) : removes the former outputs not written again, unless it failed
+    ok = ok and not _failed
+    for path, mtime in _former:
+        if mtime is None:
+            if ok and os.path.isdir(path) and not os.listdir(path):
+                os.rmdir(path)
+        elif ok and os.path.lexists(path) and os.lstat(path).st_mtime_ns == mtime:
             os.remove(path)
-            print('former output removed : ',path)
+            print('former output removed (not written by this run) : ',path)
+    if not ok and any(mtime is not None and os.path.lexists(path) and os.lstat(path).st_mtime_ns == mtime for path, mtime in _former):
+        print('stopped with an error : the outputs of the former run not written again are kept')
+    del _former[:]
 
 def write_poscar(filename,title,cell,elements,counts,xred,vels=None):#VASP5 POSCAR : cell (rows a, b, c, A), the atoms grouped by element (counts[k] atoms
     #of elements[k], in this order), direct coordinates, and Cartesian velocities (A/fs) if given ; the only POSCAR writer of the package

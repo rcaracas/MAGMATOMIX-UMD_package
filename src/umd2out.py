@@ -137,7 +137,7 @@ class DeepMDSet:#deepmd/npy training set : type.raw, type_map.raw, then folders 
     #energy.npy (eV), force.npy (eV/A), virial.npy (eV, if the file has stresses)
     def __init__(self,folder,elements,types):
         self.folder = folder
-        os.makedirs(folder,exist_ok=True)#the files of a former run are removed first ; other files in the folder are kept
+        os.makedirs(folder,exist_ok=True)#the files of a former run are overwritten (those not written again removed at the end) ; other files are kept
         np.savetxt(os.path.join(folder,'type.raw'),types,fmt='%d')
         with open(os.path.join(folder,'type_map.raw'),'w') as ff:
             ff.write('\n'.join(elements)+'\n')
@@ -155,7 +155,7 @@ class DeepMDSet:#deepmd/npy training set : type.raw, type_map.raw, then folders 
         if not self.frames:
             return
         folder = os.path.join(self.folder,'set.%03d' % self.nsets)
-        os.makedirs(folder)
+        os.makedirs(folder,exist_ok=True)
         box, coord, energy, force, virial = zip(*self.frames)
         np.save(os.path.join(folder,'box.npy'),np.array(box).reshape(len(box),9))
         np.save(os.path.join(folder,'coord.npy'),np.array(coord).reshape(len(box),-1))
@@ -190,10 +190,7 @@ def remove_former(names,formats,ksnapshot):#The outputs of a former run in the f
         paths += [os.path.join(names['deepmd'],f) for f in ('type.raw','type_map.raw')]
         paths += [os.path.join(d,f+'.npy') for d in sets for f in ('box','coord','energy','force','virial')]
         folders = sets+[names['deepmd']]
-    umdpf.remove_former_outputs(paths)
-    for d in folders:
-        if os.path.isdir(d) and not os.listdir(d):
-            os.rmdir(d)
+    umdpf.remove_former_outputs(paths,folders)
 
 
 def main(argv):
