@@ -19,6 +19,7 @@ python3 check_umd.py -f OUTCAR.umd.dat     # quality checks of the run
 python3 gofr_umd.py -f OUTCAR.umd.dat      # pair distribution functions
 python3 msd_umd.py -f OUTCAR.umd.dat       # mean square displacements and diffusion coefficients
 python3 averages.py -a -f OUTCAR.umd.dat   # thermodynamics with errors
+python3 umd_workflow.py -f OUTCAR.umd.dat  # or all the analyses at once (-g structural, -t transport, -d thermodynamics), summary in umd_workflow.summary.dat
 ```
 Every script prints its options with `-h`. The list of the scripts and the changelog are in `README`.
 

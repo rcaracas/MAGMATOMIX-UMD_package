@@ -157,16 +157,21 @@ def main(argv):
     Axes = None
     nCores=None
     planearg = None
+    first = 0
+    sampling = 1
     try:
-        opts, arg = getopt.getopt(argv,"hf:z:v:b:e:n:m:a:k:p:",["fumdfile","zHorizontalJump","vVerticalJump","bBallistic","eFitEnd","nBlocks","mMode","aAxes","knCores","pPlane"])
+        opts, arg = getopt.getopt(argv,"hf:i:s:z:v:b:e:n:m:a:k:p:",["fumdfile","iInitialStep","sSampling","zHorizontalJump","vVerticalJump","bBallistic","eFitEnd","nBlocks","mMode","aAxes","knCores","pPlane"])
     except getopt.GetoptError:
-        print ('msd_umd.py -f <UMD_filename> -v <VerticalJump> -b <Ballistic> -e <FitEnd> -n <nBlocks> -m <Mode> -a <Axes> -k <nCores>')
+        print ('msd_umd.py -f <UMD_filename> -i <InitialStep> -s <Sampling> -v <VerticalJump> -b <Ballistic> -e <FitEnd> -n <nBlocks> -m <Mode> -a <Axes> -k <nCores>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print ('Program to compute the Mean Square Displacement. Usage: ')
-            print ('msd_umd.py -f <UMD_filename> -v <VerticalJump> -b <Ballistic> -e <FitEnd> -n <nBlocks> -m <Mode> -a <Axes> -k <nCores>')
+            print ('msd_umd.py -f <UMD_filename> -i <InitialStep> -s <Sampling> -v <VerticalJump> -b <Ballistic> -e <FitEnd> -n <nBlocks> -m <Mode> -a <Axes> -k <nCores>')
             print ('UMD_filename = input file with the trajectory, in UMD format.')
+            print ('-i : InitialStep. number of initial snapshots discarded. Default is 0.')
+            print ('-s : Sampling. one snapshot out of s is used (the time step becomes s times longer). Default is 1. The steps of -v, -b, -e')
+            print ('     count the snapshots used.')
             print (' The MSD is averaged over all the possible time origins, for time lags up to half the length of the trajectory.')
             print (' It is computed with Fast Fourier Transforms, so no sub-sampling of the time origins is needed.')
             print ('-v : VerticalJump. the MSD is written every VerticalJump time lags. Default is 1.')
@@ -202,6 +207,13 @@ def main(argv):
         elif opt in ("-f", "--fumdfile"):
             umdfile = str(arg)
             print ('I will use the ',umdfile,' for input','\n')
+        elif opt in ("-i", "--iInitialStep"):
+            first = int(arg)
+        elif opt in ("-s", "--sSampling"):
+            sampling = int(arg)
+            if sampling<=0 :
+                print('ERROR : sampling -s has to be strictly positive.')
+                sys.exit()
         elif opt in ("-z", "--zHorizontalJump"):
             print ('The horizontal jump -z is no longer needed (all the time origins are used) and is ignored.')
         elif opt in ("-v", "--vVerticalJump"):
@@ -248,7 +260,8 @@ def main(argv):
 
     if (os.path.isfile(umdfile)):
 
-        MyCrystal,SnapshotsValues,TimeStep,numsteps = umdpf.read_values(umdfile,"absxcart","line",nCores=nCores)
+        MyCrystal,SnapshotsValues,TimeStep,numsteps = umdpf.read_values(umdfile,"absxcart","line",sampling,first,nCores=nCores)
+        TimeStep = TimeStep*sampling                                            #time between two snapshots used
         X = np.array(SnapshotsValues).reshape(len(SnapshotsValues),MyCrystal.natom,3)#(step, atom, xyz)
         nsteps = len(X)
         print ('\nNumber of atoms of each type is ',MyCrystal.types)
@@ -355,7 +368,7 @@ def main(argv):
             base = os.path.splitext(umdfile)[0]
         msdfile = base + '.msd.dat'
         f = open(msdfile,'w')
-        f.write('# MSD from '+umdfile+' : '+str(nsteps)+' snapshots, timestep '+str(TimeStep)+' fs, all time origins, lags from '+str(ballistic)+' to '+str(lags[-1])+' steps every '+str(vv)+' ; mode '+Mode+'\n')
+        f.write('# MSD from '+umdfile+' : '+str(nsteps)+' snapshots'+(' from snapshot '+str(first) if first else '')+(' every '+str(sampling) if sampling > 1 else '')+', timestep '+str(TimeStep)+' fs, all time origins, lags from '+str(ballistic)+' to '+str(lags[-1])+' steps every '+str(vv)+' ; mode '+Mode+'\n')
         if U is not None:
             f.write('# axes (unit vectors) : '+' ; '.join(lab+' = '+np.array2string(u,precision=6,separator=',') for lab,u in zip(AxesLabels,U))+'\n')
         f.write('time_(fs)\t'+'\t'.join(labels)+'\n')

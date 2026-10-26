@@ -151,7 +151,7 @@ def print_results(an):
             print('%-8s %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f  %s' % (pair,v['xmax'],v['ymax'],v['xmin'],v['ymin'],v['coord'],v['rmean'],note))
 
 
-def write_inputs(an):#The three files read by bonding_umd.py -i : the first minima (bond cutoffs), the first maxima and the coordination numbers
+def write_inputs(an):#The three files read by bonding_umd.py -c : the first minima (bond cutoffs), the first maxima and the coordination numbers
     base = an['file'][:-9] if an['file'].endswith('.gofr.dat') else os.path.splitext(an['file'])[0]
     for suffix, key in (('.maximum_bonds.inp','xmin'),('.average_bonds.inp','xmax'),('.coordinations.inp','coord')):
         with open(base+suffix,'w') as f:
@@ -343,7 +343,7 @@ def main(argv):
             print('int r^3 g / int r^2 g up to the minimum. A minimum higher than '+str(SHALLOW)+' times the maximum is flagged: there the end of')
             print('the shell, hence the bonds, depend on the cutoff. Pairs without a peak above the noise, or without a minimum before the')
             print('largest distance of the g(r), get 0. Check the noisy pairs with -v.')
-            print('Outputs, for each gofr file <base>.gofr.dat (A B value, the format read by bonding_umd.py -i):')
+            print('Outputs, for each gofr file <base>.gofr.dat (A B value, the format read by bonding_umd.py -c):')
             print('   <base>.maximum_bonds.inp : first minima, the bond cutoffs for bonding_umd.py and the speciation.')
             print('   <base>.average_bonds.inp : first maxima (most probable bond lengths).')
             print('   <base>.coordinations.inp : coordination numbers.')

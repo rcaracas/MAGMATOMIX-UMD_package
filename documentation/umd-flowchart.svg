@@ -10,6 +10,9 @@
 <text x="22" y="1350" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="22" dy="0">STRUCTURAL</tspan><tspan x="22" dy="36.96">PROPERTIES</tspan></text>
 <text x="506" y="1350" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="506" dy="0">TRANSPORT</tspan><tspan x="506" dy="36.96">PROPERTIES</tspan></text>
 <text x="964" y="1350" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="964" dy="0">THERMODYNAMIC</tspan><tspan x="964" dy="36.96">PROPERTIES</tspan></text>
+<text x="22" y="1298" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="22" dy="0">umd_workflow.py -g : the whole panel</tspan></text>
+<text x="506" y="1298" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="506" dy="0">umd_workflow.py -t : the whole panel</tspan></text>
+<text x="964" y="1298" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="964" dy="0">umd_workflow.py -d : the whole panel</tspan></text>
 <rect x="6" y="6" width="236" height="140" fill="white" stroke="#231F20" stroke-width="4.5"/>
 <text x="124" y="52" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">ab initio /</tspan><tspan x="124" dy="35.2">classical MD</tspan></text>
 <text x="124" y="128" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">VASP, QBox, LAMMPS</tspan></text>
@@ -76,7 +79,7 @@
 <text x="248" y="567" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="248" dy="0">COORDINATION</tspan><tspan x="248" dy="19.6">NUMBERS</tspan></text>
 <path d="M 102 604 L 102 646" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 102 646 L 108.5 630 L 102 634 L 95.5 630 Z" fill="#231F20"/>
-<text x="122" y="631" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">bonding_umd.py -f -i -l -s</tspan></text>
+<text x="122" y="631" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">bonding_umd.py -f -c -l -s -i</tspan></text>
 <rect x="30" y="648" width="152" height="62" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="106" y="686.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="106" dy="0">.bonding.</tspan></text>
 <path d="M 102 710 L 102 770" fill="none" stroke="#231F20" stroke-width="2"/>
@@ -121,7 +124,7 @@
 <path d="M 800 524 L 800 533.2" stroke="#231F20" stroke-width="3"/>
 <path d="M 800 562 L 817 522 L 800 533.2 L 783 522 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
 <text x="800" y="590" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="middle" font-weight="normal"><tspan x="800" dy="0">VISCOSITY</tspan></text>
-<text x="565" y="634" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">msd_umd.py -f -m -a</tspan><tspan x="565" dy="19.55">-n -b -e</tspan></text>
+<text x="565" y="634" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">msd_umd.py -f -i -s -m -a</tspan><tspan x="565" dy="19.55">-n -b -e</tspan></text>
 <rect x="565" y="660" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="640" y="696.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msd.</tspan></text>
 <rect x="565" y="720" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>

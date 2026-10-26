@@ -21,17 +21,19 @@ def ana_popul(MyCrystal,AbsXcart,TimeStep,POPname,MinLife,ClusterMaxSize,Nsteps)
     masses = np.array([float(MyCrystal.masses[MyCrystal.typat[iatom]]) for iatom in range(MyCrystal.natom)])
     population = {}                                                                             #cluster name -> list of the MSDs of its individual instances
     ff = open(POPname,'r')
-    found = re.search(r'timestep\s+([0-9.eE+-]+)\s*fs',ff.readline())      #time between two steps of the popul file, written by speciation_and_angles.py since Oct 2026
+    headline = ff.readline()
+    found = re.search(r'timestep\s+([0-9.eE+-]+)\s*fs',headline)      #time between two steps of the popul file, written by speciation_and_angles.py since Oct 2026
     poptimestep = float(found.group(1)) if found else None
+    found = re.search(r'first_snapshot\s+(\d+)',headline)                #snapshot of the UMD file of the step 0 of the bonding file (bonding_umd.py -i)
+    offset = int(found.group(1)) if found else 0
     ff.readline()
     while True:
         line = ff.readline()
         if not line: break
-        line = re.sub(r'[\[,\]]', '',line)
-        line = line.strip()
+        composition = re.search(r'\[([^\]]*)\]',line)                                          #the atoms ; the mean angles follow with -t 1
         entry = line.split()
-        if len(entry) < 5: continue
-        atoms = [int(x) for x in entry[4:]]
+        if composition is None or len(entry) < 5: continue
+        atoms = [int(x) for x in composition.group(1).replace(',',' ').split()]
         if len(atoms) > ClusterMaxSize: continue
         begin = int(entry[1])
         end = int(entry[2])
@@ -41,8 +43,8 @@ def ana_popul(MyCrystal,AbsXcart,TimeStep,POPname,MinLife,ClusterMaxSize,Nsteps)
             ratio = max(1, int(round(poptimestep / TimeStep)))
         else:
             ratio = max(1, int(round(float(entry[3]) / ((end-begin+1)*TimeStep))))
-        first = begin*ratio
-        last = min(end*ratio, len(AbsXcart)-1)
+        first = offset+begin*ratio
+        last = min(offset+end*ratio, len(AbsXcart)-1)
         if last - first < MinLife: continue
         snapshots = range(first, last+1, Nsteps)
         clusteratoms = AbsXcart[snapshots][:,atoms,:]                                           #(time, atom, xyz)
@@ -96,6 +98,8 @@ def main(argv):
             print ('Sampling_Frequency = frequency of sampling of the trajectory. Default = 1 (all steps are considered)')
             print ('MinLife = minimum lifetime of a cluster, in steps of the UMD trajectory, for its MSD to be computed. Default = 20.')
             print ('ClusterMaxSize = arbitrary upper size limit for defining chemical species. Default = 20. You can safely assume values up to 10-12.' )
+            print ('The Begin/End steps of the popul file (steps of its bonding file) are converted to snapshots of the UMD file with the timestep and')
+            print ('the first_snapshot (bonding_umd.py -i) of the popul header.')
             print ('Output : one <popul base>__<cluster>.msd.dat file per type of cluster, with the time (fs), the MSD (A^2) of each individual cluster, and their mean.')
             sys.exit()
         elif opt in ("-f", "--fUMD_filename"):

@@ -75,6 +75,8 @@ repair_umd.py                   repairs UMD files written by older versions of V
 umd2out.py                      UMD -> extended XYZ, POSCAR, LAMMPS data and dump, DeepMD
 build_umd.py                    new structures from a UMD snapshot, a POSCAR or an empty box; trajectories of selected atoms
 check_umd.py                    quality checks of a run
+umd_workflow.py                 automated workflow: runs the scripts of the structural (-g), transport (-t), thermodynamic (-d) panels,
+                                one summary table of the results per folder
 
     structural properties:
 gofr_umd.py                     pair distribution functions (C library c_gofr)
@@ -142,3 +144,7 @@ Since v 2.7 (not yet released):
 - umd_processes_fast.py: faster and more robust reader of UMD files; the last snapshot is no longer missed with sampling
 - the header of the UMD files ends with a line stating the code that produced the run (origin)
 - documentation folder: updated flowchart of the package, and the UMD paper
+- umd_workflow.py: automated workflow over UMD files, by panels of the flowchart (-g structural, -t transport, -d thermodynamics), with a summary table
+- bonding_umd.py: -i initial snapshot (the bonding file records it for the speciation and the cluster MSDs); the cutoff file is now -c (-i <file> still works)
+- msd_umd.py: -i initial snapshot and -s sampling
+- msd_clusters_umd.py reads the popul files written with the angles (speciation_and_angles.py -t 1)

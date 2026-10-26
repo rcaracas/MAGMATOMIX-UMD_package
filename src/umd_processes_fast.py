@@ -94,6 +94,8 @@ def Crystallization(File):#The header of a UMD file (or of a bonding file) and t
                 MyCrystal.lambda_ThermoInt = float(entry[1])
             elif entry[0] == 'origin':
                 MyCrystal.origin = ' '.join(entry[1:])
+            elif entry[0] == 'first_snapshot':
+                MyCrystal.firstsnapshot = int(entry[1])
             elif entry[0] == 'timestep':
                 TimeStep = float(entry[1])
             elif entry[0] == 'acell':
@@ -455,8 +457,9 @@ def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):#Appends
         nf.write(''.join(lines))
     return(CurrentTime,TimeStep)
 
-def copyhead(Target,File,Nsteps):#Writes to Target the lines of File before its first "atoms:" line (header and fields of the first snapshot), the timestep
-    with open(File,"r") as ff, open(Target,"w") as fa:              #multiplied by Nsteps
+def copyhead(Target,File,Nsteps,first=0):#Writes to Target the lines of File before its first "atoms:" line (header and fields of the first snapshot), the
+    #timestep multiplied by Nsteps, and when first > 0 a line first_snapshot (the snapshot of File where the snapshots of Target start)
+    with open(File,"r") as ff, open(Target,"w") as fa:
         for line in ff:
             l = line.split()
             if len(l)>0 :
@@ -465,3 +468,5 @@ def copyhead(Target,File,Nsteps):#Writes to Target the lines of File before its 
                 if l[0] == "atoms:":
                     break
             fa.write(line)
+        if first:
+            fa.write('first_snapshot '+str(first)+' : the snapshots of this file start at this snapshot of the UMD file\n')

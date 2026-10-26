@@ -287,6 +287,8 @@ def main(argv):
     if CentIndexes == -1 :#For the GUI to display an error message whenever an element is missing
         return AdjIndexes
     header = header + ' timestep ' + str(TimeStep/Nsteps) + ' fs'#time between two steps of the bonding file, the unit of the steps written (Begin/End of popul, step of step and angles)
+    if MyCrystal.firstsnapshot:#the step 0 of the bonding file is this snapshot of the UMD file (bonding_umd.py -i)
+        header = header + ' first_snapshot ' + str(MyCrystal.firstsnapshot)
 
     if flagbondlife==1 :
         print("Calculating the lifetimes of the bonds...")
@@ -296,13 +298,13 @@ def main(argv):
     if flagangles==1 :#positions and cells of the UMD snapshots matching the bonding snapshots used
         MyCrystalUMD,TimeStepUMD = umdpf.Crystallization(UMDFile)
         TimeRatio = max(1,int(round(TimeStep/TimeStepUMD)))
-        MyCrystalUMD,SnapshotsXCart,TimeStepUMD,length = umdpf.read_values(UMDFile,"xcart","line",TimeRatio,nCores=nCores)
+        MyCrystalUMD,SnapshotsXCart,TimeStepUMD,length = umdpf.read_values(UMDFile,"xcart","line",TimeRatio,MyCrystal.firstsnapshot,nCores=nCores)
         nsnap = min(len(Bonds),len(SnapshotsXCart))
         if nsnap < len(Bonds):
             print('WARNING : the UMD file has fewer snapshots than the bonding file : only the first ',nsnap,' are used.')
             Bonds,BondsIndexes = Bonds[:nsnap],BondsIndexes[:nsnap]
         SnapshotsXCart = SnapshotsXCart[:nsnap]
-        cells = umdpf.read_cells(UMDFile,nsnap,TimeRatio)
+        cells = umdpf.read_cells(UMDFile,nsnap,TimeRatio,MyCrystal.firstsnapshot)
         write_angles(BaseName+".angles.dat",header+"\n",Bonds,BondsIndexes,SnapshotsXCart,cells,MyCrystal,CentIndexes,AdjIndexes,TimeStep,Nsteps)
     else :
         SnapshotsXCart = [[] for _ in range(len(Bonds))]#Blank lists which will not be used but are needed as arguments

@@ -117,20 +117,25 @@ def main(argv):
     maxlength=None
     specifics = None
     nCores = None
+    first = 0
     try:
-        opts, arg = getopt.getopt(argv,"hf:s:l:i:n:p:k:",["fUMDfile","sSampling_Frequency","lMaxLength","iInputFile","nNumCells","pSpecifics","knCores"])
+        opts, arg = getopt.getopt(argv,"hf:s:l:i:c:n:p:k:",["fUMDfile","sSampling_Frequency","lMaxLength","iInitialStep","cInputFile","nNumCells","pSpecifics","knCores"])
     except getopt.GetoptError:
-        print ('bonding_umd.py -f <UMD_filename> -s <Sampling_Frequency> -l <MaxLength> -i <InputFile> -n <NumCells> -p <Specifics> -k <nCores>')
+        print ('bonding_umd.py -f <UMD_filename> -c <InputFile> -l <MaxLength> -s <Sampling_Frequency> -i <InitialStep> -n <NumCells> -p <Specifics> -k <nCores>')
         sys.exit(2)
     if opts == [] :
         opts = [('-h','')]
     for opt, arg in opts:
         if opt == '-h':
             print ('Computation of the bonding map for each snapshot of a umd file')
-            print ('bonding_umd.py -f <UMD_filename> -s <Sampling_Frequency> -l <MaxLength> -i <InputFile> -n <NumCells> -p <Specifics> -k <nCores>')
-            print ('default values: -f output.umd.dat -s 1 -l None -p None -k None')
-            print ('The input file contains the bond lengths for the different atom pairs. \n The option -l overwrites all the values of this file.')
-            print ('-l : unique bonding length. Use in the case of not having an input file -i. ')
+            print ('bonding_umd.py -f <UMD_filename> -c <InputFile> -l <MaxLength> -s <Sampling_Frequency> -i <InitialStep> -n <NumCells> -p <Specifics> -k <nCores>')
+            print ('default values: -f output.umd.dat -s 1 -i 0 -l None -p None -k None')
+            print ('-c : input file with the bond lengths of the pairs of elements, one line A B cutoff, e.g. <base>.maximum_bonds.inp of analyze_gofr.py')
+            print ('     (formerly -i, still accepted : -i followed by a file name). The option -l overwrites all the values of this file.')
+            print ('-l : unique bonding length. Use in the case of not having an input file -c. ')
+            print ('-s : one snapshot out of s is used. Default 1.')
+            print ('-i : InitialStep. number of initial snapshots discarded. Default 0. The bonding file then starts with the snapshot i of the UMD')
+            print ('     file (line first_snapshot i of its header, used by speciation_and_angles.py for the angles and by msd_clusters_umd.py).')
             print ('-n : number of sub-cells along each direction. Default : along each of a, b, c, the largest number whose sub-cells are wider than the longest bond.')
             print ('Any cell, orthogonal or not, changing or not (NPT) : each pair is bonded once, in its nearest image (reduced coordinates), when it is shorter than its cutoff.')
             print ('-p : restricts the computation of the bonds in a specific place of the simulation. Takes a list of floats under the form -p [xmin,ymin,zmin,xmax,ymax,zmax], with the list contains the maximal and minimal coordinates values for the atoms to be considered. Default None (no restriction).')
@@ -147,9 +152,12 @@ def main(argv):
             Nsteps = int(arg)
             header = header + ' -s=' + arg
             print('Will sample the trajectories every ',Nsteps,' steps')
-        elif opt in ("-i", "--iInputFile"):
+        elif opt in ("-i", "--iInitialStep") and arg.strip().isdigit():
+            first = int(arg)
+            header = header + ' -i=' + arg
+        elif opt in ("-c", "--cInputFile", "-i", "--iInitialStep"):#-i <file> : the former name of -c
             InputFile = str(arg)
-            header = header + ' -i=' + InputFile
+            header = header + ' -c=' + InputFile
             print ('Bonding cutoffs to be read from file ',InputFile)
         elif opt in ("-n", "--nNumCells"):
             numCells = int(arg)
@@ -172,8 +180,11 @@ def main(argv):
 
     start=time.time()
 
-    MyCrystal,AllSnapshotsL,TimeStep,lensnap = umdpf.read_values(UMDname,"xcart","line",Nsteps,nCores = nCores)#Creating the list of the xcart coordinates from the UMD file
-    cells = umdpf.read_cells(UMDname,len(AllSnapshotsL),Nsteps)#lattice vectors (rows) of each snapshot (NPT)
+    MyCrystal,AllSnapshotsL,TimeStep,lensnap = umdpf.read_values(UMDname,"xcart","line",Nsteps,first,nCores = nCores)#Creating the list of the xcart coordinates from the UMD file
+    if len(AllSnapshotsL) == 0:
+        print('No snapshot after the snapshot',first)
+        sys.exit()
+    cells = umdpf.read_cells(UMDname,len(AllSnapshotsL),Nsteps,first)#lattice vectors (rows) of each snapshot (NPT)
     widths = (np.abs(np.linalg.det(cells))[:,None]/np.linalg.norm(np.cross(cells[:,[1,2,0]],cells[:,[2,0,1]]),axis=2)).min(axis=0)#smallest distances between opposite faces
 
     if maxlength==None and len(InputFile)>0 :
@@ -181,7 +192,7 @@ def main(argv):
     elif maxlength!=None :#If a unique bonding length is specified
         BondTable = [[maxlength**2 for _ in range(MyCrystal.ntypat)] for _ in range(MyCrystal.ntypat)]#Creates a matrix filled with -l value
     else :
-        print('Give the bond lengths with -i or -l')
+        print('Give the bond lengths with -c or -l')
         sys.exit(2)
 
     M=math.sqrt(max([max(Bondlengths) for Bondlengths in BondTable]))#maximal length of any bond
@@ -203,7 +214,7 @@ def main(argv):
     else :
         FileAll=UMDname+'.bonding.dat'
             
-    umdpf.copyhead(FileAll,UMDname,Nsteps)     #Copies the header of the UMD file into the output file
+    umdpf.copyhead(FileAll,UMDname,Nsteps,first)     #Copies the header of the UMD file into the output file
     WriteBondingRed=partial(WriteBonding_C_full,maxSteps=len(AllSnapshotsL)-1,MyCrystal=MyCrystal,BondTable=BondTable,timestep=TimeStep,natom=natom,numCells=numCells,specifics = specifics)
         
     
@@ -229,7 +240,7 @@ def main(argv):
         line = "Space interval ["+str(specifics[0])+","+str(specifics[3])+"] "+"["+str(specifics[1])+","+str(specifics[4])+"] "+"["+str(specifics[2])+","+str(specifics[5])+"]\n"
         fa.write(line)
     for lines in Lines :                
-        header = 'time '+str(step*TimeStep*Nsteps)+' fs\nstep '+str(step)+'\n'
+        header = 'time '+str(first*TimeStep+step*TimeStep*Nsteps)+' fs\nstep '+str(step)+'\n'
         fa.write(header)
         for line in lines :
             l=''
