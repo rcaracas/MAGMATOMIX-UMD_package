@@ -177,7 +177,9 @@ v 2.9.1, October 2026 - -f all: the scripts run on every UMD file of the folder;
 - speciation_and_angles.py: the first header line was garbled (-a=allFILE:) when -b came after -c/-a on the command line
 - bonding_umd.py: no longer crashes on a run of a single snapshot
 
-Since v 2.9.1 (not yet released):
+v 2.9.2, October 2026 - vibrations_umd.py -v shows the results already computed; one Manual switch in analyze_gofr.py -v:
 - vibrations_umd.py -v without -f: shows the VACFs and vDOS already computed in the folder, one file after the other, without computing them again
 - the scripts working on one UMD file say "no UMD file : give it with -f <file>, or -f all" when -f is missing (formerly "umd file   does not exist")
 - analyze_gofr.py -v: the clicks on the graph are fitted (as Manual input did); one Manual button, a switch, takes them as clicked (formerly All manual); buttons Discard, Automatic, Manual, Previous, Next
+
+Since v 2.9.2 (not yet released):
