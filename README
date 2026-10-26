@@ -149,5 +149,8 @@ v 2.8, October 2026 - automated workflow (umd_workflow.py); all the structural s
 - msd_umd.py: -i initial snapshot and -s sampling
 - msd_clusters_umd.py reads the popul files written with the angles (speciation_and_angles.py -t 1)
 
-Since v 2.8 (not yet released):
+v 2.8.1, October 2026 - fix: analyze_msd.py runs as a command (python3 line at the top); quick help of the scripts:
+- analyze_msd.py: the first line #!/usr/bin/env python3 was missing, so the shell, not python, ran it when called by its name
 - documentation folder: quick help of the scripts (umd-quick-help.pdf)
+
+Since v 2.8.1 (not yet released):
