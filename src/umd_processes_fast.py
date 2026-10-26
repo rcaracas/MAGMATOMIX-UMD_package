@@ -359,6 +359,54 @@ def headerumd():
 def former_outputs(folder,pattern):#The files of folder whose whole name matches the regular expression pattern (the names of the outputs of a script)
     return [os.path.join(folder,f) for f in sorted(os.listdir(folder or os.curdir)) if re.fullmatch(pattern,f)]
 
+#The outputs of the scripts of the package, used by umd_clean.py : regular expressions of the whole file names. RUN_OUTPUTS follow the
+#base <base> of a UMD file <base>.umd.dat of the same folder ; FOLDER_OUTPUTS are written once per folder. The UMD files themselves (parsers,
+#build_umd.py, --extract, repair_umd.py) are never outputs here. Keep this list in step with the scripts.
+SELECTION = r'(?:\.(?:all|(?:[A-Z][a-z]?)+)-(?:all|(?:[A-Z][a-z]?)+))?'          #gofr_umd.py -c/-a : <base>.<central>-<adjacent>
+RUN_OUTPUTS = [r'\.check\.dat', r'\.overlap\.dat',                                                        #check_umd.py
+               SELECTION+r'\.gofr\.dat',                                                                  #gofr_umd.py
+               SELECTION+r'\.(?:maximum_bonds|average_bonds|coordinations)\.inp', SELECTION+r'\.gofr\.[A-Z][a-z]?-[A-Z][a-z]?\.png',#analyze_gofr.py
+               r'\.bonding\.dat',                                                                         #bonding_umd.py
+               r'\.r\d+\.(?:popul|stat|step)\.dat', r'\.angles\.dat', r'\.bondslives\.dat',               #speciation_and_angles.py
+               r'\.r\d+\.(?:liquid|vapor)\.(?:popul|stat)\.dat',                                           #liquid_and_vapor_speciation.py
+               r'\.r\d+(?:\.(?:liquid|vapor))?(?:\.(?:liquid|vapor))?\.lifetimes\.pdf',                    #lifetimes.py
+               r'\.r\d+(?:\.(?:liquid|vapor))?__[A-Za-z0-9_]+\.msd\.dat',                                   #msd_clusters_umd.py
+               r'\.msd\.dat', r'\.msd\.blocks\.dat', r'\.diffusion\.dat', r'\.diffusion\.tensor\.dat',       #msd_umd.py
+               r'\.stress\.scf\.dat', r'\.visc\.dat',                                                      #viscosity_umd.py
+               r'\.vels\.scf\.dat', r'\.vibr\.dat', r'\.vibr\.axes\.dat', r'\.vibr\.err\.dat', r'\.vacf\.diffusion\.dat',#vibrations_umd.py
+               r'\.vdos\.thermo\.dat', r'\.2pt\.dat',                                                      #vdos_thermo.py
+               r'(?:\.\d+)?\.xyz', r'(?:\.\d+)?\.lammpstrj', r'\._\d+_\.POSCAR\.vasp', r'\._\d+_\.lammps\.data']#umd2out.py
+RUN_FOLDERS = [r'(?:\.\d+)?\.deepmd']                                    #umd2out.py : the files it writes inside (DEEPMD_FILES)
+DEEPMD_FILES = [r'type\.raw', r'type_map\.raw', r'set\.\d{3}/(?:box|coord|energy|force|virial)\.npy']
+FOLDER_OUTPUTS = [r'gofrs_summary\.txt',                                   #analyze_gofr.py
+                  r'diffusivities\.txt', r'diffusivities_clusters\.txt',  #analyze_msd.py, analyze_msd_clusters.py
+                  r'fullthermo\.dat',                                      #averages.py -a
+                  r'thermo_integration\.(?:dat|pdf)',                      #thermo_integration_umd.py
+                  r'lifetimes\.merged(?:\.(?:liquid|vapor))?\.pdf',        #lifetimes.py -m (default name)
+                  r'.*all\.-t.*\.-L.*\.-R\d+\.-C=.*\.dat',                 #stat-concentrate.py
+                  r'umd_workflow\.log', r'umd_workflow\.done', r'umd_workflow\.summary\.dat']#umd_workflow.py
+
+def umd_outputs(folder):#The outputs of the package in folder (paths relative to it), from the UMD files there : never a UMD file, never a file
+    names = sorted(os.listdir(folder or os.curdir))                      #whose name is not that of an output
+    bases = [n[:-8] for n in names if n.endswith('.umd.dat')]
+    builds = [b for b in bases if re.fullmatch(r'.*\.build\d+',b)]     #build_umd.py writes <base>.build<k>.xyz with its UMD file : kept with it
+    found = []
+    for n in names:
+        path = os.path.join(folder,n)
+        if n.endswith('.umd.dat') or n in [b+'.xyz' for b in builds]:
+            continue
+        if os.path.isdir(path) and not os.path.islink(path):
+            if any(re.fullmatch(re.escape(b)+pattern,n) for b in bases for pattern in RUN_FOLDERS):
+                for sub, dirs, files in os.walk(path):
+                    for f in sorted(files):
+                        rel = os.path.relpath(os.path.join(sub,f),path).replace(os.sep,'/')
+                        if any(re.fullmatch(pattern,rel) for pattern in DEEPMD_FILES):
+                            found.append(os.path.join(n,rel))
+        elif any(re.fullmatch(pattern,n) for pattern in FOLDER_OUTPUTS) or \
+             any(re.fullmatch(re.escape(b)+pattern,n) for b in bases for pattern in RUN_OUTPUTS):
+            found.append(n)
+    return found
+
 def remove_former_outputs(paths):#Rule of the package : a script run again first removes the outputs of its former run, so that none is left stale
     for path in paths:            #(e.g. after a failure, or when the new run writes fewer files) ; only these named files, never anything else
         if os.path.lexists(path) and not os.path.isdir(path):

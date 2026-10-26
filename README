@@ -77,6 +77,7 @@ build_umd.py                    new structures from a UMD snapshot, a POSCAR or 
 check_umd.py                    quality checks of a run
 umd_workflow.py                 automated workflow: runs the scripts of the structural (-g), transport (-t), thermodynamic (-d) panels,
                                 one summary table of the results per folder
+umd_clean.py                    removes the outputs of the package from a folder, to start afresh (lists them; -y moves them aside)
 
     structural properties:
 gofr_umd.py                     pair distribution functions of all pairs or of central-adjacent elements (C library c_gofr)
@@ -169,3 +170,4 @@ v 2.8.4, October 2026 - MSD fits: window set by clicks, fit after the ballistic 
 - analyze_msd.py and analyze_msd_clusters.py -v: two clicks on the graph set the fit window of each MSD (start, then end), refitted at once; buttons Automatic (the default window), Previous, Next (one pass); the files are written when the window is closed, diffusivities.txt with the window of each column (8 columns per species)
 
 Since v 2.8.4 (not yet released):
+- umd_clean.py (new): removes the outputs of the package from a folder (-r: and below), to start the analysis afresh; keeps the UMD files, OUTCARs, dumps and every file that is not an output; by default only lists them, -y moves them to a umd_cleaned_<date> folder (to put back if needed), -y --delete deletes them

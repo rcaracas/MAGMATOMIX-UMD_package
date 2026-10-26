@@ -126,6 +126,10 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">umd2out.py -f run.umd.dat -i first -s every [-k snapshot] -r xyz,poscar,lammps,deepmd,lammpstrj -u</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.xyz</code>, <code>._&lt;k&gt;_.POSCAR.vasp</code>, <code>._&lt;k&gt;_.lammps.data</code>, <code>.deepmd/</code>, <code>.lammpstrj</code></span></div>
 
+<div class="card"><span class="name">umd_clean.py</span> <span class="what">&mdash; removes the outputs of the package, to start afresh; keeps the UMD files, OUTCARs and your own files.</span>
+<span class="cmd">umd_clean.py -r -y [--delete]</span>
+<span class="io"><b>out:</b> without -y only the list; -y moves them to <code>umd_cleaned_&lt;date&gt;/</code>, --delete deletes them</span></div>
+
 </div>
 <script>
 // keep each option with its value on one line : the commands break only between the pairs
