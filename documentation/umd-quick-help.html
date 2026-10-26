@@ -1,0 +1,142 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>UMD quick help</title>
+<style>
+@page { size: A4; margin: 12mm 12mm 11mm 12mm; }
+:root { --purple:#782F9A; --magenta:#ED127B; --ink:#231F20; --muted:#5d5a5b; --rule:#d9d6d7; --code:#f4f1f5; }
+html,body { margin:0; background:#fff; color:var(--ink); font-family:Helvetica, Arial, sans-serif; font-size:9.6pt; line-height:1.36; }
+h1 { font-size:17pt; margin:0 0 1mm 0; letter-spacing:.2px; }
+.sub { color:var(--muted); margin:0 0 3mm 0; font-size:8.4pt; }
+.cols { column-count:2; column-gap:7mm; }
+h2 { font-size:10.4pt; color:var(--magenta); text-transform:uppercase; letter-spacing:.6px; margin:2.6mm 0 1.4mm 0; padding-bottom:.6mm;
+     border-bottom:1.2px solid var(--magenta); break-after:avoid; }
+.card { break-inside:avoid; margin:0 0 3mm 0; }
+.name { font-family:Menlo, Consolas, monospace; font-weight:bold; color:var(--purple); font-size:9.6pt; }
+.what { color:var(--ink); }
+.cmd { font-family:Menlo, Consolas, monospace; font-size:8.2pt; background:var(--code); padding:.4mm 1.2mm; border-radius:1mm; display:block; margin:.5mm 0; white-space:normal; }
+.io { color:var(--muted); }
+.io b { color:var(--ink); font-weight:600; }
+code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowrap; }
+.tok { white-space:nowrap; }
+.foot { margin-top:2mm; color:var(--muted); font-size:7.8pt; border-top:1px solid var(--rule); padding-top:1.5mm; column-span:all; }
+.wf { border:1.4px solid var(--purple); border-radius:1.5mm; padding:1.6mm 2.2mm; margin:0 0 3mm 0; }
+</style></head>
+<body>
+<h1>UMD package 2.8 &mdash; quick help</h1>
+<p class="sub">The scripts in the order of the workflow and of the panels of the flowchart (<code>documentation/umd-flowchart.pdf</code>).
+<code>&lt;base&gt;</code> = the UMD file without <code>.umd.dat</code>. All the options of a script: <code>-h</code>. Run them from <code>src/</code> after compiling the C libraries (<code>README.txt</code>).</p>
+
+<div class="wf">
+<span class="name">umd_workflow.py</span> <span class="what">&mdash; runs all the analyses of the panels below on UMD files, check first, and summarizes the results; a rerun continues where it stopped and redoes only the steps whose options changed.</span>
+<span class="cmd">umd_workflow.py -f a.umd.dat,b.umd.dat [-g structural] [-t transport] [-d thermodynamics] (none = all) -i 1000 -s 1 -c Si,Mg -a O -o</span>
+<span class="io"><b>out:</b> all the files of the scripts, <code>umd_workflow.summary.dat</code> (one line per run: P, T, &rho;, E, Cv, D, &eta;, S<sub>2PT</sub>, CN, species, with errors), <code>umd_workflow.log</code></span>
+</div>
+
+<div class="cols">
+
+<h2>Input / output</h2>
+<div class="card"><span class="name">VaspParser.py</span> <span class="what">&mdash; VASP OUTCAR (also on-the-fly ML runs) &rarr; UMD file.</span>
+<span class="cmd">VaspParser.py -f OUTCAR -i first_step -s every_s_steps</span>
+<span class="io"><b>out:</b> <code>OUTCAR.umd.dat</code></span></div>
+
+<div class="card"><span class="name">LAMMPSParser2umd.py</span> <span class="what">&mdash; LAMMPS dump (+ log) &rarr; UMD file; any box, NPT, metal/real units.</span>
+<span class="cmd">LAMMPSParser2umd.py -f dump -l log.lammps -u metal -t timestep_fs -e Si,O -i -s</span>
+<span class="io"><b>out:</b> <code>&lt;dump&gt;.umd.dat</code></span></div>
+
+<div class="card"><span class="name">repair_umd.py</span> <span class="what">&mdash; repairs a UMD file of an old VaspParser.py (before 2.7) when the OUTCAR is gone.</span>
+<span class="cmd">repair_umd.py -f old.umd.dat -o new.umd.dat</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.repaired.umd.dat</code> (velocities, unwrapped and reduced positions recomputed)</span></div>
+
+<div class="card"><span class="name">check_umd.py</span> <span class="what">&mdash; 14 quality checks of a run (times, jumps, energy drift, time step, momentum, equilibration, T, stress, core overlap, charges): OK / WARNING.</span>
+<span class="cmd">check_umd.py -f run.umd.dat -i skip -s sampling -r radii.txt -q Fe:3</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.check.dat</code> (+ <code>.overlap.dat</code> with <code>-r</code>)</span></div>
+
+<h2>Structural properties</h2>
+<div class="card"><span class="name">gofr_umd.py</span> <span class="what">&mdash; pair distribution functions g(r) and running coordination numbers of all pairs; any cell, NPT.</span>
+<span class="cmd">gofr_umd.py -f run.umd.dat -i skip -s sampling -d 0.01</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.gofr.dat</code></span></div>
+
+<div class="card"><span class="name">analyze_gofr.py</span> <span class="what">&mdash; first maximum, minimum (bond cutoff), coordination number and mean distance of every pair; automatic, <code>-v</code> to check and correct.</span>
+<span class="cmd">analyze_gofr.py [-f &lt;base&gt;.gofr.dat] -a Si-O,Mg-O -v</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.maximum_bonds.inp</code> (cutoffs), <code>.average_bonds.inp</code>, <code>.coordinations.inp</code>, <code>gofrs_summary.txt</code></span></div>
+
+<div class="card"><span class="name">bonding_umd.py</span> <span class="what">&mdash; the bonds of every snapshot, from per-pair cutoffs or one length; any cell, NPT.</span>
+<span class="cmd">bonding_umd.py -f run.umd.dat -c &lt;base&gt;.maximum_bonds.inp (or -l 2.2) -i skip -s sampling</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.bonding.dat</code></span></div>
+
+<div class="card"><span class="name">speciation_and_angles.py</span> <span class="what">&mdash; chemical species (r1: central atoms + neighbours; r0: polymers/molecules), angles, bond lifetimes.</span>
+<span class="cmd">speciation_and_angles.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c Si,Mg -a O -r 1 -t 1 -l 1 -m 1</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.r1.popul.dat</code>, <code>.r1.stat.dat</code>, <code>.r1.step.dat</code>, <code>.angles.dat</code>, <code>.bondslives.dat</code></span></div>
+
+<div class="card"><span class="name">lifetimes.py</span> <span class="what">&mdash; plot of the lifetime of every species (columns: central elements; rows: coordination).</span>
+<span class="cmd">lifetimes.py -f &lt;base&gt;.r1.popul.dat -t min_life -x 3,9 -l 12 -m -v</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.r1.lifetimes.pdf</code> (with <code>-l</code>: liquid and vapor figures)</span></div>
+
+<div class="card"><span class="name">liquid_and_vapor_speciation.py</span> <span class="what">&mdash; splits the species into liquid and vapor from the size of their r0 cluster.</span>
+<span class="cmd">liquid_and_vapor_speciation.py -p &lt;base&gt;.r1.popul.dat -s &lt;base&gt;.r0.step.dat -l 12</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.r1.liquid.popul.dat</code>, <code>.liquid.stat.dat</code>, <code>.vapor.popul.dat</code>, <code>.vapor.stat.dat</code></span></div>
+
+<div class="card"><span class="name">stat-concentrate.py</span> <span class="what">&mdash; gathers the <code>*.r0.stat.dat</code> of the runs of a folder (same P, T), with the liquid/vapor partitioning.</span>
+<span class="cmd">stat-concentrate.py -l max_vapor_size -t min_time_fs -c Na,K</span>
+<span class="io"><b>out:</b> one table, its name records the options</span></div>
+
+<h2>Transport properties</h2>
+<div class="card"><span class="name">msd_umd.py</span> <span class="what">&mdash; mean square displacements (FFT, all time origins) and diffusion coefficients with errors; also along axes and the diffusion tensor.</span>
+<span class="cmd">msd_umd.py -f run.umd.dat -i skip -s sampling -m elements|atoms -a cart|cryst|tensor -n 5 -b -e</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.msd.dat</code>, <code>.msd.blocks.dat</code>, <code>.diffusion.dat</code> (+ <code>.diffusion.tensor.dat</code>)</span></div>
+
+<div class="card"><span class="name">analyze_msd.py</span> <span class="what">&mdash; refits the D of all the MSD files below the folder, with another window or with plots.</span>
+<span class="cmd">analyze_msd.py -s start_fs -e end_fs -v</span>
+<span class="io"><b>out:</b> <code>diffusivities.txt</code> per folder (D, error, R&sup2;, alpha)</span></div>
+
+<div class="card"><span class="name">viscosity_umd.py</span> <span class="what">&mdash; shear viscosity by Green&ndash;Kubo from the stress tensor, with block errors and a convergence warning.</span>
+<span class="cmd">viscosity_umd.py -f run.umd.dat -i skip -n 4 -e end_steps -c all|offdiag -v</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.stress.scf.dat</code> (stress autocorrelations), <code>&lt;base&gt;.visc.dat</code> (running viscosity, &eta;)</span></div>
+
+<div class="card"><span class="name">msd_clusters_umd.py</span> <span class="what">&mdash; MSD of the centre of mass of every chemical species of a popul file.</span>
+<span class="cmd">msd_clusters_umd.py -f run.umd.dat -p &lt;base&gt;.r1.popul.dat -b min_life_steps -c max_size</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.r1__&lt;species&gt;.msd.dat</code>, one per species</span></div>
+
+<div class="card"><span class="name">analyze_msd_clusters.py</span> <span class="what">&mdash; diffusion coefficients of the species, from the instances living through the fit window.</span>
+<span class="cmd">analyze_msd_clusters.py -s start_fs -e end_fs -v</span>
+<span class="io"><b>out:</b> <code>diffusivities_clusters.txt</code> per folder (check alpha: short-lived species stay ballistic)</span></div>
+
+<h2>Thermodynamic properties</h2>
+<div class="card"><span class="name">averages.py</span> <span class="what">&mdash; means and errors of any field; <code>-a</code>: density, P, T, E, heat capacity, with drift warnings.</span>
+<span class="cmd">averages.py -f a.umd.dat,b.umd.dat -i skip -a [-p Pressure] [-l] [-v]</span>
+<span class="io"><b>out:</b> terminal; <code>fullthermo.dat</code> with <code>-a</code> (one line per file)</span></div>
+
+<div class="card"><span class="name">vibrations_umd.py</span> <span class="what">&mdash; velocity autocorrelations, vibrational densities of states with error bands, D from the VACF; checks of the temperatures.</span>
+<span class="cmd">vibrations_umd.py -f run.umd.dat -i skip -t T -w window -n 4 -a cart -v</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.vels.scf.dat</code>, <code>.vibr.dat</code>, <code>.vibr.err.dat</code>, <code>.vacf.diffusion.dat</code></span></div>
+
+<div class="card"><span class="name">vdos_thermo.py</span> <span class="what">&mdash; harmonic thermodynamics from the vDOS (ZPE, E, F, S, Cv), quantum corrections, 2PT entropy of liquids.</span>
+<span class="cmd">vdos_thermo.py -f run.umd.dat -t 300,1000</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.vdos.thermo.dat</code>, <code>&lt;base&gt;.2pt.dat</code></span></div>
+
+<div class="card"><span class="name">thermo_integration_umd.py</span> <span class="what">&mdash; free energy and entropy by thermodynamic integration over runs at several &lambda; (VASP SCALEE); &ge; 8 &lambda;.</span>
+<span class="cmd">thermo_integration_umd.py -f l1.umd.dat,l2.umd.dat,... -i skip -t T -v</span>
+<span class="io"><b>out:</b> <code>thermo_integration.dat</code> (+ <code>.pdf</code> with <code>-v</code>)</span></div>
+
+<h2>Building and converting</h2>
+<div class="card"><span class="name">build_umd.py</span> <span class="what">&mdash; new structures from a snapshot, a POSCAR or an empty box: supercell, shuffle, insert, scale, density, replace, remove; MB velocities.</span>
+<span class="cmd">build_umd.py -f run.umd.dat -i -1 --supercell 2,2,2 --insert molecules.dat -t 3000 -o umd,poscar,xyz</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;[.&lt;snapshot&gt;].build&lt;k&gt;.umd.dat</code>, <code>.POSCAR</code>, <code>.xyz</code>; <code>--extract O,0-9</code>: <code>&lt;base&gt;.&lt;atoms&gt;.umd.dat</code></span></div>
+
+<div class="card"><span class="name">umd2out.py</span> <span class="what">&mdash; UMD snapshots &rarr; extended XYZ, POSCAR, LAMMPS data and dump, DeepMD training set.</span>
+<span class="cmd">umd2out.py -f run.umd.dat -i first -s every [-k snapshot] -r xyz,poscar,lammps,deepmd,lammpstrj -u</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.xyz</code>, <code>._&lt;k&gt;_.POSCAR.vasp</code>, <code>._&lt;k&gt;_.lammps.data</code>, <code>.deepmd/</code>, <code>.lammpstrj</code></span></div>
+
+</div>
+<script>
+// keep each option with its value on one line : the commands break only between the pairs
+document.querySelectorAll('.cmd').forEach(function(c){
+  var words = c.textContent.split(' '), out = [], i = 0;
+  while (i < words.length) {
+    var w = words[i], next = words[i+1];
+    if (/^-/.test(w) && next !== undefined && !/^-/.test(next) && !/^[\[(]/.test(next)) { w = w+' '+next; i++; }
+    out.push(w); i++;
+  }
+  c.innerHTML = out.map(function(w){ return '<span class="tok">'+w.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span>'; }).join(' ');
+});
+</script>
+</body></html>

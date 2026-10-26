@@ -105,6 +105,7 @@ UMD_GUI.py, averages_forGUI.py, val_extract_umd.py
 
     documentation folder:
 umd-flowchart.svg/.pdf/.png      flowchart of the scripts and their files (make_flowchart.py rebuilds it)
+umd-quick-help.pdf/.html         two pages: each script in the order of the workflow, its command and its outputs
 arxiv-jove-UMDpaper.pdf          the UMD paper (arXiv version of the J. Vis. Exp. article)
 Figure-umd-flowchart.ai/.png     the flowchart of the paper (2021)
 
@@ -147,3 +148,6 @@ v 2.8, October 2026 - automated workflow (umd_workflow.py); all the structural s
 - bonding_umd.py: -i initial snapshot (the bonding file records it for the speciation and the cluster MSDs); the cutoff file is now -c (-i <file> still works)
 - msd_umd.py: -i initial snapshot and -s sampling
 - msd_clusters_umd.py reads the popul files written with the angles (speciation_and_angles.py -t 1)
+
+Since v 2.8 (not yet released):
+- documentation folder: quick help of the scripts (umd-quick-help.pdf)
