@@ -126,8 +126,7 @@ v 2.4, January 2026 - VASP parser for on-the-fly machine-learning runs, correcte
 v 2.5, September 2026 - supercells, insertion fixes
 v 2.6, September 2026 - NPT simulations: the cell may change at every step
 v 2.7, October 2026 - VASP parser fixes (on-the-fly ML runs, any cell shape) and repair_umd.py; FFT mean square displacements with diffusion errors; viscosity rewritten; vibrations_umd.py and vdos_thermo.py
-
-Since v 2.7 (not yet released):
+v 2.8, October 2026 - automated workflow (umd_workflow.py); all the structural scripts for any cell and NPT runs; check_umd.py, build_umd.py; new parsers and converters; thermodynamic integration and full thermodynamics rewritten. In detail:
 - gofr_umd.py and bonding_umd.py: one method for any cell shape and for NPT runs; each bond counted once
 - analyze_gofr.py: automatic analysis of all pairs, with optional manual correction; replaces three scripts
 - speciation_and_angles.py: correct angles in any cell, bond lifetimes, single atoms as species; lifetimes.py and liquid_and_vapor_speciation.py rewritten
