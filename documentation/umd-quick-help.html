@@ -56,7 +56,7 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="io"><b>out:</b> <code>&lt;base&gt;.gofr.dat</code> (with -c/-a: <code>&lt;base&gt;.O-SiMg.gofr.dat</code>)</span></div>
 
 <div class="card"><span class="name">analyze_gofr.py</span> <span class="what">&mdash; first maximum, minimum (bond cutoff), coordination number and mean distance of every pair; automatic, <code>-v</code> to check and correct.</span>
-<span class="cmd">analyze_gofr.py [-f &lt;base&gt;.gofr.dat] -a Si-O,Mg-O -v</span>
+<span class="cmd">analyze_gofr.py [-f &lt;base&gt;.gofr.dat] -c Si,Mg -a O -v</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.maximum_bonds.inp</code> (cutoffs), <code>.average_bonds.inp</code>, <code>.coordinations.inp</code>, <code>gofrs_summary.txt</code></span></div>
 
 <div class="card"><span class="name">bonding_umd.py</span> <span class="what">&mdash; the bonds of every snapshot, from per-pair cutoffs or one length; any cell, NPT.</span>

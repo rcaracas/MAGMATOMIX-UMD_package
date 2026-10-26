@@ -157,3 +157,4 @@ v 2.8.2, October 2026 - g(r) of selected pairs:
 - gofr_umd.py: -c central and -a adjacent elements, the g(r) of these pairs only, in <base>.<central>-<adjacent>.gofr.dat
 
 Since v 2.8.2 (not yet released):
+- analyze_gofr.py: -c central and -a adjacent elements, as in gofr_umd.py (the pairs central-adjacent and their reverse); -a with pairs (-a Si-O,Mg-O) still works

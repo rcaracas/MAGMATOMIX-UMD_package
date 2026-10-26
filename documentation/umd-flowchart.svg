@@ -69,7 +69,7 @@
 <text x="230" y="398" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">INTERATOMIC</tspan><tspan x="230" dy="19.6">BONDING</tspan></text>
 <path d="M 102 436 L 102 478" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 102 478 L 108.5 462 L 102 466 L 95.5 462 Z" fill="#231F20"/>
-<text x="122" y="463" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">analyze_gofr.py -f -v</tspan></text>
+<text x="122" y="463" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">analyze_gofr.py -f -c -a -v</tspan></text>
 <rect x="30" y="480" width="152" height="62" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="106" y="507.2" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="106" dy="0">.maximum</tspan><tspan x="106" dy="20.9">bonds.</tspan></text>
 <rect x="30" y="542" width="152" height="62" fill="white" stroke="#231F20" stroke-width="3.2"/>

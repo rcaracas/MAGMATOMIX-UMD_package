@@ -126,12 +126,19 @@ def set_shell(an,pair,values,note):#Sets the first shell of a pair and of its re
             an['results'][p] = dict(values=shell_values(r,g,gs,coord,values['xmax'],values['ymax'],values['xmin']),note=note)
 
 
-def analyze_file(gofrfile,sigma,couples):#First shell of every pair of a gofr file
+def selected(a,b,couples,central,adjacent):#Pair A-B to be analyzed : listed in couples (or B-A), and A central and B adjacent or the reverse
+    if couples and a+'-'+b not in couples and b+'-'+a not in couples:
+        return False
+    return (central == 'all' or a in central) and (adjacent == 'all' or b in adjacent) or \
+           (central == 'all' or b in central) and (adjacent == 'all' or a in adjacent)
+
+
+def analyze_file(gofrfile,sigma,couples,central='all',adjacent='all'):#First shell of every selected pair of a gofr file
     pairs, r, G, C = read_gofr(gofrfile)
     an = dict(file=gofrfile,pairs=pairs,r=r,G=G,C=C,sigma=sigma,results={})
     for pair in pairs:
         a, b = pair.split('-')
-        if couples and pair not in couples and b+'-'+a not in couples:
+        if not selected(a,b,couples,central,adjacent):
             an['results'][pair] = dict(values=None,note='not analyzed')
         elif pair not in an['results']:
             r, g, gs, coord = curves(an,pair)
@@ -310,12 +317,14 @@ def save_plots(an):#One png per pair
 def main(argv):
     gofrfile = ''
     couples = []
+    central = 'all'
+    adjacent = 'all'
     sigma = 0.03
     view = False
     plots = False
-    usage = 'analyze_gofr.py [-f <gofr file>] [-a <pairs>] [-g <smoothing>] [-v] [-p]'
+    usage = 'analyze_gofr.py [-f <gofr file>] [-c <central>] [-a <adjacent>] [-g <smoothing>] [-v] [-p]'
     try:
-        opts, arg = getopt.getopt(argv,"hf:a:g:vp",["fgofrfile","aatoms","gsmoothing"])
+        opts, arg = getopt.getopt(argv,"hf:c:a:g:vp",["fgofrfile","ccentral","aadjacent","gsmoothing"])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -325,8 +334,12 @@ def main(argv):
             print('from the gofr files of gofr_umd.py. Usage:')
             print(usage)
             print('-f : one gofr file. Default : every *.gofr.dat in the current folder and below it, with one summary per folder.')
-            print('-a : pairs to analyze, e.g. Si-O,Mg-O (B-A is included with A-B). The other pairs get 0 in the .inp files, i.e. no bond.')
-            print('     Default : all the pairs.')
+            print('-c : central elements, separated by commas, e.g. Si,Mg. Default is all.')
+            print('-a : adjacent elements, separated by commas, e.g. O. Default is all. As in gofr_umd.py and speciation_and_angles.py :')
+            print('     the pairs central-adjacent are analyzed, and their reverse (same g(r), the coordination seen from the other atom),')
+            print('     e.g. -c Si,Mg -a O : Si-O, Mg-O, O-Si, O-Mg ; -c O : O-X and X-O for every element X.')
+            print('     -a with pairs, e.g. -a Si-O,Mg-O (the former use, still accepted) : these pairs and their reverse.')
+            print('     The other pairs get 0 in the .inp files, i.e. no bond. Default : all the pairs.')
             print('-g : sigma of the gaussian smoothing used to find the peaks, in A. Default 0.03. 0 : no smoothing. The positions are then')
             print('     fitted to the g(r) itself. Increase it for noisy g(r) (few atoms of an element, short runs).')
             print('-v : check each pair in a plot (Previous/Next). Left click moves the maximum (blue), right click the minimum (red);')
@@ -351,8 +364,12 @@ def main(argv):
             sys.exit()
         elif opt in ("-f","--fgofrfile"):
             gofrfile = str(arg)
-        elif opt in ("-a","--aatoms"):
-            couples = arg.split(',')
+        elif opt in ("-c","--ccentral"):
+            central = 'all' if arg == 'all' else [el.strip() for el in arg.split(',') if el.strip()]
+        elif opt in ("-a","--aadjacent") and '-' in arg:#pairs : the former use of -a
+            couples = [pair.strip() for pair in arg.split(',') if pair.strip()]
+        elif opt in ("-a","--aadjacent"):
+            adjacent = 'all' if arg == 'all' else [el.strip() for el in arg.split(',') if el.strip()]
         elif opt in ("-g","--gsmoothing"):
             sigma = float(arg)
         elif opt == '-v':
@@ -376,7 +393,10 @@ def main(argv):
     analyses = []
     for dirpath, files in folders:
         for f in files:
-            an = analyze_file(f,sigma,couples)
+            an = analyze_file(f,sigma,couples,central,adjacent)
+            if all(an['results'][pair]['note'] == 'not analyzed' for pair in an['pairs']):
+                print('\n',f,': no pair of the selection (elements of the file :',
+                      ','.join(dict.fromkeys(el for pair in an['pairs'] for el in pair.split('-'))),')')
             print_results(an)
             analyses.append((dirpath,an))
     if view:
