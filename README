@@ -101,6 +101,11 @@ thermo_integration_umd.py       free energy and entropy by thermodynamic integra
     graphical interface (to be removed in version 3.0):
 UMD_GUI.py, averages_forGUI.py, val_extract_umd.py
 
+    documentation folder:
+umd-flowchart.svg/.pdf/.png      flowchart of the scripts and their files (make_flowchart.py rebuilds it)
+arxiv-jove-UMDpaper.pdf          the UMD paper (arXiv version of the J. Vis. Exp. article)
+Figure-umd-flowchart.ai/.png     the flowchart of the paper (2021)
+
 
 =====
 
@@ -136,3 +141,4 @@ Since v 2.7 (not yet released):
 - viscosity_umd.py: the stress autocorrelations in their own file, <base>.stress.scf.dat, also normalized
 - umd_processes_fast.py: faster and more robust reader of UMD files; the last snapshot is no longer missed with sampling
 - the header of the UMD files ends with a line stating the code that produced the run (origin)
+- documentation folder: updated flowchart of the package, and the UMD paper

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1381pt" height="1420pt" viewBox="0 0 1381 1420">
+<defs><linearGradient id="grayfill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B2B1B1"/><stop offset="1" stop-color="#7B7979"/></linearGradient></defs>
+<rect width="1381" height="1420" fill="white"/>
+<rect x="262" y="6" width="1113" height="321" fill="none" stroke="#231F20" stroke-width="1" stroke-dasharray="11.8 11.8"/>
+<rect x="4" y="345" width="476" height="1069" fill="none" stroke="#231F20" stroke-width="1" stroke-dasharray="11.8 11.8"/>
+<rect x="486" y="345" width="452" height="1069" fill="none" stroke="#231F20" stroke-width="1" stroke-dasharray="11.8 11.8"/>
+<rect x="944" y="345" width="431" height="1069" fill="none" stroke="#231F20" stroke-width="1" stroke-dasharray="11.8 11.8"/>
+<text x="1359" y="48" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="end" font-weight="bold"><tspan x="1359" dy="0">INPUT/OUTPUT</tspan></text>
+<text x="22" y="1350" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="22" dy="0">STRUCTURAL</tspan><tspan x="22" dy="36.96">PROPERTIES</tspan></text>
+<text x="506" y="1350" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="506" dy="0">TRANSPORT</tspan><tspan x="506" dy="36.96">PROPERTIES</tspan></text>
+<text x="964" y="1350" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="964" dy="0">THERMODYNAMIC</tspan><tspan x="964" dy="36.96">PROPERTIES</tspan></text>
+<rect x="6" y="6" width="236" height="140" fill="white" stroke="#231F20" stroke-width="4.5"/>
+<text x="124" y="52" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">ab initio /</tspan><tspan x="124" dy="35.2">classical MD</tspan></text>
+<text x="124" y="128" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">VASP, QBox, LAMMPS</tspan></text>
+<rect x="500" y="140" width="180" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="590" y="180.4" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="590" dy="0">.umd.</tspan></text>
+<path d="M 242 112 L 498 164" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 498 164 L 483.614 154.445 L 486.24 161.611 L 481.026 167.185 Z" fill="#231F20"/>
+<text x="274" y="40" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="274" dy="0">VaspParser.py</tspan><tspan x="274" dy="19.55">QBoxParser.py</tspan><tspan x="274" dy="19.55">LAMMPSParser2umd.py -f -i -s</tspan></text>
+<path d="M 522 140 L 522 116 L 598 116 L 598 138" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 598 138 L 604.5 122 L 598 126 L 591.5 122 Z" fill="#231F20"/>
+<text x="512" y="112" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#782F9A" text-anchor="end" font-weight="normal"><tspan x="512" dy="0">repair_umd.py -f</tspan></text>
+<rect x="300" y="212" width="150" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="375" y="237.4" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="18" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="375" dy="0">new</tspan><tspan x="375" dy="19.8">structures</tspan></text>
+<path d="M 500 198 L 452 230" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 452 230 L 468.918 226.533 L 461.985 223.344 L 461.707 215.716 Z" fill="#231F20"/>
+<path d="M 300 241 L 124 241 L 124 148" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 124 148 L 117.5 164 L 124 160 L 130.5 164 Z" fill="#231F20"/>
+<text x="286" y="288" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="286" dy="0">build_umd.py -f -i -s -a</tspan><tspan x="286" dy="17.25">--supercell --shuffle --insert</tspan><tspan x="286" dy="17.25">--scale --replace --remove</tspan></text>
+<path d="M 680 172 L 858 172" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 858 172 L 842 165.5 L 846 172 L 842 178.5 Z" fill="#231F20"/>
+<text x="688" y="163" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15.5" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="688" dy="0">umd2out.py -f -r -s -i</tspan></text>
+<rect x="860" y="140" width="118" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="919" y="178.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="919" dy="0">.xyz.</tspan></text>
+<rect x="988" y="140" width="118" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1047" y="178.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1047" dy="0">POSCAR</tspan></text>
+<rect x="1116" y="140" width="118" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1175" y="178.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1175" dy="0">LAMMPS</tspan></text>
+<rect x="1244" y="140" width="118" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1303" y="178.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1303" dy="0">DeepMD</tspan></text>
+<path d="M 665 140 L 665 52 L 798 52" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 798 52 L 782 45.5 L 786 52 L 782 58.5 Z" fill="#231F20"/>
+<text x="674" y="40" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15.5" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="674" dy="0">check_umd.py -f</tspan></text>
+<rect x="800" y="22" width="118" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="859" y="57.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="859" dy="0">.check.</tspan></text>
+<path d="M 920 51 L 933.2 51" stroke="#231F20" stroke-width="3"/>
+<path d="M 962 51 L 922 34 L 933.2 51 L 922 68 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="968" y="45" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="968" dy="0">QUALITY</tspan><tspan x="968" dy="19.6">OF THE RUN</tspan></text>
+<path d="M 515 204 L 515 381 L 102 381 L 102 415" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 102 415 L 108.5 399 L 102 403 L 95.5 399 Z" fill="#231F20"/>
+<path d="M 640 204 L 640 445" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 640 445 L 646.5 429 L 640 433 L 633.5 429 Z" fill="#231F20"/>
+<path d="M 540 204 L 540 735 L 563 735" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 563 735 L 547 728.5 L 551 735 L 547 741.5 Z" fill="#231F20"/>
+<path d="M 680 196 L 1030 415" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 1030 415 L 1019.88 401.003 L 1019.83 408.635 L 1012.99 412.023 Z" fill="#231F20"/>
+<path d="M 680 188 L 1340 280 L 1340 637 L 1148 637" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 1148 637 L 1164 643.5 L 1160 637 L 1164 630.5 Z" fill="#231F20"/>
+<g transform="translate(0,45)">
+<rect x="40" y="372" width="124" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="102" y="411.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.gofr.</tspan></text>
+<text x="120" y="328" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="120" dy="0">gofr_umd.py -f -d -s -i</tspan></text>
+<path d="M 166 404 L 193.2 404" stroke="#231F20" stroke-width="3"/>
+<path d="M 222 404 L 182 387 L 193.2 404 L 182 421 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="230" y="398" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">INTERATOMIC</tspan><tspan x="230" dy="19.6">BONDING</tspan></text>
+<path d="M 102 436 L 102 478" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 102 478 L 108.5 462 L 102 466 L 95.5 462 Z" fill="#231F20"/>
+<text x="122" y="463" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">analyze_gofr.py -f -v</tspan></text>
+<rect x="30" y="480" width="152" height="62" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="106" y="507.2" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="106" dy="0">.maximum</tspan><tspan x="106" dy="20.9">bonds.</tspan></text>
+<rect x="30" y="542" width="152" height="62" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="106" y="579.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="106" dy="0">.coordinations.</tspan></text>
+<path d="M 184 573 L 211.2 573" stroke="#231F20" stroke-width="3"/>
+<path d="M 240 573 L 200 556 L 211.2 573 L 200 590 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="248" y="567" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="248" dy="0">COORDINATION</tspan><tspan x="248" dy="19.6">NUMBERS</tspan></text>
+<path d="M 102 604 L 102 646" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 102 646 L 108.5 630 L 102 634 L 95.5 630 Z" fill="#231F20"/>
+<text x="122" y="631" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">bonding_umd.py -f -i -l -s</tspan></text>
+<rect x="30" y="648" width="152" height="62" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="106" y="686.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="106" dy="0">.bonding.</tspan></text>
+<path d="M 102 710 L 102 770" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 102 770 L 108.5 754 L 102 758 L 95.5 754 Z" fill="#231F20"/>
+<text x="122" y="735" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="122" dy="0">speciation_and_angles.py</tspan><tspan x="122" dy="19.55">-f -b -c -a -r -m -s -t -l</tspan></text>
+<rect x="40" y="772" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="102" y="808.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.step.</tspan></text>
+<rect x="40" y="830" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="102" y="866.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.popul.</tspan></text>
+<rect x="40" y="888" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="102" y="924.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.stat.</tspan></text>
+<path d="M 166 858 L 193.2 858" stroke="#231F20" stroke-width="3"/>
+<path d="M 222 858 L 182 841 L 193.2 858 L 182 875 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="230" y="852" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">CHEMICAL</tspan><tspan x="230" dy="19.6">SPECIATION</tspan></text>
+<rect x="40" y="958" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="102" y="993.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.angles.</tspan></text>
+<rect x="40" y="1016" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="102" y="1051.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.bondslives.</tspan></text>
+<path d="M 102 946 L 102 956" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 166 987 L 193.2 987" stroke="#231F20" stroke-width="3"/>
+<path d="M 222 987 L 182 970 L 193.2 987 L 182 1004 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="230" y="981" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">ANGLES</tspan></text>
+<path d="M 166 1045 L 193.2 1045" stroke="#231F20" stroke-width="3"/>
+<path d="M 222 1045 L 182 1028 L 193.2 1045 L 182 1062 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="230" y="1039" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">BOND</tspan><tspan x="230" dy="19.6">LIFETIMES</tspan></text>
+<path d="M 40 859 L 18 859 L 18 1186 L 262 1186" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 18 1116 L 150 1116" fill="none" stroke="#231F20" stroke-width="2"/>
+<text x="30" y="1108" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="30" dy="0">lifetimes.py</tspan></text>
+<path d="M 150 1116 L 171.2 1116" stroke="#231F20" stroke-width="3"/>
+<path d="M 200 1116 L 160 1099 L 171.2 1116 L 160 1133 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="208" y="1110" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="208" dy="0">LIFETIMES</tspan><tspan x="208" dy="19.6">OF SPECIES</tspan></text>
+<text x="30" y="1160" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="30" dy="0">liquid_and_vapor_speciation.py</tspan><tspan x="30" dy="18.4">stat-concentrate.py</tspan></text>
+<path d="M 262 1186 L 283.2 1186" stroke="#231F20" stroke-width="3"/>
+<path d="M 312 1186 L 272 1169 L 283.2 1186 L 272 1203 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="320" y="1180" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="320" dy="0">LIQUID / VAPOR</tspan><tspan x="320" dy="19.6">PARTITIONING</tspan></text>
+<text x="652" y="330" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="652" dy="0">viscosity_umd.py</tspan><tspan x="652" dy="19.55">-f -i -n -c -v</tspan></text>
+<rect x="565" y="402" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="438.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.stress.scf.</tspan></text>
+<rect x="565" y="462" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="498.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.visc.</tspan></text>
+<path d="M 715 432 L 800 432 L 800 526" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 800 524 L 800 533.2" stroke="#231F20" stroke-width="3"/>
+<path d="M 800 562 L 817 522 L 800 533.2 L 783 522 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="800" y="590" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="middle" font-weight="normal"><tspan x="800" dy="0">VISCOSITY</tspan></text>
+<text x="565" y="634" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">msd_umd.py -f -m -a</tspan><tspan x="565" dy="19.55">-n -b -e</tspan></text>
+<rect x="565" y="660" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="696.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msd.</tspan></text>
+<rect x="565" y="720" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="756.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.diffusion.</tspan></text>
+<path d="M 717 720 L 741.2 720" stroke="#231F20" stroke-width="3"/>
+<path d="M 770 720 L 730 703 L 741.2 720 L 730 737 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="776" y="708" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">ATOMIC</tspan><tspan x="776" dy="19.6">DIFFUSION</tspan></text>
+<text x="776" y="750" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">(and tensor)</tspan></text>
+<text x="585" y="810" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="585" dy="0">analyze_msd.py</tspan></text>
+<path d="M 640 780 L 640 795" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 166 830 L 470 830 L 470 900 L 640 900 L 640 960" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 640 960 L 646.5 944 L 640 948 L 633.5 944 Z" fill="#231F20"/>
+<text x="650" y="946" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="650" dy="0">msd_clusters_umd.py -f -p</tspan></text>
+<rect x="565" y="962" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="998.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msd.</tspan></text>
+<path d="M 717 992 L 741.2 992" stroke="#231F20" stroke-width="3"/>
+<path d="M 770 992 L 730 975 L 741.2 992 L 730 1009 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="776" y="980" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">DIFFUSION OF</tspan><tspan x="776" dy="19.6">CHEMICAL</tspan><tspan x="776" dy="19.6">SPECIES</tspan></text>
+<text x="565" y="1060" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">analyze_msd_clusters.py</tspan></text>
+<path d="M 640 1022 L 640 1042" fill="none" stroke="#231F20" stroke-width="2"/>
+<text x="1030" y="330" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="1030" dy="0">averages.py -f -p -a</tspan></text>
+<rect x="966" y="372" width="170" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1051" y="410.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1051" dy="0">fullthermo.</tspan></text>
+<path d="M 1138 404 L 1167.2 404" stroke="#231F20" stroke-width="3"/>
+<path d="M 1196 404 L 1156 387 L 1167.2 404 L 1156 421 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="1204" y="384" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1204" dy="0">THERMO-</tspan><tspan x="1204" dy="19.6">DYNAMICS</tspan><tspan x="1204" dy="19.6">(P, T, energy,</tspan><tspan x="1204" dy="19.6">heat capacity)</tspan></text>
+<text x="1160" y="520" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="1160" dy="0">vibrations_umd.py</tspan><tspan x="1160" dy="19.55">-f -a -t -w</tspan></text>
+<rect x="966" y="562" width="180" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1056" y="598.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1056" dy="0">.vels.scf.</tspan></text>
+<rect x="966" y="622" width="180" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1056" y="658.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1056" dy="0">.vibr.</tspan></text>
+<path d="M 1148 652 L 1177.2 652" stroke="#231F20" stroke-width="3"/>
+<path d="M 1206 652 L 1166 635 L 1177.2 652 L 1166 669 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="1214" y="646" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1214" dy="0">VIBRATIONAL</tspan><tspan x="1214" dy="19.6">SPECTRUM</tspan></text>
+<path d="M 964 660 L 908.147 696.304" stroke="#231F20" stroke-width="3"/>
+<path d="M 884 712 L 926.803 704.454 L 908.147 696.304 L 908.273 675.947 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M 1056 682 L 1056 770" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 1056 770 L 1062.5 754 L 1056 758 L 1049.5 754 Z" fill="#231F20"/>
+<text x="1070" y="724" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="1070" dy="0">vdos_thermo.py -f -t</tspan></text>
+<rect x="966" y="772" width="180" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1056" y="808.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1056" dy="0">.vdos.thermo.</tspan></text>
+<rect x="966" y="832" width="180" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1056" y="868.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1056" dy="0">.2pt.</tspan></text>
+<path d="M 1148 832 L 1177.2 832" stroke="#231F20" stroke-width="3"/>
+<path d="M 1206 832 L 1166 815 L 1177.2 832 L 1166 849 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="1214" y="802" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1214" dy="0">THERMO-</tspan><tspan x="1214" dy="18.48">DYNAMICS</tspan><tspan x="1214" dy="18.48">(entropy, free energy:</tspan><tspan x="1214" dy="18.48">harmonic, 2PT,</tspan><tspan x="1214" dy="18.48">quantum corrections)</tspan></text>
+<rect x="990" y="960" width="120" height="52" fill="white" stroke="#231F20" stroke-width="2.5"/>
+<rect x="982" y="968" width="120" height="52" fill="white" stroke="#231F20" stroke-width="2.5"/>
+<rect x="974" y="976" width="120" height="52" fill="white" stroke="#231F20" stroke-width="2.5"/>
+<text x="1034" y="1008" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1034" dy="0">.umd.</tspan></text>
+<text x="1120" y="990" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="1120" dy="0">runs at</tspan><tspan x="1120" dy="17.25">several λ</tspan></text>
+<path d="M 1034 1028 L 1034 1100" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 1034 1100 L 1040.5 1084 L 1034 1088 L 1027.5 1084 Z" fill="#231F20"/>
+<text x="1050" y="1060" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="1050" dy="0">thermo_integration_umd.py</tspan><tspan x="1050" dy="19.55">-f -t -k -v</tspan></text>
+<rect x="958" y="1102" width="232" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="1074" y="1138.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1074" dy="0">thermo_integration.</tspan></text>
+<path d="M 1192 1132 L 1211.2 1132" stroke="#231F20" stroke-width="3"/>
+<path d="M 1240 1132 L 1200 1115 L 1211.2 1132 L 1200 1149 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="1246" y="1110" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1246" dy="0">FREE</tspan><tspan x="1246" dy="18.48">ENERGY,</tspan><tspan x="1246" dy="18.48">ENTROPY</tspan></text>
+</g>
+</svg>
