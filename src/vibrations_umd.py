@@ -369,6 +369,8 @@ def main(argv):
     if not os.path.isfile(umdfile):
         print('umd file ',umdfile,'does not exist')
         sys.exit()
+    base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
+    umdpf.remove_former_outputs([base+ext for ext in ('.vels.scf.dat','.vibr.dat','.vibr.axes.dat','.vibr.err.dat','.vacf.diffusion.dat')])#of a former run
 
     MyCrystal,SnapshotsValues,TimeStep,numsteps = umdpf.read_values(umdfile,"velocity","line",nCores=nCores)
     V = np.array(SnapshotsValues).reshape(len(SnapshotsValues),MyCrystal.natom,3)#(step, atom, xyz), in A/fs
@@ -471,10 +473,6 @@ def main(argv):
     tD = np.arange(Dwindow)*TimeStep
     ihalf = FitEnd//2
 
-    if umdfile.endswith('.umd.dat'):
-        base = umdfile[:-8]
-    else:
-        base = os.path.splitext(umdfile)[0]
     comment = 'from '+umdfile+' : '+str(nsteps)+' snapshots of '+str(TimeStep)+' fs from snapshot '+str(firststep)+', all time origins'
     axescomment = [] if U is None else ['axes (unit vectors) : '+' ; '.join(lab+' = '+np.array2string(u,precision=6,separator=',') for lab,u in zip(AxesLabels,U))]
     collabels = [[el]+[el+'_'+lab for lab in AxesLabels] for el in elements]

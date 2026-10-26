@@ -8,6 +8,7 @@
 import sys, getopt, glob, os, re
 import numpy as np
 import liquid_and_vapor_speciation as lvs
+import umd_processes_fast as umdpf
 
 COLORS = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948']#one per central element, in this fixed order
 TEXT = '#0b0b0b'
@@ -234,6 +235,13 @@ def main(argv):
                 print('the r0 step file',stepfile,'does not exist : give it with -s')
                 sys.exit()
     phases = ['liquid','vapor'] if length is not None else ['']
+    #the figures of a former run on these files (with or without -l)
+    if merge:
+        merged = output or 'lifetimes.merged.pdf'
+        umdpf.remove_former_outputs([merged]+[os.path.splitext(merged)[0]+'.'+phase+'.pdf' for phase in ('liquid','vapor')])
+    else:
+        umdpf.remove_former_outputs([(populfile[:-10] if populfile.endswith('.popul.dat') else os.path.splitext(populfile)[0])+phase+'.lifetimes.pdf'
+                                     for populfile in files for phase in ('','.liquid','.vapor')])
 
     import matplotlib
     if not view:

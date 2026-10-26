@@ -5,7 +5,7 @@
 #Converts the snapshots of a UMD file to other formats : extended XYZ trajectory, VASP POSCAR, LAMMPS data files and dump trajectory, DeepMD
 #training set (deepmd/npy). The UMD file is read line by line (any file size), every -s-th snapshot from -i, or the single snapshot -k.
 
-import sys, getopt, os
+import sys, getopt, os, re
 import numpy as np
 import umd_processes_fast as umdpf
 from averages import kinetic_included
@@ -137,7 +137,7 @@ class DeepMDSet:#deepmd/npy training set : type.raw, type_map.raw, then folders 
     #energy.npy (eV), force.npy (eV/A), virial.npy (eV, if the file has stresses)
     def __init__(self,folder,elements,types):
         self.folder = folder
-        os.makedirs(folder)
+        os.makedirs(folder,exist_ok=True)#the files of a former run are removed first ; other files in the folder are kept
         np.savetxt(os.path.join(folder,'type.raw'),types,fmt='%d')
         with open(os.path.join(folder,'type_map.raw'),'w') as ff:
             ff.write('\n'.join(elements)+'\n')
@@ -176,6 +176,24 @@ def output_names(base,formats,ksnapshot):
     tag = '' if ksnapshot < 0 else '.'+str(ksnapshot)
     return {'xyz':base+tag+'.xyz', 'lammpstrj':base+tag+'.lammpstrj', 'deepmd':base+tag+'.deepmd',
             'poscar':base+'._%d_.POSCAR.vasp', 'lammps':base+'._%d_.lammps.data'}
+
+
+def remove_former(names,formats,ksnapshot):#The outputs of a former run in the formats of this one : the trajectory files, the files per
+    folder, name = os.path.split(names['poscar'][:-len('._%d_.POSCAR.vasp')])#snapshot (all of them, another -i/-s writes other snapshots ;
+    paths = [names[fmt] for fmt in ('xyz','lammpstrj') if fmt in formats]    #with -k only that one, the others extracted one by one are kept),
+    for fmt, suffix in (('poscar',r'\.POSCAR\.vasp'),('lammps',r'\.lammps\.data')):#and in the deepmd folder the files it writes,
+        if fmt in formats:                                                          #then the folders left empty
+            paths += [names[fmt] % ksnapshot] if ksnapshot >= 0 else umdpf.former_outputs(folder,re.escape(name)+r'\._\d+_'+suffix)
+    folders = []
+    if 'deepmd' in formats and os.path.isdir(names['deepmd']):
+        sets = [os.path.join(names['deepmd'],d) for d in sorted(os.listdir(names['deepmd'])) if re.fullmatch(r'set\.\d{3}',d)]
+        paths += [os.path.join(names['deepmd'],f) for f in ('type.raw','type_map.raw')]
+        paths += [os.path.join(d,f+'.npy') for d in sets for f in ('box','coord','energy','force','virial')]
+        folders = sets+[names['deepmd']]
+    umdpf.remove_former_outputs(paths)
+    for d in folders:
+        if os.path.isdir(d) and not os.listdir(d):
+            os.rmdir(d)
 
 
 def main(argv):
@@ -222,6 +240,8 @@ def main(argv):
             print('     LAMMPS outputs : restricted triclinic box (a along x, b in the xy plane, tilts at most half a box length) : the')
             print('     structure is rotated, and for a left-handed cell c is replaced by -c ; the lattice and the positions are unchanged.')
             print('-u : unwrapped positions in the XYZ file')
+            print('The outputs of a former run in the formats asked are removed first : the trajectory files, all the files per snapshot (with -k')
+            print('only that snapshot\'s, so snapshots extracted one by one are kept), and the files umd2out.py writes in the deepmd folder.')
             sys.exit()
         elif opt == '-f':
             UMDname = str(arg)
@@ -265,8 +285,9 @@ def main(argv):
     if 'xyz' in formats or 'deepmd' in formats:
         included, how = kinetic_in_internal(UMDname,natom)
         print('energy : InternalEnergy','- KineticEnergyIons' if included else '','- ElectronicEntropy  (' + how + ')')
-    if 'deepmd' in formats and os.path.exists(names['deepmd']):
-        print('The folder',names['deepmd'],'already exists : remove or rename it, or choose another name with -o')
+    remove_former(names,formats,ksnapshot)
+    if 'deepmd' in formats and os.path.exists(names['deepmd']) and not os.path.isdir(names['deepmd']):
+        print(names['deepmd'],'is a file, not a folder : remove or rename it, or choose another name with -o')
         sys.exit()
     xyzfile = dumpfile = deepmd = None
     nwritten = 0

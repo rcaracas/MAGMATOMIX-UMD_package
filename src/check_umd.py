@@ -140,6 +140,8 @@ def main(argv):
     if radiusfile and not os.path.isfile(radiusfile):
         print('the radius file',radiusfile,'does not exist')
         sys.exit()
+    base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
+    umdpf.remove_former_outputs([base+'.check.dat',base+'.overlap.dat'])#of a former run
 
     MyCrystal,TimeStep = umdpf.Crystallization(umdfile)
     natom = MyCrystal.natom
@@ -147,7 +149,6 @@ def main(argv):
     typat = np.array(MyCrystal.typat)
     masses = np.array(MyCrystal.masses)[typat]
     masks = [typat == it for it in range(MyCrystal.ntypat)]
-    base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
     radius = read_radius(radiusfile) if radiusfile else None
     if radius is not None:
         missing = [el for el in elements if el not in radius]

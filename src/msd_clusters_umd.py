@@ -132,6 +132,10 @@ def main(argv):
         print ('the population file ',POPname,' does not exist')
         sys.exit()
 
+#the cluster MSD files of a former run on this popul file (species no longer found would be left stale)
+    folder, popbase = os.path.split(POPname[:-10] if POPname.endswith('.popul.dat') else os.path.splitext(POPname)[0])
+    umdpf.remove_former_outputs(umdpf.former_outputs(folder,re.escape(popbase)+r'__[A-Za-z0-9_]+\.msd\.dat'))
+
 #read the umd file
     MyCrystal,SnapshotsValues,TimeStep,numsteps = umdpf.read_values(UMDname,"absxcart","line")
     AbsXcart = np.array(SnapshotsValues).reshape(len(SnapshotsValues),MyCrystal.natom,3)

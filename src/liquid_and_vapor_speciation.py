@@ -8,6 +8,7 @@ import sys
 import getopt
 import re
 from itertools import groupby
+import umd_processes_fast as umdpf
 
 
 def read_step(stepfile,length):#Liquid atoms of each step of an r0 step file, and the steps
@@ -122,8 +123,9 @@ def main(argv):
         elif opt == '-l':
             length = int(arg)
 
-    vapor, liquid = split(populfile,stepfile,length)
     base = populfile[:-10] if populfile.endswith('.popul.dat') else populfile
+    umdpf.remove_former_outputs([base+phase+ext for phase in ('.vapor','.liquid') for ext in ('.popul.dat','.stat.dat')])#of a former run
+    vapor, liquid = split(populfile,stepfile,length)
     write_phase(base+'.vapor',vapor)
     write_phase(base+'.liquid',liquid)
     print('Vapor and liquid species written in',base+'.vapor.popul.dat,',base+'.vapor.stat.dat,',base+'.liquid.popul.dat,',base+'.liquid.stat.dat')

@@ -7,7 +7,7 @@ Created on Fri Jun 16 12:22:44 2023
 """
 
 
-import sys, os.path
+import sys, os.path, re
 import crystallography as cr
 from functools import partial
 import concurrent.futures
@@ -355,6 +355,15 @@ def headerumd():
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')
     print ('    with the UMD Package. J. Vis. Exp. (175), e61534, doi:10.3791/61534 (2021)')
     print (' ')
+
+def former_outputs(folder,pattern):#The files of folder whose whole name matches the regular expression pattern (the names of the outputs of a script)
+    return [os.path.join(folder,f) for f in sorted(os.listdir(folder or os.curdir)) if re.fullmatch(pattern,f)]
+
+def remove_former_outputs(paths):#Rule of the package : a script run again first removes the outputs of its former run, so that none is left stale
+    for path in paths:            #(e.g. after a failure, or when the new run writes fewer files) ; only these named files, never anything else
+        if os.path.lexists(path) and not os.path.isdir(path):
+            os.remove(path)
+            print('former output removed : ',path)
 
 def write_poscar(filename,title,cell,elements,counts,xred,vels=None):#VASP5 POSCAR : cell (rows a, b, c, A), the atoms grouped by element (counts[k] atoms
     #of elements[k], in this order), direct coordinates, and Cartesian velocities (A/fs) if given ; the only POSCAR writer of the package

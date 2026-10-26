@@ -259,6 +259,8 @@ def main(argv):
 
 
     if (os.path.isfile(umdfile)):
+        base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
+        umdpf.remove_former_outputs([base+ext for ext in ('.msd.dat','.msd.blocks.dat','.diffusion.dat','.diffusion.tensor.dat')])#of a former run
 
         MyCrystal,SnapshotsValues,TimeStep,numsteps = umdpf.read_values(umdfile,"absxcart","line",sampling,first,nCores=nCores)
         TimeStep = TimeStep*sampling                                            #time between two snapshots used
@@ -362,10 +364,6 @@ def main(argv):
             columns += list(MSDel[itypat])
         labels += ellabels
 
-        if umdfile.endswith('.umd.dat'):
-            base = umdfile[:-8]
-        else :
-            base = os.path.splitext(umdfile)[0]
         msdfile = base + '.msd.dat'
         f = open(msdfile,'w')
         f.write('# MSD from '+umdfile+' : '+str(nsteps)+' snapshots'+(' from snapshot '+str(first) if first else '')+(' every '+str(sampling) if sampling > 1 else '')+', timestep '+str(TimeStep)+' fs, all time origins, lags from '+str(ballistic)+' to '+str(lags[-1])+' steps every '+str(vv)+' ; mode '+Mode+'\n')

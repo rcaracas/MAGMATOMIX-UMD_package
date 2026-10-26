@@ -6,16 +6,18 @@
 ### First maximum, first minimum, coordination number and mean distance of the first shell of every pair of elements, from the gofr files of gofr_umd.py
 
 
-import sys, getopt, os, glob
+import sys, getopt, os, glob, re
 import numpy as np
 from scipy.ndimage import gaussian_filter1d, median_filter
 from scipy.signal import find_peaks
+import umd_processes_fast as umdpf
 
 
 NOISE_PEAKS = 10.0      #a peak must be more prominent than this many times the noise of the smoothed g(r)
 TOP_MAX = 0.25          #the maximum is fitted over the top quarter of the first peak
 BOTTOM_MIN = 0.1        #the minimum is fitted over the bottom tenth of the dip after the first peak
 SHALLOW = 0.5           #warning when g(min)/g(max) is above this : the end of the first shell is ill-defined
+MAX_FIT = 1.0           #the cubics are fitted over at most this width (A), centered on the peak or the dip
 
 
 def read_gofr(gofrfile):#Pairs, distances, g(r) and running coordination numbers of a gofr file of gofr_umd.py
@@ -32,7 +34,8 @@ def smoothed_noise(g,s):#Local noise of the smoothed g(r) : from the median of |
     return sigma/np.sqrt(2.0*np.sqrt(np.pi)*max(s,0.5))
 
 
-def refine_max(r,g,gs,ip,im):#Position and height of the first maximum : cubic fitted to g over the top quarter of the peak
+def refine_max(r,g,gs,ip,im):#Position and height of the first maximum : cubic fitted to g over the top quarter of the peak, at most MAX_FIT wide
+    half = int(round(0.5*MAX_FIT/(r[1]-r[0])))
     h = gs[ip]-gs[im]
     lo = ip
     while lo > 0 and gs[lo-1] >= gs[ip]-TOP_MAX*h:
@@ -40,7 +43,7 @@ def refine_max(r,g,gs,ip,im):#Position and height of the first maximum : cubic f
     hi = ip
     while hi < im and gs[hi+1] >= gs[ip]-TOP_MAX*h:
         hi += 1
-    lo, hi = min(lo,ip-2), max(hi,ip+2)
+    lo, hi = max(min(lo,ip-2),ip-half), min(max(hi,ip+2),ip+half)
     if lo < 0 or hi >= len(r):
         return r[ip], gs[ip]
     p = np.polyfit(r[lo:hi+1]-r[ip],g[lo:hi+1],3)
@@ -52,7 +55,8 @@ def refine_max(r,g,gs,ip,im):#Position and height of the first maximum : cubic f
     return x[k], y[k]
 
 
-def refine_min(r,g,gs,ip,im,iend):#Position of the first minimum : parabola fitted to g over the bottom tenth of the minimum, else the middle of this region
+def refine_min(r,g,gs,ip,im,iend):#Position of the first minimum : cubic fitted to g over the bottom tenth of the dip, at most MAX_FIT wide ;
+    half = int(round(0.5*MAX_FIT/(r[1]-r[0])))                   #the lowest point of the smoothed g(r) when the cubic has no minimum inside
     h = gs[ip]-gs[im]
     lo = im
     while lo > ip and gs[lo-1] <= gs[im]+BOTTOM_MIN*h:
@@ -63,12 +67,21 @@ def refine_min(r,g,gs,ip,im,iend):#Position of the first minimum : parabola fitt
     lo, hi = min(lo,im-2), max(hi,im+2)
     if lo <= ip or hi >= len(r):
         return r[im]
-    p = np.polyfit(r[lo:hi+1]-r[im],g[lo:hi+1],2)
-    if p[0] > 0:
-        x = r[im]-0.5*p[1]/p[0]
-        if r[lo] < x < r[hi]:
-            return x
-    return 0.5*(r[lo]+r[hi])#flat bottom (e.g. g = 0 between the shells of a molecule) : any cutoff inside gives the same bonds
+    if g[im] == 0:#no pairs at the minimum (g = 0 between the shells of a molecule) : the middle of the gap, any cutoff inside gives the same bonds
+        zlo, zhi = im, im
+        while zlo > ip and g[zlo-1] == 0:
+            zlo -= 1
+        while zhi < len(r)-1 and g[zhi+1] == 0:
+            zhi += 1
+        return 0.5*(r[zlo]+r[zhi])
+    lo, hi = max(lo,im-half), min(hi,im+half)
+    p = np.polyfit(r[lo:hi+1]-r[im],g[lo:hi+1],3)
+    x = np.linspace(r[lo],r[hi],2001)
+    y = np.polyval(p,x-r[im])
+    k = np.argmin(y)
+    if k == 0 or k == len(x)-1:#no minimum inside the window
+        return r[im]
+    return x[k]
 
 
 def shell_values(r,g,gs,coord,xmax,ymax,xmin):#Coordination number and mean distance of the first shell ending at xmin
@@ -147,23 +160,44 @@ def analyze_file(gofrfile,sigma,couples,central='all',adjacent='all'):#First she
     return an
 
 
-def print_results(an):
-    print('\n',an['file'])
-    print('%-8s %8s %8s %8s %8s %8s %8s  %s' % ('pair','xmax(A)','g(xmax)','xmin(A)','g(xmin)','coord','rmean(A)','note'))
+def print_results(an):#One line per pair A-B, with the coordination numbers of A-B and of B-A (same g(r), same shell) ;
+    print('\n',an['file'])          #the pairs not analyzed or without pairs on one line
+    print('%-8s %8s %8s %8s %8s %8s %8s %8s  %s' % ('pair A-B','xmax(A)','g(xmax)','xmin(A)','g(xmin)','CN A-B','CN B-A','rmean(A)','note'))
+    others = []
     for pair in an['pairs']:
-        v, note = an['results'][pair]['values'], an['results'][pair]['note']
+        a, b = pair.split('-')
+        rev = b+'-'+a
+        note = an['results'][pair]['note']
+        if rev != pair and rev in an['pairs'][:an['pairs'].index(pair)]:#already on the line of B-A
+            continue
+        if note in ('not analyzed','no pairs'):
+            others.append(pair)
+            continue
+        v = an['results'][pair]['values']
+        vrev = an['results'][rev]['values'] if rev != pair and rev in an['results'] else None
         if v is None:
-            print('%-8s %8s %8s %8s %8s %8s %8s  %s' % (pair,'-','-','-','-','-','-',note))
+            print('%-8s %8s %8s %8s %8s %8s %8s %8s  %s' % (pair,'-','-','-','-','-','-','-',note))
         else:
-            print('%-8s %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f  %s' % (pair,v['xmax'],v['ymax'],v['xmin'],v['ymin'],v['coord'],v['rmean'],note))
+            print('%-8s %8.3f %8.3f %8.3f %8.3f %8.3f %8s %8.3f  %s' % (pair,v['xmax'],v['ymax'],v['xmin'],v['ymin'],v['coord'],
+                                                                    '%.3f' % vrev['coord'] if vrev is not None else '-',v['rmean'],note))
+    if others:
+        print('not analyzed or without pairs (0 in the .inp files) :',', '.join(others))
 
 
-def write_inputs(an):#The three files read by bonding_umd.py -c : the first minima (bond cutoffs), the first maxima and the coordination numbers
-    base = an['file'][:-9] if an['file'].endswith('.gofr.dat') else os.path.splitext(an['file'])[0]
-    for suffix, key in (('.maximum_bonds.inp','xmin'),('.average_bonds.inp','xmax'),('.coordinations.inp','coord')):
+def output_names(gofrfile):#The outputs of analyze_gofr.py for a gofr file : the three .inp files and the plots of -p
+    base = gofrfile[:-9] if gofrfile.endswith('.gofr.dat') else os.path.splitext(gofrfile)[0]
+    folder, name = os.path.split(base)
+    return [base+suffix for suffix in ('.maximum_bonds.inp','.average_bonds.inp','.coordinations.inp')] \
+           +umdpf.former_outputs(folder,re.escape(name)+r'\.gofr\.[A-Z][a-z]?-[A-Z][a-z]?\.png')
+
+
+def write_inputs(an):#The three files read by bonding_umd.py -c : the first minima (bond cutoffs), the first maxima and the coordination numbers ;
+    base = an['file'][:-9] if an['file'].endswith('.gofr.dat') else os.path.splitext(an['file'])[0]#every pair of the elements of the file,
+    elements = list(dict.fromkeys(el for pair in an['pairs'] for el in pair.split('-')))     #0 (no bond) for those without a shell or not
+    for suffix, key in (('.maximum_bonds.inp','xmin'),('.average_bonds.inp','xmax'),('.coordinations.inp','coord')):#in the file
         with open(base+suffix,'w') as f:
-            for pair in an['pairs']:
-                v = an['results'][pair]['values']
+            for pair in (a+'-'+b for a in elements for b in elements):
+                v = an['results'][pair]['values'] if pair in an['results'] else None
                 f.write('\t'.join(pair.split('-'))+'\t'+('%.4f' % v[key] if v is not None else '0')+'\n')
     print('Files ',base+'.maximum_bonds.inp, .average_bonds.inp and .coordinations.inp written')
 
@@ -215,32 +249,31 @@ def draw_pair(ax,an,pair):#g(r), its smoothed curve, the first maximum and minim
     ax.legend(loc='upper right',fontsize='small')
 
 
-def unique_pairs(an):#A-B and B-A have the same g(r) : one of them is shown
-    shown = []
+def unique_pairs(an):#A-B and B-A have the same g(r) : one of them is shown ; not the pairs not analyzed or without pairs (g = 0 : not
+    shown = []                                        #computed by gofr_umd.py -c/-a, or a single atom of an element with itself)
     for pair in an['pairs']:
         a, b = pair.split('-')
-        if b+'-'+a not in shown and an['results'][pair]['note'] != 'not analyzed':
+        if b+'-'+a not in shown and an['results'][pair]['note'] not in ('not analyzed','no pairs'):
             shown.append(pair)
     return shown
 
 
-def clicked(an,pair,x,kind,snap):#Maximum or minimum moved to a click : with snap, the extremum of the smoothed g(r) within 0.1 A, refined
-    r, g, gs, coord = curves(an,pair)                              #as the automatic ones ; without, the clicked distance
-    i = int(np.argmin(np.abs(r-x)))
-    if snap:
-        near = np.where(np.abs(r-x) <= 0.1)[0]
-        i = near[np.argmax(gs[near])] if kind == 'max' else near[np.argmin(gs[near])]
-    v = an['results'][pair]['values']
+def fit_click(r,gs,g,x,kind,ip=None):#Manual input : the automatic fits started from the clicked peak or dip instead of the one found :
+    i = int(np.argmin(np.abs(r-x)))                     #from the click, up the smoothed g(r) to the top of its peak (down to the
+    sign = 1 if kind == 'max' else -1                   #bottom of its dip), then the maximum of a cubic over the top quarter of
+    while True:                                         #the peak (the minimum of a cubic over the bottom tenth of the dip)
+        best = max((k for k in (i-1,i,i+1) if 0 <= k < len(r) and (kind == 'max' or k > ip)),key=lambda k: sign*gs[k])
+        if best == i:
+            break
+        i = best
     if kind == 'max':
-        im = int(np.argmin(np.abs(r-v['xmin']))) if v is not None else len(r)-1
-        xmax, ymax = refine_max(r,g,gs,i,max(im,i+1)) if snap else (x,float(np.interp(x,r,gs)))
-        return dict(xmax=xmax,ymax=ymax,xmin=v['xmin'] if v is not None else np.nan)
-    ip = int(np.argmin(np.abs(r-v['xmax']))) if v is not None else 0
-    xmin = refine_min(r,g,gs,min(ip,i-1),i,len(r)-1) if snap else x
-    return dict(xmax=v['xmax'] if v is not None else np.nan,ymax=v['ymax'] if v is not None else np.nan,xmin=xmin)
+        im = i+int(np.argmin(gs[i:])) if i < len(r)-1 else i
+        return refine_max(r,g,gs,i,max(im,i+1))
+    xmin = refine_min(r,g,gs,min(ip,i-1),i,len(r)-1)
+    return xmin, float(np.interp(xmin,r,gs))
 
 
-def check_plots(analyses):#One plot per pair, with Previous/Next ; left click moves the maximum, right click the minimum
+def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clicks, the maximum then the minimum, in the mode of the buttons
     import matplotlib.pyplot as plt
     from matplotlib.widgets import Button
     items = [(an,pair) for an in analyses for pair in unique_pairs(an)]
@@ -248,52 +281,72 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; left click mo
         return
     fig, ax = plt.subplots(figsize=(9,6))
     fig.subplots_adjust(bottom=0.2)
-    state = {'i':0,'snap':True,'pending':{}}
+    state = {'i':0,'mode':'manual','clicks':[],'message':''}
+    names = {'manual':'Manual input','all manual':'All manual'}
     def draw():
         an, pair = items[state['i']]
         draw_pair(ax,an,pair)
-        fig.suptitle('%d/%d    left click: maximum, right click: minimum' % (state['i']+1,len(items)),x=0.98,ha='right',fontsize='small')
+        for x, y in state['clicks']:#the maximum already clicked, waiting for the minimum
+            ax.axvline(x,color='tab:blue',linewidth=0.8)
+        todo = 'click the minimum' if state['clicks'] else 'click the maximum, then the minimum'
+        if state['i'] == len(items)-1:
+            todo += '    (last pair : Next closes and writes the files)'
+        fig.suptitle('%d/%d    %s : %s%s' % (state['i']+1,len(items),names[state['mode']],todo,
+                                            ('    '+state['message']) if state['message'] else ''),x=0.98,ha='right',fontsize='small')
+        for mode, bt in (('manual',buttons[2]),('all manual',buttons[3])):
+            bt.color = 'lightsteelblue' if state['mode'] == mode else '0.85'
+            bt.ax.set_facecolor(bt.color)
         fig.canvas.draw_idle()
-    def step(delta):
-        state['i'] = (state['i']+delta) % len(items)
-        state['pending'] = {}
+    def step(delta):#one pass over the pairs : Next on the last one closes the window (the files are then written), Previous on the first stays
+        if state['i']+delta >= len(items):
+            plt.close(fig)
+            return
+        state['i'] = max(0,state['i']+delta)
+        state['clicks'], state['message'] = [], ''
         draw()
     def onclick(event):
-        if event.inaxes is not ax or event.button not in (1,3) or (fig.canvas.toolbar is not None and fig.canvas.toolbar.mode != ''):
+        if event.inaxes is not ax or event.button != 1 or (fig.canvas.toolbar is not None and fig.canvas.toolbar.mode != ''):
             return
         an, pair = items[state['i']]
-        kind = 'max' if event.button == 1 else 'min'
-        new = clicked(an,pair,event.xdata,kind,state['snap'])
-        if an['results'][pair]['values'] is None:#no shell yet : both the maximum and the minimum are needed
-            state['pending'][kind] = new
-            if len(state['pending']) < 2:
-                ax.axvline(event.xdata,color='tab:blue' if kind == 'max' else 'tab:red',linewidth=0.8)
-                fig.canvas.draw_idle()
-                return
-            new = dict(xmax=state['pending']['max']['xmax'],ymax=state['pending']['max']['ymax'],xmin=state['pending']['min']['xmin'])
-            state['pending'] = {}
-        set_shell(an,pair,new,'set by hand')
+        r, g, gs, coord = curves(an,pair)
+        state['message'] = ''
+        kind = 'min' if state['clicks'] else 'max'
+        if state['mode'] == 'manual':
+            ip = int(np.argmin(np.abs(r-state['clicks'][0][0]))) if state['clicks'] else None
+            x, y = fit_click(r,gs,g,event.xdata,kind,ip)
+        else:
+            x, y = event.xdata, (event.ydata if kind == 'max' else float(np.interp(event.xdata,r,gs)))
+        if kind == 'max':
+            state['clicks'] = [(x,y)]
+            draw()
+            return
+        xmax, ymax = state['clicks'][0]
+        state['clicks'] = []
+        if x <= xmax:
+            state['message'] = 'the minimum must be after the maximum : click both again'
+        else:
+            set_shell(an,pair,dict(xmax=xmax,ymax=ymax,xmin=x),names[state['mode']].lower())
+        draw()
+    def setmode(mode):
+        state['mode'], state['clicks'], state['message'] = mode, [], ''
         draw()
     def discard(event):
         an, pair = items[state['i']]
         set_shell(an,pair,None,'discarded')
+        state['clicks'], state['message'] = [], ''
         draw()
     def automatic(event):
         an, pair = items[state['i']]
         r, g, gs, coord = curves(an,pair)
         set_shell(an,pair,*first_shell(r,g,coord,an['sigma']))
+        state['clicks'], state['message'] = [], ''
         draw()
-    def togglesnap(event):
-        state['snap'] = not state['snap']
-        bsnap.label.set_text('Snap: on' if state['snap'] else 'Snap: off')
-        fig.canvas.draw_idle()
     buttons = []
-    for label, pos, func in (('Discard',0.10,discard),('Automatic',0.26,automatic),('Snap: on',0.42,togglesnap),
-                             ('Previous',0.62,lambda e: step(-1)),('Next',0.78,lambda e: step(1))):
-        bt = Button(fig.add_axes([pos,0.04,0.14,0.07]),label)
+    for label, pos, func in (('Discard',0.04,discard),('Automatic',0.195,automatic),('Manual input',0.35,lambda e: setmode('manual')),
+                             ('All manual',0.505,lambda e: setmode('all manual')),('Previous',0.69,lambda e: step(-1)),('Next',0.845,lambda e: step(1))):
+        bt = Button(fig.add_axes([pos,0.04,0.135,0.07]),label)
         bt.on_clicked(func)
         buttons.append(bt)
-    bsnap = buttons[2]
     fig._umd_buttons = buttons      #keeps the buttons alive, otherwise they are garbage-collected and stop responding
     fig.canvas.mpl_connect('button_press_event',onclick)
     draw()
@@ -342,25 +395,36 @@ def main(argv):
             print('     The other pairs get 0 in the .inp files, i.e. no bond. Default : all the pairs.')
             print('-g : sigma of the gaussian smoothing used to find the peaks, in A. Default 0.03. 0 : no smoothing. The positions are then')
             print('     fitted to the g(r) itself. Increase it for noisy g(r) (few atoms of an element, short runs).')
-            print('-v : check each pair in a plot (Previous/Next). Left click moves the maximum (blue), right click the minimum (red);')
-            print('     with Snap on they go to the extremum of the smoothed g(r) within 0.1 A of the click, fitted as the automatic ones,')
-            print('     with Snap off they stay where clicked. For a pair without a shell, click both. Discard : no shell for this pair')
-            print('     (0 in the .inp files). Automatic : back to the automatic values. A-B and B-A are changed together. Clicks are ignored')
-            print('     while the zoom or pan of the toolbar is active. Close the window to write the files.')
+            print('-v : check each pair in a plot. Two left clicks set the first shell : the first one the maximum (blue), the second one the')
+            print('     minimum (red, the bond cutoff), in the mode of the buttons :')
+            print('       Manual input (default) : the fits of the automatic analysis, on the peak and the dip clicked instead of those found :')
+            print('                    from the first click up the smoothed g(r) to the top of its peak, the maximum of a 3rd-order polynomial')
+            print('                    fitted over the top quarter of the peak ; from the second click down to the bottom of its dip, the minimum')
+            print('                    of a 3rd-order polynomial over the bottom tenth of the dip (fits at most '+str(MAX_FIT)+' A wide).')
+            print('       All manual : the clicked points are taken as they are.')
+            print('     Discard : no shell for this pair (0 in the .inp files). Automatic : back to the automatic values. Previous/Next : the')
+            print('     other pairs and files, one pass : each pair once (A-B and B-A, which have the same g(r), are changed together), and Next')
+            print('     on the last pair closes the window and writes the files (so does closing the window). Clicks are ignored while the zoom')
+            print('     or pan of the toolbar is active.')
             print('-p : save one plot per pair, <base>.gofr.<pair>.png.')
-            print('Method : the g(r) is smoothed; its first peak more prominent than '+str(NOISE_PEAKS)+' times the local noise (from the scatter')
+            print('Method : the g(r) is smoothed by a gaussian (-g); its first peak more prominent than '+str(NOISE_PEAKS)+' times the local noise (from the scatter')
             print('of the g(r) around the smoothed curve) is the first shell, and its first minimum is the lowest point before the next such')
-            print('peak. The maximum is a cubic fitted to the g(r) over the top quarter of the peak; the minimum a parabola over its bottom')
-            print('tenth, or the middle of this region when it is flat (g = 0 between the shells of a molecule: any cutoff inside it gives')
-            print('the same bonds). The coordination number is Int(A-B) at the minimum; the mean distance is the mean of r over the shell,')
-            print('int r^3 g / int r^2 g up to the minimum. A minimum higher than '+str(SHALLOW)+' times the maximum is flagged: there the end of')
-            print('the shell, hence the bonds, depend on the cutoff. Pairs without a peak above the noise, or without a minimum before the')
-            print('largest distance of the g(r), get 0. Check the noisy pairs with -v.')
+            print('peak. The maximum is a cubic fitted to the g(r) over the top quarter of the peak; the minimum a cubic over the bottom')
+            print('tenth of the dip (both fits at most '+str(MAX_FIT)+' A wide, centered on the peak or the dip; a cubic follows asymmetric dips),')
+            print('or the lowest point of the smoothed g(r) when the cubic has no minimum inside, or the middle of the gap when g = 0 there')
+            print('(between the shells of a molecule: any cutoff inside it gives the same bonds). The coordination number is Int(A-B) at')
+            print('the minimum; the mean distance is the mean of r over the shell, int r^3 g / int r^2 g up to the minimum. A minimum')
+            print('higher than '+str(SHALLOW)+' times the maximum is flagged: there the end of the shell, hence the bonds, depend on the cutoff.')
+            print('Pairs without a peak above the noise, or without a minimum before the largest distance of the g(r), get 0. Check the')
+            print('noisy pairs with -v.')
             print('Outputs, for each gofr file <base>.gofr.dat (A B value, the format read by bonding_umd.py -c):')
             print('   <base>.maximum_bonds.inp : first minima, the bond cutoffs for bonding_umd.py and the speciation.')
             print('   <base>.average_bonds.inp : first maxima (most probable bond lengths).')
             print('   <base>.coordinations.inp : coordination numbers.')
             print('and gofrs_summary.txt in each folder : one line per file, for each pair xmax ymax xmin coord ymin rmean (nan: no shell).')
+            print('The .inp files list every pair of the elements of the gofr file, with 0 (no bond) for the pairs without a shell, not')
+            print('analyzed, or with g(r) = 0 (not computed by gofr_umd.py -c/-a). The outputs of a former run on the same gofr file (the')
+            print('three .inp files and the plots of -p) are removed first.')
             sys.exit()
         elif opt in ("-f","--fgofrfile"):
             gofrfile = str(arg)
@@ -393,16 +457,16 @@ def main(argv):
     analyses = []
     for dirpath, files in folders:
         for f in files:
+            umdpf.remove_former_outputs(output_names(f))#the outputs of a former run on this gofr file
             an = analyze_file(f,sigma,couples,central,adjacent)
             if all(an['results'][pair]['note'] == 'not analyzed' for pair in an['pairs']):
                 print('\n',f,': no pair of the selection (elements of the file :',
                       ','.join(dict.fromkeys(el for pair in an['pairs'] for el in pair.split('-'))),')')
-            print_results(an)
             analyses.append((dirpath,an))
     if view:
         check_plots([an for _, an in analyses])
-        for _, an in analyses:#the values after the checks
-            print_results(an)
+    for _, an in analyses:#once, after the checks with -v
+        print_results(an)
     for dirpath, files in folders:
         group = [an for d, an in analyses if d == dirpath]
         for an in group:

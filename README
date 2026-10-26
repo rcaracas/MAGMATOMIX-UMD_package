@@ -157,4 +157,9 @@ v 2.8.2, October 2026 - g(r) of selected pairs:
 - gofr_umd.py: -c central and -a adjacent elements, the g(r) of these pairs only, in <base>.<central>-<adjacent>.gofr.dat
 
 Since v 2.8.2 (not yet released):
+- a script run again first removes the outputs of its former run on the same input: gofr_umd.py (the gofr file of the same selection; those of other selections are kept), analyze_gofr.py (the .inp files and plots of each gofr file), speciation_and_angles.py (the files of the same -r: -r 0 keeps the r1 files and vice versa), msd_umd.py, vibrations_umd.py, check_umd.py (also the optional outputs: tensor, axes, overlap), msd_clusters_umd.py (the species no longer found), liquid_and_vapor_speciation.py, lifetimes.py, umd2out.py (all the files per snapshot, with -k only that one; the deepmd set); build_umd.py keeps its former builds
+- analyze_gofr.py: the .inp files list every pair, 0 (no bond) for the pairs not computed or without a shell
+- gofr_umd.py -c/-a: the reverse pairs too (-c O: O-X and X-O), and all the pairs of the system are written, the others with g(r) = 0, so that analyze_gofr.py gives them 0 (no bond)
 - analyze_gofr.py: -c central and -a adjacent elements, as in gofr_umd.py (the pairs central-adjacent and their reverse); -a with pairs (-a Si-O,Mg-O) still works
+- analyze_gofr.py: the first minimum is a 3rd-order polynomial (formerly a parabola, biased on asymmetric dips), both fits at most 1 A wide; cutoffs and coordination numbers change slightly (pyrolite Si-O 4.06 -> 4.00, Al-O 4.19 -> 4.09)
+- analyze_gofr.py -v: buttons Discard, Automatic, Manual input (the automatic fits on the clicked peak and dip), All manual (the clicked points), Previous, Next; two left clicks, maximum then minimum (the right click for the minimum did not work on Mac trackpads)

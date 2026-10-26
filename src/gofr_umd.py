@@ -69,8 +69,10 @@ def main(argv):
             print('-i : InitialStep. number of initial snapshots discarded. Default is 0.')
             print('-c : central elements, separated by commas, e.g. O or Si,Mg. Default is all.')
             print('-a : adjacent elements, separated by commas, e.g. O. Default is all.')
-            print('     The pairs computed are central-adjacent : -c O gives O-X for every element X, i.e. the g(r) and the X atoms around an O atom.')
-            print('     Only the atoms of these elements are read into the computation, so a subset is faster than all the pairs.')
+            print('     The pairs computed are central-adjacent and their reverse (same g(r), the coordination seen from the other atom), as in')
+            print('     analyze_gofr.py : -c O gives O-X and X-O for every element X ; -c Si,Mg -a O gives Si-O, Mg-O, O-Si, O-Mg. All the other')
+            print('     pairs are written with g(r) = 0 and Int = 0, so analyze_gofr.py gives them a bond length of 0, i.e. no bond.')
+            print('     Only the atoms of the central and adjacent elements enter the computation, so a subset is faster than all the pairs.')
             print('-k : number of cores. Default is all.')
             print('Any cell, orthogonal or not, and cells changing at every snapshot (NPT) : the nearest image of each pair is taken in')
             print('reduced coordinates with the cell of its snapshot, which is exact up to half the smallest distance between opposite faces')
@@ -78,7 +80,8 @@ def main(argv):
             print('Output : <base>.gofr.dat : dist (center of the bin, A), then for each pair A-B its g(r) and Int(A-B), the mean number of')
             print('         B atoms around an A atom up to the outer edge of the bin.')
             print('         With -c or -a : <base>.<central>-<adjacent>.gofr.dat, the elements written one after the other, e.g. -c Si,Mg -a O :')
-            print('         <base>.SiMg-O.gofr.dat, -c O : <base>.O-all.gofr.dat ; the pairs in the order of the elements of the UMD file.')
+            print('         <base>.SiMg-O.gofr.dat, -c O : <base>.O-all.gofr.dat ; all the pairs, in the order of the elements of the UMD file.')
+            print('         The file of a former run with the same selection is removed first ; those of other selections are kept.')
             sys.exit()
         elif opt in ("-f","--fumdfile"):
             umdfile = str(arg)
@@ -109,6 +112,11 @@ def main(argv):
                 print('the',name,'elements',value,'are not all in the UMD file, whose elements are',','.join(MyCrystal.elements))
                 sys.exit(2)
 
+    gofrname = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
+    if central != 'all' or adjacent != 'all':
+        gofrname += '.'+('all' if central == 'all' else ''.join(selected['central']))+'-'+('all' if adjacent == 'all' else ''.join(selected['adjacent']))
+    gofrname += '.gofr.dat'
+    umdpf.remove_former_outputs([gofrname])#the file of a former run with the same selection ; the gofr files of other selections are kept
     MyCrystal,SnapshotsXCart,TimeStep,length = umdpf.read_values(umdfile,"xcart",Nsteps=Nsteps,firststep=InitialStep,nCores=nCores)
     natom = MyCrystal.natom
     X = np.array(SnapshotsXCart,dtype=float).reshape(len(SnapshotsXCart),natom,3)
@@ -129,8 +137,11 @@ def main(argv):
     ntypes = len(used)
     typat = np.searchsorted(used,typat_all[keep]).astype(np.int32)#types renumbered 0..ntypes-1 in the order of the UMD file
     counts_el = np.bincount(typat,minlength=ntypes)
-    elements = [elements[i] for i in used]
-    pairlist = [(i,j) for i in range(ntypes) for j in range(ntypes) if elements[i] in selected['central'] and elements[j] in selected['adjacent']]
+    #All the pairs of the UMD file are written, in its order ; those not central-adjacent (or the reverse) are 0, i.e. no bond for analyze_gofr.py
+    pairlist = [(elements[I]+'-'+elements[J],
+                 (used.index(I),used.index(J)) if (elements[I] in selected['central'] and elements[J] in selected['adjacent']) or
+                                                 (elements[J] in selected['central'] and elements[I] in selected['adjacent']) else None)
+                for I in range(MyCrystal.ntypat) for J in range(MyCrystal.ntypat)]
     print(nsnap,' snapshots ; volume ','%.3f' % volumes.mean(),' A^3'+('' if np.ptp(volumes) < 1.0E-6*volumes.mean() else ' (from %.3f to %.3f)' % (volumes.min(),volumes.max()))
           +' ; g(r) up to ','%.4f' % (nbins*discrete),' A, half the smallest distance between opposite faces of the cell')
 
@@ -150,14 +161,11 @@ def main(argv):
         g = np.where(pairs[:,:,None] > 0,wcounts/(nsnap*pairs[:,:,None]*shells),0.0)
     coord = np.cumsum(counts,axis=-1)/(nsnap*counts_el[:,None,None])
 
-    gofrname = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
-    if central != 'all' or adjacent != 'all':
-        gofrname += '.'+('all' if central == 'all' else ''.join(selected['central']))+'-'+('all' if adjacent == 'all' else ''.join(selected['adjacent']))
-    gofrname += '.gofr.dat'
     with open(gofrname,'w') as fa:
-        fa.write('dist\t'+'\t'.join(elements[i]+'-'+elements[j]+'\tInt('+elements[i]+'-'+elements[j]+')' for i,j in pairlist)+'\n')
+        fa.write('dist\t'+'\t'.join(pair+'\tInt('+pair+')' for pair, ij in pairlist)+'\n')
         for k in range(nbins):
-            fa.write(str(round(edges[k]+0.5*discrete,5))+'\t'+'\t'.join(str(g[i,j,k])+'\t'+str(coord[i,j,k]) for i,j in pairlist)+'\n')
+            fa.write(str(round(edges[k]+0.5*discrete,5))+'\t'+'\t'.join(str(g[ij[0],ij[1],k])+'\t'+str(coord[ij[0],ij[1],k]) if ij is not None else '0.0\t0.0'
+                                                                    for pair, ij in pairlist)+'\n')
     print('gofr file successfully created under the name ',gofrname)
     print('runtime : ','%.1f' % (time.time()-start),' s')
 

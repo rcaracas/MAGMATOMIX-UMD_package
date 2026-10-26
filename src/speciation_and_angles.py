@@ -217,6 +217,8 @@ def main(argv):
             print ('     Nearest images in any cell, with the cell of each snapshot (NPT).')
             print ('-l : 0 (default) or 1. Lifetimes of the bonds central - adjacent, by pair of elements, written in <base>.bondslives.dat.')
             print ('-f : umd file, needed for the angles. The output files are named after it if given, otherwise after the bonding file.')
+            print ('     The files of a former run that this run writes again are removed first : those of the same -r (-r 0 keeps the r1 files')
+            print ('     and -r 1 the r0 files), <base>.angles.dat with -t 1, <base>.bondslives.dat with -l 1.')
             print ('-k : number of cores. Default is all.')
             sys.exit()
         elif opt in ("-b", "--bBondFile"):
@@ -280,6 +282,10 @@ def main(argv):
         BaseName = UMDFile[:-8] if UMDFile.endswith('.umd.dat') else os.path.splitext(UMDFile)[0]
     else:
         BaseName = BondFile[:-12] if BondFile.endswith('.bonding.dat') else os.path.splitext(BondFile)[0]
+
+    #The files of a former run that this run writes again are removed first : those of the same -r (r0 and r1 are kept apart), the angles, the bond lifetimes
+    umdpf.remove_former_outputs(([BaseName+'.r'+str(rings)+ext for ext in ('.popul.dat','.stat.dat','.step.dat')] if flagpopul == 1 else [])
+                                +([BaseName+'.angles.dat'] if flagangles == 1 else [])+([BaseName+'.bondslives.dat'] if flagbondlife == 1 else []))
 
     #TimeStep : time between two of the snapshots used (the timestep of the bonding file times Nsteps)
     CentIndexes,AdjIndexes,MyCrystal,[Bonds,BondsIndexes],TimeStep = umdpf.read_bonds(BondFile,Centrals,Adjacents,Nsteps,nCores=nCores)
