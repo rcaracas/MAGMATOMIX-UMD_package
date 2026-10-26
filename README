@@ -169,5 +169,7 @@ v 2.8.4, October 2026 - MSD fits: window set by clicks, fit after the ballistic 
 - msd_umd.py and analyze_msd.py: the fit of D starts by default at the end of the ballistic regime of each element (local exponent of the MSD below 1.2), no longer at 0; -b / -s as before; <base>.diffusion.dat gives the window of each column; D changes (pyrolite Na 3.1 -> 2.4 x 10^-8 m2/s)
 - analyze_msd.py and analyze_msd_clusters.py -v: two clicks on the graph set the fit window of each MSD (start, then end), refitted at once; buttons Automatic (the default window), Previous, Next (one pass); the files are written when the window is closed, diffusivities.txt with the window of each column (8 columns per species)
 
-Since v 2.8.4 (not yet released):
+v 2.9, October 2026 - umd_clean.py; together with 2.8.1-2.8.4: g(r) of selected pairs, g(r) and MSD fits checked by clicks, D fitted after the ballistic regime, former outputs removed when a script is run again:
 - umd_clean.py (new): removes the outputs of the package from a folder (-r: and below), to start the analysis afresh; keeps the UMD files, OUTCARs, dumps and every file that is not an output; by default only lists them, -y moves them to a umd_cleaned_<date> folder (to put back if needed), -y --delete deletes them
+
+Since v 2.9 (not yet released):
