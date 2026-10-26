@@ -136,7 +136,7 @@ def main(argv):
                 el, q = item.split(':')
                 charges[el] = float(q)
     if not os.path.isfile(umdfile):
-        print('the UMD file',umdfile,'does not exist')
+        umdpf.missing_umd(umdfile)
         sys.exit()
     if radiusfile and not os.path.isfile(radiusfile):
         print('the radius file',radiusfile,'does not exist')

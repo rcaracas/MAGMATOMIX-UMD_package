@@ -362,6 +362,9 @@ def headerumd():#once per run, also when a script runs on several files (-f all)
     print ('    with the UMD Package. J. Vis. Exp. (175), e61534, doi:10.3791/61534 (2021)')
     print (' ')
 
+def missing_umd(name):#The message of the scripts when their UMD file -f is not given or does not exist
+    print(('no UMD file' if not name else 'the UMD file '+name+' does not exist')+' : give it with -f <file>, or -f all for every *.umd.dat file of the folder')
+
 def run_on_all(argv,main,paired={},single=()):#-f all : main is run once for each *.umd.dat file of the current folder, with -f <file>.
     #paired : options taken for each file from its base, e.g. {'-b':'.bonding.dat'} ; single : options that cannot be given then (one output
     #name, e.g. -o). A file that fails (the scripts stop with sys.exit) does not stop the others. Returns False without -f all.

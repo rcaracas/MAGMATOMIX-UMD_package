@@ -258,7 +258,7 @@ def unique_pairs(an):#A-B and B-A have the same g(r) : one of them is shown ; no
     return shown
 
 
-def fit_click(r,gs,g,x,kind,ip=None):#Manual input : the automatic fits started from the clicked peak or dip instead of the one found :
+def fit_click(r,gs,g,x,kind,ip=None):#A click : the automatic fits started from the clicked peak or dip instead of the one found :
     i = int(np.argmin(np.abs(r-x)))                     #from the click, up the smoothed g(r) to the top of its peak (down to the
     sign = 1 if kind == 'max' else -1                   #bottom of its dip), then the maximum of a cubic over the top quarter of
     while True:                                         #the peak (the minimum of a cubic over the bottom tenth of the dip)
@@ -273,7 +273,7 @@ def fit_click(r,gs,g,x,kind,ip=None):#Manual input : the automatic fits started 
     return xmin, float(np.interp(xmin,r,gs))
 
 
-def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clicks, the maximum then the minimum, in the mode of the buttons
+def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clicks, the maximum then the minimum, fitted (as clicked with Manual)
     import matplotlib.pyplot as plt
     from matplotlib.widgets import Button
     items = [(an,pair) for an in analyses for pair in unique_pairs(an)]
@@ -281,8 +281,7 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clic
         return
     fig, ax = plt.subplots(figsize=(9,6))
     fig.subplots_adjust(bottom=0.2)
-    state = {'i':0,'mode':'manual','clicks':[],'message':''}
-    names = {'manual':'Manual input','all manual':'All manual'}
+    state = {'i':0,'manual':False,'clicks':[],'message':''}#manual : the clicks are taken as they are, otherwise fitted
     def draw():
         an, pair = items[state['i']]
         draw_pair(ax,an,pair)
@@ -291,11 +290,10 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clic
         todo = 'click the minimum' if state['clicks'] else 'click the maximum, then the minimum'
         if state['i'] == len(items)-1:
             todo += '    (last pair : Next closes and writes the files)'
-        fig.suptitle('%d/%d    %s : %s%s' % (state['i']+1,len(items),names[state['mode']],todo,
+        fig.suptitle('%d/%d    %s : %s%s' % (state['i']+1,len(items),'Manual (as clicked)' if state['manual'] else 'clicks fitted',todo,
                                             ('    '+state['message']) if state['message'] else ''),x=0.98,ha='right',fontsize='small')
-        for mode, bt in (('manual',buttons[2]),('all manual',buttons[3])):
-            bt.color = 'lightsteelblue' if state['mode'] == mode else '0.85'
-            bt.ax.set_facecolor(bt.color)
+        buttons[2].color = 'lightsteelblue' if state['manual'] else '0.85'#Manual is highlighted while it is on
+        buttons[2].ax.set_facecolor(buttons[2].color)
         fig.canvas.draw_idle()
     def step(delta):#one pass over the pairs : Next on the last one closes the window (the files are then written), Previous on the first stays
         if state['i']+delta >= len(items):
@@ -311,7 +309,7 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clic
         r, g, gs, coord = curves(an,pair)
         state['message'] = ''
         kind = 'min' if state['clicks'] else 'max'
-        if state['mode'] == 'manual':
+        if not state['manual']:
             ip = int(np.argmin(np.abs(r-state['clicks'][0][0]))) if state['clicks'] else None
             x, y = fit_click(r,gs,g,event.xdata,kind,ip)
         else:
@@ -325,10 +323,10 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clic
         if x <= xmax:
             state['message'] = 'the minimum must be after the maximum : click both again'
         else:
-            set_shell(an,pair,dict(xmax=xmax,ymax=ymax,xmin=x),names[state['mode']].lower())
+            set_shell(an,pair,dict(xmax=xmax,ymax=ymax,xmin=x),'manual' if state['manual'] else 'clicked, fitted')
         draw()
-    def setmode(mode):
-        state['mode'], state['clicks'], state['message'] = mode, [], ''
+    def togglemanual(event):
+        state['manual'], state['clicks'], state['message'] = not state['manual'], [], ''
         draw()
     def discard(event):
         an, pair = items[state['i']]
@@ -342,9 +340,9 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clic
         state['clicks'], state['message'] = [], ''
         draw()
     buttons = []
-    for label, pos, func in (('Discard',0.04,discard),('Automatic',0.195,automatic),('Manual input',0.35,lambda e: setmode('manual')),
-                             ('All manual',0.505,lambda e: setmode('all manual')),('Previous',0.69,lambda e: step(-1)),('Next',0.845,lambda e: step(1))):
-        bt = Button(fig.add_axes([pos,0.04,0.135,0.07]),label)
+    for label, pos, func in (('Discard',0.04,discard),('Automatic',0.22,automatic),('Manual',0.40,togglemanual),
+                             ('Previous',0.64,lambda e: step(-1)),('Next',0.82,lambda e: step(1))):
+        bt = Button(fig.add_axes([pos,0.04,0.16,0.07]),label)
         bt.on_clicked(func)
         buttons.append(bt)
     fig._umd_buttons = buttons      #keeps the buttons alive, otherwise they are garbage-collected and stop responding
@@ -396,12 +394,11 @@ def main(argv):
             print('-g : sigma of the gaussian smoothing used to find the peaks, in A. Default 0.03. 0 : no smoothing. The positions are then')
             print('     fitted to the g(r) itself. Increase it for noisy g(r) (few atoms of an element, short runs).')
             print('-v : check each pair in a plot. Two left clicks set the first shell : the first one the maximum (blue), the second one the')
-            print('     minimum (red, the bond cutoff), in the mode of the buttons :')
-            print('       Manual input (default) : the fits of the automatic analysis, on the peak and the dip clicked instead of those found :')
-            print('                    from the first click up the smoothed g(r) to the top of its peak, the maximum of a 3rd-order polynomial')
-            print('                    fitted over the top quarter of the peak ; from the second click down to the bottom of its dip, the minimum')
-            print('                    of a 3rd-order polynomial over the bottom tenth of the dip (fits at most '+str(MAX_FIT)+' A wide).')
-            print('       All manual : the clicked points are taken as they are.')
+            print('     minimum (red, the bond cutoff). The clicks are fitted as the automatic analysis, on the peak and the dip clicked instead')
+            print('     of those found : from the first click up the smoothed g(r) to the top of its peak, the maximum of a 3rd-order polynomial')
+            print('     fitted over the top quarter of the peak ; from the second click down to the bottom of its dip, the minimum of a 3rd-order')
+            print('     polynomial over the bottom tenth of the dip (fits at most '+str(MAX_FIT)+' A wide).')
+            print('     Manual : a switch (highlighted while on) : the clicked points are then taken as they are ; press it again to fit them.')
             print('     Discard : no shell for this pair (0 in the .inp files). Automatic : back to the automatic values. Previous/Next : the')
             print('     other pairs and files, one pass : each pair once (A-B and B-A, which have the same g(r), are changed together), and Next')
             print('     on the last pair closes the window and writes the files (so does closing the window). Clicks are ignored while the zoom')

@@ -458,7 +458,7 @@ def main(argv):
         return [msdfile,MSDel,Instants,MyCrystal.elements,Axes]
 
     else:
-        print ('umd file ',umdfile,'does not exist')
+        umdpf.missing_umd(umdfile)
         sys.exit()
 
 

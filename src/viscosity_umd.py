@@ -132,7 +132,7 @@ def main(argv):
         elif opt in ("-v","--visual"):
             plot = True
     if not os.path.isfile(UMDfile):
-        print('the umdfile ',UMDfile,' does not exist')
+        umdpf.missing_umd(UMDfile)
         sys.exit()
 
     MyCrystal, AllSnapshots, TimeStep = umdpf.read_stresses_4visc(UMDfile)

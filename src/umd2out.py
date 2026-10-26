@@ -259,7 +259,7 @@ def main(argv):
         elif opt == '-u':
             unwrapped = True
     if not os.path.isfile(UMDname):
-        print('the umdfile ',UMDname,' does not exist')
+        umdpf.missing_umd(UMDname)
         sys.exit()
     for fmt in formats:
         if fmt not in FORMATS.values():

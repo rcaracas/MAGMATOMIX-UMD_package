@@ -178,3 +178,6 @@ v 2.9.1, October 2026 - -f all: the scripts run on every UMD file of the folder;
 - bonding_umd.py: no longer crashes on a run of a single snapshot
 
 Since v 2.9.1 (not yet released):
+- vibrations_umd.py -v without -f: shows the VACFs and vDOS already computed in the folder, one file after the other, without computing them again
+- the scripts working on one UMD file say "no UMD file : give it with -f <file>, or -f all" when -f is missing (formerly "umd file   does not exist")
+- analyze_gofr.py -v: the clicks on the graph are fitted (as Manual input did); one Manual button, a switch, takes them as clicked (formerly All manual); buttons Discard, Automatic, Manual, Previous, Next

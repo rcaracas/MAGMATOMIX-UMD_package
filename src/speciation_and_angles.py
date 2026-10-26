@@ -268,7 +268,7 @@ def main(argv):
         sys.exit()
 
     if flagangles==1 and (not (os.path.isfile(UMDFile))):
-        print ('the UMD file ',UMDFile,' does not exist')
+        umdpf.missing_umd(UMDFile)
         sys.exit()
 
     sys.stdout.write(str(os.cpu_count())+" cores are available. ")

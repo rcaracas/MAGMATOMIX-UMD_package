@@ -130,7 +130,7 @@ def main(argv):
         elif opt in ("-o","--ooutfile"):
             outfile = str(arg)
     if not os.path.isfile(umdfile):
-        print('umd file ',umdfile,'does not exist')
+        umdpf.missing_umd(umdfile)
         sys.exit()
     if outfile is None:
         base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]

@@ -124,7 +124,7 @@ def main(argv):
     if os.path.isfile(UMDname):
         print ('using ',UMDname,' umd file')
     else:
-        print ('the UMD file ',UMDname,' does not exist')
+        umdpf.missing_umd(UMDname)
         sys.exit()
 
     if os.path.isfile(POPname):

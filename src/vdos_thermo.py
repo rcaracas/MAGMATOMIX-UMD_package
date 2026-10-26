@@ -195,7 +195,7 @@ def main(argv):
                 sys.exit()
 
     if not os.path.isfile(umdfile):
-        print('umd file ',umdfile,'does not exist')
+        umdpf.missing_umd(umdfile)
         sys.exit()
     base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
     vibrfile = base+'.vibr.err.dat'

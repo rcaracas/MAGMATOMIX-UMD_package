@@ -169,7 +169,7 @@ def main(argv):
             nCores = int(arg)
 
     if not (os.path.isfile(UMDname)):
-        print ('the UMD files ',UMDname,' does not exist')            
+        umdpf.missing_umd(UMDname)
         sys.exit()
 
     sys.stdout.write(str(os.cpu_count())+" cores are available. ")

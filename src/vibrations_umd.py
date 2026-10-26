@@ -6,7 +6,7 @@
 ### Velocity autocorrelation functions, vibrational densities of states and diffusion coefficients, by element and along axes
 
 
-import sys, getopt, os.path
+import sys, getopt, os.path, glob
 import time
 import ast
 import numpy as np
@@ -238,6 +238,35 @@ def plot_vibrations(t,vacfnorm,freq,g,gerr,elements,title):#g, gerr : vDOS and e
     plt.show()
 
 
+def read_table(filename):#The labels and the columns of a file written by write_columns (comment lines, one line of labels, the values)
+    with open(filename) as f:
+        lines = f.readlines()
+    nskip = next(i for i,line in enumerate(lines) if not line.startswith('#'))
+    return lines[nskip].split(), np.loadtxt(filename,skiprows=nskip+1,ndmin=2)
+
+
+def show_results():#-v without -f : the VACFs and vDOS already computed in the current folder, one file after the other, nothing computed
+    bases = sorted({f[:-len(ext)] for ext in ('.vibr.err.dat','.vibr.dat') for f in glob.glob('*'+ext)})
+    if not bases:
+        print('no <base>.vibr.err.dat or <base>.vibr.dat in the current folder : give the UMD file with -f to compute them')
+        return
+    for base in bases:
+        if not os.path.isfile(base+'.vels.scf.dat'):
+            print(base,': no ',base+'.vels.scf.dat, skipped')
+            continue
+        vlabels, vacf = read_table(base+'.vels.scf.dat')
+        elements = [lab for lab in vlabels[1:vlabels.index('Average')] if '_' not in lab]#the elements, not their axes
+        if os.path.isfile(base+'.vibr.err.dat'):
+            glabels, gdata = read_table(base+'.vibr.err.dat')
+        else:#an older run, without errors
+            glabels, gdata = read_table(base+'.vibr.dat')
+        names = ['VDos_'+el for el in elements]+['Total_DOS']
+        g = np.array([gdata[:,glabels.index(name)] for name in names])
+        gerr = np.array([gdata[:,glabels.index(name+'_err')] if name+'_err' in glabels else np.zeros(len(gdata)) for name in names])
+        print('showing',base,'(computed before ;',base+'.vibr.err.dat' if os.path.isfile(base+'.vibr.err.dat') else base+'.vibr.dat, no errors',')')
+        plot_vibrations(vacf[:,0],np.array([vacf[:,vlabels.index(el)] for el in elements]),gdata[:,0],g,gerr,elements,base+' (computed before)')
+
+
 def main(argv):
     umdpf.headerumd()
     start = time.time()
@@ -301,6 +330,8 @@ def main(argv):
             print('     a list of floats [x1,y1,z1,x2,y2,z2,...] describing any number of axes, e.g. -a [1,0,0,0,1,1].')
             print('-k : nCores. number of cores used to read the UMD file. Default is all.')
             print('-v : plot the VACFs and the vDOS of each element, with the error band of the vDOS (one standard error).')
+            print('     -v without -f : only shows the results already computed in the current folder (<base>.vels.scf.dat and')
+            print('     <base>.vibr.err.dat, or <base>.vibr.dat without errors), one file after the other ; nothing is computed or written.')
             print('Output : <base>.vels.scf.dat : time (fs), VACF of each element (and along each axis), normalized to 1 at t=0, the mass-weighted')
             print('         average of all the atoms, then the running diffusion coefficients D_El (m^2/s).')
             print('         <base>.vibr.dat : frequency (cm^-1), vDOS of each element VDos_El and their sum Total_DOS, in states per cm^-1,')
@@ -367,8 +398,11 @@ def main(argv):
         elif opt in ("-v","--visual"):
             plot = True
 
+    if plot and umdfile == '':#-v alone : the results already in the folder, nothing computed
+        show_results()
+        return
     if not os.path.isfile(umdfile):
-        print('umd file ',umdfile,'does not exist')
+        umdpf.missing_umd(umdfile)
         sys.exit()
     base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
     umdpf.remove_former_outputs([base+ext for ext in ('.vels.scf.dat','.vibr.dat','.vibr.axes.dat','.vibr.err.dat','.vacf.diffusion.dat')])#of a former run
