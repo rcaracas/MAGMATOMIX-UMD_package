@@ -319,20 +319,6 @@ def read_values(UMDfile,key,mode="line",Nsteps=1,firststep = 0,laststep = None,c
     print("Values extracted in ",(time.time()-t)," s")
     return MyCrystal, SnapshotsValuesList, TimeStep, len(OctIndexes)-1
 
-def data_type(SnapshotsValuesList,natom,mode="line",datatype="list"):
-
-    if mode=="atoms":
-        SnapshotsValuesX = [[[x[3*i],x[3*i+1],x[3*i+2]]  for i in range(natom)] for x in SnapshotsValuesList]
-    else :
-        SnapshotsValuesX = SnapshotsValuesList
-
-    if datatype=="array":
-            SnapshotsValues = [np.array(x) for x in SnapshotsValuesX]
-    else :
-            SnapshotsValues = SnapshotsValuesX
-    
-    return SnapshotsValues
-
 def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, c) of the nsnap snapshots read by read_values with the same Nsteps and firststep
     cells = []                                         #the cell of each snapshot (NPT), from its rprimd lines ; the first cell for all if they are missing
     cell = []

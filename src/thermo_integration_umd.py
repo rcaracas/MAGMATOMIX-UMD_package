@@ -1,522 +1,259 @@
 #!/usr/bin/env python3
-"""
-Authors: Adrien Saurety, Emma Stoutenbourg
+###
+#AUTHORS: ADRIEN SAURETY, EMMA STOUTENBOURG, RAZVAN CARACAS
+###
+#Free energy and entropy by thermodynamic integration from the ideal gas to the ab initio system (VASP SCALEE = lambda) :
+#   F = F_ideal gas + integral_0^1 <U>_lambda dlambda,   S = (E - F)/T
+#One UMD file per lambda (VaspParser.py : lambda_ThermoInt in the header, TotalElectronicEnergy = TOTEN/SCALEE = U, the unscaled DFT free
+#energy). <U>_lambda diverges as lambda -> 0 (the atoms overlap in the ideal gas), so the integral is taken over x = 2 lambda^(1-k) - 1
+#(Dorner, Sukurma, Dellago, Kresse, PRL 121, 195701, 2018) : integral_-1^1 <U> lambda^k / (2(1-k)) dx, whose integrand vanishes at x = -1 when
+#<U> grows more slowly than lambda^-k (k = 0.8). Gauss-Legendre quadrature in x when the lambdas are its nodes (the recipe of the VASP wiki),
+#else a cubic spline through (x=-1, 0) and the points.
 
-This code provide an automatic treatment for thermodynamic integration in VASP.
+import sys, getopt, os, glob, math
+import numpy as np
+from scipy.interpolate import CubicSpline
+import umd_processes_fast as umdpf
+from averages import statistics, kinetic_included
 
-The user runs a simulation for each lambda value needed, uses the VaspParser-ML.py from UMD package on each OUTCAR, move all the files umd.dat in a common directory 
-and runs this code.
-
-"""
-
-####librairies
-import numpy as np 
-import sys
-import getopt
-import os
-import subprocess
-import matplotlib.pyplot as plt
-import umd_process as umdp
-import math
-from scipy.integrate import trapz
-import gpflow
-import tensorflow as tf
-####fundamuntal constants, anychange here may cause the collapse of the universe. Be careful.
-kb=1.3806e-23  #boltzman constant eV/K
-h=6.626e-34 #planck constant J.s
-avogadro=6.0221E23 #avogadro number
-ev2j=1.6e-19  #Joule to eV conversion
-
-#### functions
-
-def is_number(s):
-    """
-    Check if the input s is or not a number.
-    
-    Parameters
-    ----------
-    s: input to test
-
-    Returns
-    -------
-    Bool, True: s is a number
-          False: s not a number
-
-    """
-    try:
-        
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-def grep_atolist(FileName): 
-    """
-    Extract the atomic species in the simulation.
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-
-    Returns
-    -------
-    type_list : list
-        List of atomic mass of each atomic type.
-    numberofatoms : list
-        List of the number of atoms of each atomic type.
-
-    """
-    Pattern='masses'
-    patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
-    greps=patterns.split('\n')
-    elems=greps[0].split()
-    mass_list=[]
-    for i in elems[1::]:
-        mass_list+=[float(i)]
-    Pattern='types'
-    patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
-    greps=patterns.split('\n')
-    elems=greps[0].split()
-    type_list=[]
-    for i in elems[1::]:
-        type_list+=[int(i)]
-
-    return type_list, mass_list
-
-def grep_acell(FileName): 
-    """
-    Extract the volume of the simulated cell.
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-
-    Returns
-    -------
-    vol : float
-         Volume of the cell.
-         
-    """
-    Pattern='acell'
-    patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
-    greps=patterns.split('\n')
-    elems=greps[0].split()
-    a=float(elems[1])
-    b=float(elems[2])
-    c=float(elems[3])
-    vol=a*b*c*1E-30
-    return vol
-
-def grep_lambda(FileName):
-    """
-    Extract the lambda -aka coupling constant- used in each simulation.
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-
-    Returns
-    -------
-    lamb: float
-        The coupling constant lambda of the simulation.
-        
-        
-    """
-    Pattern='lambda_ThermoInt'
-    patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
-    greps=patterns.split('\n')
-    elems=greps[0].split()
-    lamb=float(elems[1])
-    return lamb
-
-def grep_pattern(FileName, Pattern, SkipSteps): 
-    """
-    Extract one property of the system along the simulation.
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-    SkipSteps : int
-        Number of step to remove for thermalization
-
-    Returns
-    -------
-    average: float
-        average value of the property
-    stdev: float
-        standard deviation of the property
-    """
-    data = []
-    average = 0 
-    stdev = 0 
-    anchor=Pattern.split()[0]
-    patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
-    greps=patterns.split('\n')
-    for isteps in range(SkipSteps+1,len(greps)):
-        elems=greps[isteps].split()
-        for ii in range(len(elems)):
-            if elems[ii] == anchor:
-                for jj in range(ii+1,len(elems)):
-                    if is_number(elems[jj]):
-                        data.append(float(elems[jj]))
-                        break
-    average = sum(data)/len(data)
-    stdev = np.std(data)
-    return average, stdev
-
-def getmolmass(FileName_list):
-    """
-    Extract the molar mass and the number of atom of the simulation
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-   
-    Returns
-    -------
-    M: float
-        molar mass of the simu
-    numberofatoms: int
-        number of atom in the simulation
-    
-    """
-    tl, ml= grep_atolist(FileName_list[0])
-    M=0
-    numberofatoms = 0
-    for i in range(len(tl)):
-        M+=tl[i]*ml[i]
-    for i in range(len(tl)):
-        numberofatoms+=tl[i]
-    return M, numberofatoms
-
-def ordering(lambda_list,av_toten_list,std_toten_list):
-    '''
-    Order the list of average and std of electronic energy by increasing lambda.
-
-    Parameters
-    ----------
-    lambda_list : list
-        list of the lambda of the simulations
-    av_toten_list : list
-        list of the average electronic energy 
-    std_toten_list : list
-        list of the std electronic energy 
-
-    Returns
-    -------
-    llf : TYPE
-       list of the lambda of the simulations ordered
-    tlf : TYPE
-        list of the average electronic energy ordered
-    slf : TYPE
-        list of the std electronic energy ordered
-
-    '''
-    llf=sorted(lambda_list)
-    tlf=[]
-    slf=[]
-    for i in range(len(llf)):
-        lamb=llf[i]
-        for j in range(len(llf)):
-            if lamb==lambda_list[j]:
-                tlf+=[av_toten_list[j]]
-                slf+=[std_toten_list[j]]
-    return llf, tlf, slf
+KB = 8.617333262E-05        #eV/K
+KBJ = 1.380649E-23          #J/K
+H = 6.62607015E-34          #J s
+NA = 6.02214076E23
+EV = 1.602176634E-19        #J
+FIELDS = ('TotalElectronicEnergy','InternalEnergy','KineticEnergyIons','ElectronicEntropy','Temperature','rprimd_a','rprimd_b','rprimd_c','acell')
 
 
-def ig_free_energy(FileName_list, SkipSteps, type_list, mass_list,T):
-    """
-    Extract the lambda -aka coupling constant- used in each simulation.
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-    SkipSteps : int
-        Number of step to remove for thermalization
-    type_list : list
-        list of the number of atoms of each atomic type
-    mass_list : list
-        list of the mass of each atomic type
-    T : float
-        average temperature of the simulation
+def read_lambda(UMDname):#lambda_ThermoInt of the header (1 when absent)
+    with open(UMDname,'r') as f:
+        for line in f:
+            if line.startswith('lambda_ThermoInt'):
+                return float(line.split()[1])
+            if line.startswith('timestep'):
+                break
+    return 1.0
 
-    Returns
-    -------
-    f0 the free energy of the ideal gas corresponding to our system.
-        
-    """
-    vol=grep_acell(FileName_list[0])
-    f0=0
-    for i in range(len(type_list)):
-        N=type_list[i] #number of atom of first type
-        m=(mass_list[i]/1000)*(1/avogadro)
-        BWL=h/(np.sqrt(2*3.1416*m*kb*T)) #Broglie Wave Length
-        f0+=((-1)*kb*T*(N*math.log(vol/(BWL**3))-math.log(math.factorial(N))))*6.24e18
-    print("Ideal gas free energy", f0," eV")
-    return f0
 
-def getET(FileName_list, SkipSteps):
-    """
-    Extract the internal energy and temperature of the ab initio simulation (i.e.  the one with lambda=1)
-    
-    Parameters
-    ----------
-    FileName : .umd.dat file
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-    SkipSteps : int
-        Number of step to remove for thermalization
+def read_run(UMDname,skip):#Header, lambda, and the series of the fields from snapshot skip on
+    MyCrystal, TimeStep = umdpf.Crystallization(UMDname)
+    series = {k:[] for k in FIELDS}
+    cells = []
+    for isnap, fields, atoms in umdpf.read_snapshots(UMDname,MyCrystal.natom,fields=FIELDS,atoms=False):
+        if isnap < skip:
+            continue
+        for k in ('TotalElectronicEnergy','InternalEnergy','KineticEnergyIons','ElectronicEntropy','Temperature'):
+            series[k].append(fields[k][0] if fields.get(k) else np.nan)
+        cells.append(umdpf.cell_of(fields))
+    run = {k:np.array(series[k]) for k in ('TotalElectronicEnergy','InternalEnergy','KineticEnergyIons','ElectronicEntropy','Temperature')}
+    run['volume'] = np.array([abs(np.linalg.det(c)) if c is not None else np.nan for c in cells])
+    run['name'] = UMDname
+    run['lambda'] = read_lambda(UMDname)
+    run['crystal'] = MyCrystal
+    return run
 
-    Returns
-    -------
-    E : float
-        internal energy
-    T : float
-        temperature
-    """
-    for f in FileName_list:
-        if grep_lambda(f)==1.0:
-            E,stdE=grep_pattern(f,'InternalEnergy',SkipSteps)
-            T,stdT=grep_pattern(f,'Temperature',SkipSteps)
-    return E,T
 
-def integral_varchange_gp(FileName_list, SkipSteps):
-    '''
-    Integrate the value of toten of all the umd file
-
-    Parameters
-    ----------
-    FileName_list : list of .umd.dat files
-        File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-    SkipSteps : int
-        Number of step to remove for thermalization
-
-    Returns
-    -------
-    inte : float
-        value of the integrale
-    var : 
-        variance of the integral (used to compute the errorbar on the free energy)
-
-    '''
-    lambda_list=[]
-    av_toten_list=[]
-    std_toten_list=[]
-    inte=0
-    k=0.8
-    for f in FileName_list:
-        lambda_list+=[grep_lambda(f)]
-        toten=grep_pattern(f,'TotalElectronicEnergy',SkipSteps)
-        av_toten_list+=[toten[0]]
-        std_toten_list+=[toten[1]]
-    lambda_list, av_toten_list,std_toten_list=ordering(lambda_list, av_toten_list, std_toten_list)
-    plt.figure()
-    plt.errorbar(lambda_list,av_toten_list,yerr=std_toten_list,marker='o',linestyle='')
-    plt.xlabel('$\lambda$')
-    plt.ylabel('internal energy (eV)')
-    plt.savefig('TI_value.pdf')
-    try:
-        x_list=[-1]+[2*(i**(1-k))-1 for i in lambda_list]
-        av_along_x_list=[0.0]+[i*(j**k)*(1/(2*(1-k))) for i,j in zip(av_toten_list,lambda_list)]
-        plt.figure()
-        X=np.c_[x_list]
-        Y=np.c_[av_along_x_list]
-        plt.plot(X[0], Y[0], "kx", mew=2,)
-        plt.plot(X[1], Y[1], "kx", mew=2,)
-        model = gpflow.models.GPR(
-            (X, Y),
-            gpflow.kernels.Matern32(variance=30000),
-            mean_function=gpflow.functions.Polynomial(3),
-            )
-        opt = gpflow.optimizers.Scipy()
-        opt.minimize(model.training_loss, model.trainable_variables)
-        nb_pts=1000
-        Xplot = np.linspace(-1.0, 1.0, nb_pts)[:, None]
-
-        f_mean, f_var = model.predict_f(Xplot, full_cov=False)
-        y_mean, y_var = model.predict_y(Xplot)
-
-        f_lower = f_mean - 1.96 *np.sqrt(f_var)
-        f_upper = f_mean + 1.96* np.sqrt(f_var)
-
-        plt.plot(X[2::], Y[2::], "ro", mew=2, label="data")
-        plt.plot(Xplot, f_mean, "-", color="C0", label="mean")
-        plt.plot(Xplot, f_lower, "--", color="C0", label="f 95% confidence")
-        plt.plot(Xplot, f_upper, "--", color="C0")
-        plt.fill_between(
-            Xplot[:, 0], f_lower[:, 0], f_upper[:, 0], color="C0", alpha=0.1
-        )
-        plt.legend()
-        plt.savefig('TI_cv.pdf')
-        fm=tf.Variable(f_mean).numpy()
-        fm=np.reshape(fm,nb_pts)
-        x=tf.Variable(Xplot).numpy()
-        x=np.reshape(x,nb_pts)
-        inte=trapz(fm,x)
-        fmu=tf.Variable(f_upper).numpy()
-        fmu=np.reshape(fmu,nb_pts)
-        var=trapz(fmu,x)-inte
-        return inte, var
-    except:
-        print("ERROR!! you need at least one simulation with lambda below 0.1 !!!")
-
-def free_energy(FileName_list, SkipSteps,T):
-    '''
-   Integrate the value of toten of all the umd file
-
-   Parameters
-   ----------
-   FileName_list : list of .umd.dat files
-       File obtains with parsing OUTCAR files from VASP with VaspParser-ML.py from UMD package.
-   SkipSteps : int
-       Number of step to remove for thermalization
-
-   Returns
-   -------
-   f : list of [inte, var]
-   with 
-       inte : float
-           value of the integrale
-       var : float
-           variance of the integral (used to compute the errorbar on the free energy)
-
-    '''
-    type_list, mass_list=grep_atolist(FileName_list[0])
-    f0=ig_free_energy(FileName_list, SkipSteps,type_list, mass_list,T)
-    inte,var=integral_varchange_gp(FileName_list, SkipSteps)
-    f=[f0+inte,f0+inte+var]
-    print("Free energy of coupling AIMD to IG", inte,"eV")
+def ideal_gas(crystal,volume,T):#Helmholtz free energy of the ideal gas of the atoms (eV per cell) : -kT sum_el [N ln(V/Lambda^3) - ln N!]
+    f = 0.0
+    for el,n,m in zip(crystal.elements,crystal.types,crystal.masses):
+        mass = float(m)/1000.0/NA                                       #kg
+        wavelength = H/math.sqrt(2.0*math.pi*mass*KBJ*T)                #m
+        f += -KB*T*(n*math.log(volume*1E-30/wavelength**3) - math.lgamma(n+1))
     return f
 
-def entropy_calc(F,E,T):
-    '''
-    compute the entroy 
 
-    Parameters
-    ----------
-    F : float
-        Free energy
-    E : float
-        internal energy
-    T : Tfloat
-        temperature
+def gauss_legendre(lambdas,k):#Mask of the runs whose lambdas are the n Gauss-Legendre nodes in x (all the runs, or all but lambda = 1), and the
+    #weights (lambdas sorted) ; None if they are not
+    for use in (lambdas < 1.0, np.ones(len(lambdas),bool)):
+        if use.sum() >= 2:
+            nodes, weights = np.polynomial.legendre.leggauss(int(use.sum()))
+            if np.allclose(2.0*lambdas[use]**(1.0-k)-1.0,nodes,atol=2e-3):
+                return use, weights
+    return None
 
-    Returns
-    -------
-    S : float
-        entropy
 
-    '''
-    S=np.zeros(len(F))
-    for k in range(len(F)):
-        S[k]=(E-F[k])/T
-    return S
+def quadrature_weights(x,method):#Weights w with integral_-1^1 g dx = sum w_i g_i for the points x (sorted, including -1) : spline or trapezoid
+    n = len(x)
+    if method == 'trapezoid':
+        w = np.zeros(n)
+        dx = np.diff(x)
+        w[:-1] += dx/2.0
+        w[1:] += dx/2.0
+        if x[-1] < 1.0:                                                 #constant extrapolation to x = 1
+            w[-1] += 1.0-x[-1]
+        return w
+    w = np.zeros(n)
+    for i in range(n):                                                  #the spline is linear in the data : integrate the spline of each unit vector
+        e = np.zeros(n)
+        e[i] = 1.0
+        w[i] = CubicSpline(x,e,bc_type='not-a-knot' if n > 3 else 'natural',extrapolate=True).integrate(-1.0,1.0)
+    return w
 
-def atounit2natunitmol(f,numberofatoms):
-    '''
-    change the unit from atomic unit to natural unit
-
-    Parameters
-    ----------
-    f : float
-        free energy
-    numberofatoms : list
-        number of atom of each type
-
-    Returns
-    -------
-    list
-        free energy and free energy error in natural unit (kJ/atom)
-    '''
-    F=f[0]
-    Ferror=f[1]-f[0]
-    F=F*ev2j*avogadro/numberofatoms/1000
-    Ferror=Ferror*ev2j*avogadro/numberofatoms/1000
-    return [F, Ferror]
-
-def atounit2natunitkg(f,M):
-    '''
-    change the unit from atomic unit to SI unit (J/kg)
-
-    Parameters
-    ----------
-    f : float
-        free energy
-    M: float
-        molar mass
-
-    Returns
-    -------
-    list
-        free energy and free energy error in SI unit (kJ/kg)
-
-    '''
-    F=f[0]
-    Ferror=f[1]-f[0]
-    F=F*ev2j*avogadro/(M/1000)
-    Ferror=Ferror*ev2j*avogadro/(M/1000)
-    return [F, Ferror]
 
 def main(argv):
-    FileName_list = []
-    FileName_list += [each for each in os.listdir() if each.endswith('.umd.dat')]
-    SkipSteps= 1
-    unit=False
-    gui=True
-    umdp.headerumd()
-    
+    umdpf.headerumd()
+    files = None
+    skip = 0
+    k = 0.8
+    Tuser = None
+    visual = False
     try:
-        opts, arg = getopt.getopt(argv,"h:f:i:u:g",["fFileName,iInitialStep,uUnit,gGUI"])
+        opts, arg = getopt.getopt(argv,"hf:i:k:t:v")
     except getopt.GetoptError:
-        print('')
-        sys.exit()
+        print('thermo_integration_umd.py -f <files> -i <InitialStep> -k <exponent> -t <temperature> -v')
+        sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('')
+            print('thermo_integration_umd.py : free energy and entropy by thermodynamic integration from the ideal gas (VASP SCALEE = lambda)')
+            print('thermo_integration_umd.py -f <files> -i <InitialStep> -k <exponent> -t <temperature> -v')
+            print('-f : UMD files, one per lambda, separated by commas (default : every *.umd.dat of the folder) ; same cell, atoms and')
+            print('     temperature ; VaspParser.py writes lambda_ThermoInt (SCALEE) in the header and TotalElectronicEnergy = TOTEN/SCALEE')
+            print('     (U, the DFT free energy unscaled ; files parsed between January and October 2026 have 0 there : re-parse the OUTCAR)')
+            print('-i : snapshots skipped at the start of each run (default 0)')
+            print('-k : exponent of the change of variable x = 2 lambda^(1-k) - 1 (default 0.8, Dorner et al. 2018 ; the integrand must vanish')
+            print('     at lambda -> 0, i.e. <U> grow more slowly than lambda^-k). Gauss-Legendre quadrature in x when the lambdas are its n')
+            print('     nodes, lambda = ((x+1)/2)^(1/(1-k)) (plus lambda = 1 for E), else a cubic spline in x ; the trapezoid rule is printed as a check.')
+            print('     Use at least 8 nodes : for atoms in harmonic wells (exact) the quadrature errors of 4, 6, 8, 10 Gauss-Legendre nodes are 0.06,')
+            print('     0.03, 0.002, 0.001 eV/atom (the spline 0.14, 0.05, 0.008, 0.0015) ; the integrand changes fast where the atoms localize.')
+            print('-t : temperature (K) of the ideal gas and of S : the thermostat temperature (TEBEG) is best (default : the mean Temperature')
+            print('     of all the runs ; with few atoms it differs from TEBEG by its noise, ~0.5 % for 8 atoms and 4000 snapshots)')
+            print('-v : plot of the integrand, saved in thermo_integration.pdf')
+            print('Errors : error of each <U> from its integrated autocorrelation time (as averages.py -a), propagated through the')
+            print('quadrature weights ; the quadrature error itself is not included (compare with the trapezoid value and with more lambdas).')
+            print('Output : the table of the runs and the results, also in thermo_integration.dat')
             sys.exit()
-        if opt in ("-f", "--fFileName"):
-            FileName_list= arg
-        if opt in ("-i", "--iInitialStep"):
-            SkipSteps= arg
-        if opt in ("-u", "--uUnit"):
-            try:
-                arg=bool(arg)
-                unit=arg
-            except ValueError:
-                print('unvalid unit, autoswitch to default (SI unit)')
-        if opt in ("-g", "--gGUI"):
-            try:
-                arg=bool(arg)
-                gui=arg
-            except ValueError:
-                print('unvalid command, autoswitch to default (plot not shown)')
-    
+        elif opt == '-f':
+            files = [x.strip() for x in arg.split(',') if x.strip()]
+        elif opt == '-i':
+            skip = int(arg)
+        elif opt == '-k':
+            k = float(arg)
+        elif opt == '-t':
+            Tuser = float(arg)
+        elif opt == '-v':
+            visual = True
+    if files is None:
+        files = sorted(glob.glob('*.umd.dat'))
+    missing = [f for f in files if not os.path.isfile(f)]
+    if missing or not files:
+        print('Files not found :',', '.join(missing) if missing else 'no *.umd.dat in the folder')
+        sys.exit()
+    if not 0.0 < k < 1.0:
+        print('-k must be between 0 and 1')
+        sys.exit()
 
-    M, numberofatoms=getmolmass(FileName_list)
-    E,T=getET(FileName_list,500)
-    print('internal energy ab initio system = ',E,' eV')
-    print('average temperature in the full ab initio system = ',T,' K')
-    F=free_energy(FileName_list, SkipSteps,T)
-    S=entropy_calc(F,E,T)
-    if unit:
-        print('Free Energy =',atounit2natunitmol(F,M, numberofatoms)[0],'+/-',abs(atounit2natunitmol(F,M,numberofatoms)[1]),'kJ/mol')
-        print('Entropy =',atounit2natunitmol(S,M, numberofatoms)[0],'+/-',abs(atounit2natunitmol(S,M,numberofatoms)[1]),'kJ/K/mol')
+    runs = sorted((read_run(f,skip) for f in files),key=lambda r: r['lambda'])
+    lambdas = np.array([r['lambda'] for r in runs])
+    if len(set(lambdas)) < len(lambdas):
+        print('Several files have the same lambda :',', '.join(r['name']+' ('+str(r['lambda'])+')' for r in runs))
+        sys.exit()
+    ref = runs[0]['crystal']
+    for r in runs:
+        c = r['crystal']
+        if list(c.elements) != list(ref.elements) or list(c.types) != list(ref.types):
+            print('The files do not have the same atoms :',r['name'])
+            sys.exit()
+        if len(r['TotalElectronicEnergy']) < 10:
+            print(r['name'],': only',len(r['TotalElectronicEnergy']),'snapshots after -i',skip)
+            sys.exit()
+        if np.all(r['TotalElectronicEnergy'] == 0.0) or np.all(np.isnan(r['TotalElectronicEnergy'])):
+            print(r['name'],': TotalElectronicEnergy is 0 or missing : re-parse the OUTCAR with the current VaspParser.py')
+            sys.exit()
+    natom = ref.natom
+    lines = []
+    def out(s=''):
+        print(s)
+        lines.append(s)
+
+    #<U>_lambda of each run
+    out('Thermodynamic integration from the ideal gas : %d runs, %d atoms (%s), -i %d, k = %g' % (len(runs),natom,' '.join('%d %s' % (n,el) for el,n in zip(ref.elements,ref.types)),skip,k))
+    out('%-40s %10s %10s %18s %12s %10s %8s %8s' % ('file','lambda','x','<U> (eV)','error','T (K)','V (A^3)','snaps'))
+    U, Uerr, temps, Terrs, vols = [], [], [], [], []
+    notes = []
+    for r in runs:
+        mean, std, err, lower, drift = statistics(r['TotalElectronicEnergy'])
+        T, Tstd, Terr, Tlower, Tdrift = statistics(r['Temperature'][~np.isnan(r['Temperature'])])
+        Terrs.append(Terr)
+        V = np.nanmean(r['volume'])
+        U.append(mean); Uerr.append(err); temps.append(T); vols.append(V)
+        x = 2.0*r['lambda']**(1.0-k)-1.0
+        out('%-40s %10.6f %10.6f %18.6f %12.6f%s %10.1f %8.2f %8d' % (os.path.basename(r['name'])[-40:],r['lambda'],x,mean,err,'>' if lower else ' ',T,V,len(r['TotalElectronicEnergy'])))
+        if drift > 4.0:
+            notes.append('WARNING : '+r['name']+' : <U> drifts (a quarter of the run deviates by %.1f errors) : equilibrate longer or use -i' % drift)
+        if lower:
+            notes.append('WARNING : '+r['name']+' : fewer than 50 independent samples, the error of <U> is a lower bound')
+    U, Uerr, temps, vols = map(np.array,(U,Uerr,temps,vols))
+    if np.ptp(vols) > 1e-6*vols.max():
+        notes.append('WARNING : the volumes of the runs differ (%.4f to %.4f A^3) : the integration must be at constant volume' % (vols.min(),vols.max()))
+    Terrs = np.array(Terrs)
+    if np.any(np.abs(temps-temps.mean()) > 4.0*np.sqrt(Terrs**2+1e-12) + 0.002*temps.mean()):
+        notes.append('WARNING : the mean temperatures of the runs differ (%.1f to %.1f K) : the integration must be at constant temperature' % (temps.min(),temps.max()))
+
+    #integral over x
+    x = 2.0*lambdas**(1.0-k)-1.0
+    g = U*lambdas**k/(2.0*(1.0-k))
+    gerr = Uerr*lambdas**k/(2.0*(1.0-k))
+    gl = gauss_legendre(lambdas,k)
+    xs = np.concatenate(([-1.0],x)) if x[0] > -1.0 else x
+    gs = np.concatenate(([0.0],g)) if x[0] > -1.0 else g
+    es = np.concatenate(([0.0],gerr)) if x[0] > -1.0 else gerr
+    results = {}
+    for method in ('spline','trapezoid'):
+        w = quadrature_weights(xs,method)
+        results[method] = (w @ gs, math.sqrt(w**2 @ es**2))
+    if gl is not None:
+        use, weights = gl
+        results['Gauss-Legendre'] = (weights @ g[use], math.sqrt(weights**2 @ gerr[use]**2))
+        method = 'Gauss-Legendre'
     else:
-        print('Free Energy =',atounit2natunitkg(F,M)[0],'+/-',abs(atounit2natunitkg(F,M)[1]),'J/kg')
-        print('Entropy =',atounit2natunitkg(S,M)[0],'+/-',abs(atounit2natunitkg(S,M)[1]),'J/K/kg')
-    if gui:
+        method = 'spline'
+    if lambdas.max() < 1.0 - 1e-9:
+        notes.append('WARNING : no run at lambda = 1 : E (for S) is missing'+('' if gl is not None else ', and the integral is extrapolated to x = 1'))
+    if x[0] > -0.5:
+        notes.append('WARNING : the smallest lambda is %g (x = %.2f) : the integrand is assumed to vanish at x = -1 far from the points' % (lambdas[0],x[0]))
+    dF, dFerr = results[method]
+
+    #ideal gas, F, E, S at lambda = 1
+    one = runs[-1]
+    T = Tuser if Tuser is not None else temps.mean()
+    V = vols[-1]
+    F0 = ideal_gas(ref,V,T)
+    F = F0 + dF
+    out()
+    out('integral of <U> over lambda : %.6f +- %.6f eV (%s ; %s)' % (dF,dFerr,method,' ; '.join('%s %.6f +- %.6f' % (m,v[0],v[1]) for m,v in results.items() if m != method)))
+    out('ideal gas free energy at T = %.2f K, V = %.4f A^3 : %.6f eV' % (T,V,F0))
+    out('F = %.6f +- %.6f eV per cell = %.6f +- %.6f eV/atom' % (F,dFerr,F/natom,dFerr/natom))
+    mass = sum(float(m)*n for m,n in zip(ref.masses,ref.types))                       #g/mol per cell
+    out('    %.4f +- %.4f kJ/mol (of atoms) ; %.4f +- %.4f kJ/g' % (F/natom*EV*NA/1000.0,dFerr/natom*EV*NA/1000.0,F*EV*NA/mass/1000.0,dFerr*EV*NA/mass/1000.0))
+    if lambdas[-1] == 1.0:
+        IE, K = one['InternalEnergy'], one['KineticEnergyIons']
+        included, how = kinetic_included(IE,np.nan_to_num(K),np.nan_to_num(one['TotalElectronicEnergy']),np.nan_to_num(one['ElectronicEntropy']))
+        E = IE if included else IE + np.nan_to_num(K)
+        Emean, Estd, Eerr, Elower, Edrift = statistics(E)
+        S = (Emean - F)/T
+        Serr = math.sqrt(Eerr**2 + dFerr**2)/T
+        out('E (lambda = 1, InternalEnergy %s the kinetic energy : %s) = %.6f +- %.6f eV' % ('with' if included else '+',how,Emean,Eerr))
+        out('S = (E - F)/T = %.6e +- %.6e eV/K per cell = %.4f +- %.4f kB/atom' % (S,Serr,S/(natom*KB),Serr/(natom*KB)))
+        out('    %.4f +- %.4f J/K/mol (of atoms) ; %.4f +- %.4f J/K/g' % (S/natom*EV*NA,Serr/natom*EV*NA,S*EV*NA/mass,Serr*EV*NA/mass))
+    for note in notes:
+        out(note)
+    with open('thermo_integration.dat','w') as f:
+        f.write('\n'.join(lines)+'\n')
+    print('Written in thermo_integration.dat')
+
+    if visual:
+        import matplotlib.pyplot as plt
+        fig, (a1,a2) = plt.subplots(1,2,figsize=(11,4.5))
+        a1.errorbar(lambdas,U,yerr=Uerr,fmt='o')
+        a1.set_xlabel('lambda'); a1.set_ylabel('<U> (eV)'); a1.set_xscale('log')
+        xx = np.linspace(-1,1,400)
+        a2.plot(xx,CubicSpline(xs,gs,bc_type='not-a-knot' if len(xs) > 3 else 'natural')(xx),'-',label='cubic spline')
+        a2.errorbar(xs,gs,yerr=es,fmt='o',label='<U> lambda^k / 2(1-k)')
+        a2.set_xlabel('x = 2 lambda^(1-k) - 1'); a2.set_ylabel('integrand (eV)'); a2.legend()
+        fig.tight_layout()
+        fig.savefig('thermo_integration.pdf')
+        print('Plot in thermo_integration.pdf')
         plt.show()
-        
 
-
-   
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
-
-
+    main(sys.argv[1:])
