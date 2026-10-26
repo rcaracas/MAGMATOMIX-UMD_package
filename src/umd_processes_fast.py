@@ -349,11 +349,11 @@ def read_stresses_4visc(UMDfile):#The header (Crystallization), one Lattice per 
 
 def headerumd():
     print ('\n * * * * * ')
-    print ('    UMD package for analyzing Molecular Dynamics simulations.')
+    print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.7')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
-    print ('authors: Razvan Caracas, Kevin Jiguet-Covex, Tim Bögels, Adrien Saurety, Emma Stoutenbourg, Xi Zhu')
-    print ('please cite as: ')
-    print ('    cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534,doi:10.3791/61534 (2021)' )
+    print ('https://github.com/rcaracas/MAGMATOMIX-UMD_package')
+    print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')
+    print ('    with the UMD Package. J. Vis. Exp. (175), e61534, doi:10.3791/61534 (2021)')
     print (' ')
 
 def write_poscar(filename,title,cell,elements,counts,xred,vels=None):#VASP5 POSCAR : cell (rows a, b, c, A), the atoms grouped by element (counts[k] atoms
