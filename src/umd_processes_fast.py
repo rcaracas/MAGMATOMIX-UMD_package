@@ -349,7 +349,7 @@ def read_stresses_4visc(UMDfile):#The header (Crystallization), one Lattice per 
 
 def headerumd():
     print ('\n * * * * * ')
-    print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.8.1')
+    print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.8.2')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
     print ('https://github.com/rcaracas/MAGMATOMIX-UMD_package')
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')

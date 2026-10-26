@@ -153,5 +153,7 @@ v 2.8.1, October 2026 - fix: analyze_msd.py runs as a command (python3 line at t
 - analyze_msd.py: the first line #!/usr/bin/env python3 was missing, so the shell, not python, ran it when called by its name
 - documentation folder: quick help of the scripts (umd-quick-help.pdf)
 
-Since v 2.8.1 (not yet released):
+v 2.8.2, October 2026 - g(r) of selected pairs:
 - gofr_umd.py: -c central and -a adjacent elements, the g(r) of these pairs only, in <base>.<central>-<adjacent>.gofr.dat
+
+Since v 2.8.2 (not yet released):
