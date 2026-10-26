@@ -269,6 +269,7 @@ def main(argv):
             print('-t : Temperature, in K, used to normalize the vDOS. Default is the mean temperature written in the UMD file')
             print('     (with it, the vDOS of all the atoms integrates to the degrees of freedom used by the code for the temperature, 3N or 3N-3).')
             print('-i : InitialStep. number of initial snapshots discarded. Default is 0.')
+            print('-f all : every *.umd.dat file of the current folder, one after the other.')
             print('-w : Window. length of the VACF used for the spectra, in steps. Longer windows give sharper peaks but noisier spectra.')
             print('     Default is half a block (see -n), i.e. 1/8 of the trajectory for 4 blocks ; maximum is half the trajectory.')
             print('     The width (FWHM) of the narrowest peaks is ~24000/T cm^-1, T = window in fs (see -p) : to separate two peaks Delta cm^-1')
@@ -573,4 +574,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

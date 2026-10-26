@@ -215,6 +215,7 @@ def main(argv):
             print('umd2out.py : converts the snapshots of a UMD file to other formats')
             print('umd2out.py -f <umdfile> -i <InitialStep> -s <Sampling> -k <Snapshot> -o <OutputName> -r <formats> -u')
             print('-f : the UMD file (default output.umd.dat)')
+            print('-f all : every *.umd.dat file of the current folder, one after the other (-o cannot be given then).')
             print('-i : first snapshot written (from 0 ; default 0)')
             print('-s : every s-th snapshot from -i (default 1)')
             print('-k : only snapshot k (from 0 ; replaces -i and -s)')
@@ -360,4 +361,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main,single=('-o',)):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

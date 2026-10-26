@@ -173,3 +173,6 @@ v 2.9, October 2026 - umd_clean.py; together with 2.8.1-2.8.4: g(r) of selected 
 - umd_clean.py (new): removes the outputs of the package from a folder (-r: and below), to start the analysis afresh; keeps the UMD files, OUTCARs, dumps and every file that is not an output; by default only lists them, -y moves them to a umd_cleaned_<date> folder (to put back if needed), -y --delete deletes them
 
 Since v 2.9 (not yet released):
+- -f all: the scripts working on one UMD file (check_umd, gofr_umd, bonding_umd, speciation_and_angles with <base>.bonding.dat, msd_umd, msd_clusters_umd with <base>.r1.popul.dat, viscosity_umd, vibrations_umd, vdos_thermo, umd2out, repair_umd) run on every *.umd.dat of the current folder, one after the other; a file that fails does not stop the others; averages, thermo_integration_umd and umd_workflow accept -f all as their default
+- speciation_and_angles.py: the first header line was garbled (-a=allFILE:) when -b came after -c/-a on the command line
+- bonding_umd.py: no longer crashes on a run of a single snapshot

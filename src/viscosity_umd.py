@@ -95,6 +95,7 @@ def main(argv):
             print('viscosity_umd.py program to compute the shear viscosity with the Green-Kubo relation, from the stress tensor of a UMD file')
             print(usage)
             print('-f : UMD file')
+            print('-f all : every *.umd.dat file of the current folder, one after the other.')
             print('-i : number of initial snapshots to skip (default 0)')
             print('-e : end of the Green-Kubo integral, in steps, where the viscosity is read (default and maximum: half a block, i.e. 1/8 of the run for 4 blocks)')
             print('-n : number of consecutive blocks of the trajectory, used for the error (default 4, minimum 3) ; fewer blocks allow a longer integral')
@@ -205,4 +206,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

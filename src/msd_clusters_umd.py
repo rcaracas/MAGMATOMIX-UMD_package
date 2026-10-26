@@ -94,6 +94,7 @@ def main(argv):
             print ('Program to compute the mean square displacements of the centers of mass of all the atomic clusters found by speciation_and_angles.py. Usage:')
             print ('msd_clusters_umd.py -f <UMD_filename> -p <POPUL_filename> -s <Sampling_Frequency> -b <MinLife> -c <ClusterMaxSize>')
             print ('UMD_filename = input file with the trajectory, in UMD format.')
+            print ('-f all : every *.umd.dat file of the current folder, one after the other, each with its popul file <base>.r1.popul.dat (-p cannot be given then).')
             print ('POPul_filename = input file with all the individual atomic clusters and their lifetimes in popul format.')
             print ('Sampling_Frequency = frequency of sampling of the trajectory. Default = 1 (all steps are considered)')
             print ('MinLife = minimum lifetime of a cluster, in steps of the UMD trajectory, for its MSD to be computed. Default = 20.')
@@ -145,4 +146,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+   if not umdpf.run_on_all(sys.argv[1:],main,paired={'-p':'.r1.popul.dat'}):#-f all : every UMD file of the folder, with its r1 popul file
+       main(sys.argv[1:])

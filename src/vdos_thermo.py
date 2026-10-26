@@ -10,6 +10,7 @@
 import sys, getopt, os.path, re
 import numpy as np
 from scipy.optimize import brentq
+import umd_processes_fast as umdpf
 
 
 KB = 8.617333262E-05#Boltzmann constant in eV/K
@@ -175,6 +176,7 @@ def main(argv):
             print('and quantum corrections of the solid-like modes would be ; the quantum corrections are those of the whole vDOS.')
             print('Test : Lennard-Jones liquid argon at 87.3 K and 1.395 g/cm^3 gives S_2PT = 56.2 J/(mol K) ; experiment ~55.6.')
             print('-f : UMD file from which vibrations_umd.py computed the vDOS.')
+            print('-f all : every *.umd.dat file of the current folder, one after the other.')
             print('-t : temperatures in K, separated by commas, e.g. -t 300,1000,1500. Default is the temperature of the vDOS.')
             print('Output : <base>.vdos.thermo.dat : the quantities at each temperature, per atom, with their statistical errors (from the')
             print('         error band of the vDOS) when <base>.vibr.err.dat exists.')
@@ -324,4 +326,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

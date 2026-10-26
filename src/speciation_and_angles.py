@@ -188,7 +188,7 @@ def main(argv):
     Adjacents = []
     minlife = 1
     rings = 1
-    header = ''
+    header_s = header_c = header_a = ''
     start=time.time()
     flagangles = 0
     flagpopul = 1
@@ -217,26 +217,26 @@ def main(argv):
             print ('     Nearest images in any cell, with the cell of each snapshot (NPT).')
             print ('-l : 0 (default) or 1. Lifetimes of the bonds central - adjacent, by pair of elements, written in <base>.bondslives.dat.')
             print ('-f : umd file, needed for the angles. The output files are named after it if given, otherwise after the bonding file.')
+            print ('-f all : every *.umd.dat file of the current folder, one after the other, each with its bonding file <base>.bonding.dat (-b cannot be given then).')
             print ('     The files of a former run that this run writes again are removed first : those of the same -r (-r 0 keeps the r1 files')
             print ('     and -r 1 the r0 files), <base>.angles.dat with -t 1, <base>.bondslives.dat with -l 1.')
             print ('-k : number of cores. Default is all.')
             sys.exit()
         elif opt in ("-b", "--bBondFile"):
             BondFile = str(arg)
-            header = header + 'FILE: -f=' + BondFile
         elif opt in ("-s","--sNsteps"):
             Nsteps = int(arg)
-            header = header + ' -s=' + arg
+            header_s = ' -s=' + arg
             print('Will sample the MD trajectory every ',Nsteps,' steps')
         elif opt in ("-m","--mMinlife"):
             minlife = float(arg)
         elif opt in ("-f","--fUMDFile"):
             UMDFile = str(arg)
         elif opt in ("-c","--Central"):
-            header = header + ' -c=' + arg
+            header_c = ' -c=' + arg
             Centrals = arg.split(",")
         elif opt in ("-a","--Adjacent"):
-            header = header + ' -a=' + arg
+            header_a = ' -a=' + arg
             Adjacents = arg.split(",")
         elif opt in("-t","--tAngles"):
             flagangles = int(arg)
@@ -257,7 +257,7 @@ def main(argv):
         elif opt in("-k","--kCores"):
             nCores = int(arg)
 
-    header = header + ' -r=' + str(rings)
+    header = 'FILE: -f=' + BondFile + header_s + header_c + header_a + ' -r=' + str(rings)#in this order whatever the order of the options
 
     if not (os.path.isfile(BondFile)):
         print ('the bond file ',BondFile,' does not exist')
@@ -467,4 +467,5 @@ def main(argv):
     return True
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main,paired={'-b':'.bonding.dat'}):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

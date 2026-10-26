@@ -66,8 +66,8 @@ def read_inputfile(InputFile,MyCrystal):#Creates a matrix from the .dat file con
 
 def WriteBonding_C_full(MySnapshotL,step,cell,maxSteps,MyCrystal,BondTable,timestep,natom,numCells,specifics):#Calculates bonds in a given snapshot, cell = its lattice vectors (rows)
     
-    if(100*step//maxSteps != 100*(step-1)//maxSteps or True):
-        sys.stdout.write("\rDetermining bonds between atoms. Progress : "+str(100*step//maxSteps)+"%") 
+    if True:#maxSteps is 0 for a single snapshot
+        sys.stdout.write("\rDetermining bonds between atoms. Progress : "+str(100*step//max(1,maxSteps))+"%") 
         sys.stdout.flush()
 
     #Preparing data to be used by the C function, pointers creation
@@ -130,6 +130,7 @@ def main(argv):
             print ('Computation of the bonding map for each snapshot of a umd file')
             print ('bonding_umd.py -f <UMD_filename> -c <InputFile> -l <MaxLength> -s <Sampling_Frequency> -i <InitialStep> -n <NumCells> -p <Specifics> -k <nCores>')
             print ('default values: -f output.umd.dat -s 1 -i 0 -l None -p None -k None')
+            print ('-f all : every *.umd.dat file of the current folder, one after the other.')
             print ('-c : input file with the bond lengths of the pairs of elements, one line A B cutoff, e.g. <base>.maximum_bonds.inp of analyze_gofr.py')
             print ('     (formerly -i, still accepted : -i followed by a file name). The option -l overwrites all the values of this file.')
             print ('-l : unique bonding length. Use in the case of not having an input file -c. ')
@@ -261,4 +262,5 @@ def main(argv):
     print("runtime:",end-start," s")    
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

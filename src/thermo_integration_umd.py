@@ -105,7 +105,7 @@ def main(argv):
         if opt == '-h':
             print('thermo_integration_umd.py : free energy and entropy by thermodynamic integration from the ideal gas (VASP SCALEE = lambda)')
             print('thermo_integration_umd.py -f <files> -i <InitialStep> -k <exponent> -t <temperature> -v')
-            print('-f : UMD files, one per lambda, separated by commas (default : every *.umd.dat of the folder) ; same cell, atoms and')
+            print('-f : UMD files, one per lambda, separated by commas (default, or -f all : every *.umd.dat of the folder) ; same cell, atoms and')
             print('     temperature ; VaspParser.py writes lambda_ThermoInt (SCALEE) in the header and TotalElectronicEnergy = TOTEN/SCALEE')
             print('     (U, the DFT free energy unscaled ; files parsed between January and October 2026 have 0 there : re-parse the OUTCAR)')
             print('-i : snapshots skipped at the start of each run (default 0)')
@@ -131,7 +131,7 @@ def main(argv):
             Tuser = float(arg)
         elif opt == '-v':
             visual = True
-    if files is None:
+    if files is None or files == ['all']:#-f all : the default, every UMD file of the folder
         files = sorted(glob.glob('*.umd.dat'))
     missing = [f for f in files if not os.path.isfile(f)]
     if missing or not files:

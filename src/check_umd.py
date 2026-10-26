@@ -111,6 +111,7 @@ def main(argv):
             print('  charges  14. formal charge balance of the composition (crystallography.Elements2charge ; -q to change)')
             print(usage)
             print('-f : the UMD file.')
+            print('-f all : every *.umd.dat file of the current folder, one after the other.')
             print('-i : snapshots skipped at the beginning, for the checks of the atoms (2, 3, 5-7, 9, 12) and of the state (4, 8-11, 13). Default 0.')
             print('-s : every s-th snapshot for the checks of the atoms. Default 1 (all : the jumps are checked between consecutive snapshots).')
             print('-r : radius file for check 12 : one line per element, "element radius unit" (Angstrom or Bohr), e.g. "Si 1.9 Bohr" (RCORE of')
@@ -493,4 +494,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

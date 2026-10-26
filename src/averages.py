@@ -254,7 +254,7 @@ def main(argv):
         if opt == '-h':
             print(usage)
             print('averages.py program to extract the average and the spread of the numerical values in UMD files')
-            print('   -f <UMDFiles>    the UMD files, separated by commas. Default: every *.umd.dat of the current folder')
+            print('   -f <UMDFiles>    the UMD files, separated by commas. Default (or -f all): every *.umd.dat of the current folder')
             print('   -p <Pattern>     the quantity to average, e.g. Pressure, Temperature, StressTensor, acell')
             print('                    default: Pressure, Temperature, and InternalEnergy, written on one line per file as')
             print('                    file  #PstdTstdEstd  nsteps  P  stdev_P  T  stdev_T  E  stdev_E')
@@ -285,7 +285,7 @@ def main(argv):
             Thermo = True
         elif opt == '-u':
             units = int(arg)
-    if not files:
+    if not files or files == ['all']:#-f all : the default, every UMD file of the folder
         files = sorted(glob.glob('*.umd.dat'))
     if not files:
         print('No UMD file in the current folder : give them with -f')

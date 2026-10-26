@@ -122,6 +122,7 @@ def main(argv):
             print('If the UMD file was written every s steps (-s s), the velocities can only be the mean velocities over the s steps between')
             print('snapshots : fine for the unwrapped positions (MSD), not for the VACF and the vDOS. The file has to be parsed again for them.')
             print('-f : UMD file to repair.')
+            print('-f all : every *.umd.dat file of the current folder, one after the other (each into <base>.repaired.umd.dat ; -o cannot be given then).')
             print('-o : output file. Default is <base>.repaired.umd.dat.')
             sys.exit()
         elif opt in ("-f","--fumdfile"):
@@ -155,4 +156,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main,single=('-o',)):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

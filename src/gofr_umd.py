@@ -64,6 +64,7 @@ def main(argv):
             print('Program to compute the pair distribution functions g(r) and the running coordination numbers of all the pairs of elements. Usage:')
             print(usage)
             print('-f : UMD file.')
+            print('-f all : every *.umd.dat file of the current folder, one after the other.')
             print('-s : Sampling_Frequency. one snapshot out of s is used. Default is 1.')
             print('-d : width of the bins of the g(r), in A. Default is 0.01.')
             print('-i : InitialStep. number of initial snapshots discarded. Default is 0.')
@@ -171,4 +172,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

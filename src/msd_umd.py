@@ -171,6 +171,7 @@ def main(argv):
             print ('Program to compute the Mean Square Displacement. Usage: ')
             print ('msd_umd.py -f <UMD_filename> -i <InitialStep> -s <Sampling> -v <VerticalJump> -b <Ballistic> -e <FitEnd> -n <nBlocks> -m <Mode> -a <Axes> -k <nCores>')
             print ('UMD_filename = input file with the trajectory, in UMD format.')
+            print ('-f all : every *.umd.dat file of the current folder, one after the other.')
             print ('-i : InitialStep. number of initial snapshots discarded. Default is 0.')
             print ('-s : Sampling. one snapshot out of s is used (the time step becomes s times longer). Default is 1. The steps of -v, -b, -e')
             print ('     count the snapshots used.')
@@ -462,4 +463,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if not umdpf.run_on_all(sys.argv[1:],main):#-f all : every UMD file of the folder
+        main(sys.argv[1:])

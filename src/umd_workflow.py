@@ -209,7 +209,7 @@ def main(argv):
         if opt == '-h':
             print('umd_workflow.py : automated analysis of UMD files, by panels of the flowchart of the package (documentation/umd-flowchart.pdf)')
             print(usage)
-            print('-f : UMD files, separated by commas. Default : every *.umd.dat of the current folder.')
+            print('-f : UMD files, separated by commas. Default, or -f all : every *.umd.dat of the current folder.')
             print('-g : structural properties (geometry) : gofr_umd.py, analyze_gofr.py (bond cutoffs = first minima of the g(r)), bonding_umd.py')
             print('     with these cutoffs, speciation_and_angles.py -r 1 (central atoms and their adjacent neighbours, with the angles -t 1 and')
             print('     the bond lifetimes -l 1) and -r 0 (polymerization of all the atoms : molecules, -c all -a all), lifetimes.py (plot of the')
@@ -250,7 +250,7 @@ def main(argv):
             adjacent = [x.strip() for x in arg.split(',') if x.strip()]
         elif opt == '-o':
             overwrite = True
-    if files is None:
+    if files is None or files == ['all']:#-f all : the default, every UMD file of the folder
         files = sorted(glob.glob('*.umd.dat'))
     missing = [f for f in files if not os.path.isfile(f)]
     if missing or not files:

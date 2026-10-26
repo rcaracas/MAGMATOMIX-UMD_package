@@ -7,7 +7,7 @@ Created on Fri Jun 16 12:22:44 2023
 """
 
 
-import sys, os.path, re
+import sys, os.path, re, glob
 import crystallography as cr
 from functools import partial
 import concurrent.futures
@@ -347,7 +347,13 @@ def read_stresses_4visc(UMDfile):#The header (Crystallization), one Lattice per 
         AllSnapshots.append(SnapshotCrystal)
     return MyCrystal, AllSnapshots, TimeStep
 
-def headerumd():
+_headerdone = False
+
+def headerumd():#once per run, also when a script runs on several files (-f all)
+    global _headerdone
+    if _headerdone:
+        return
+    _headerdone = True
     print ('\n * * * * * ')
     print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.9')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
@@ -355,6 +361,38 @@ def headerumd():
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')
     print ('    with the UMD Package. J. Vis. Exp. (175), e61534, doi:10.3791/61534 (2021)')
     print (' ')
+
+def run_on_all(argv,main,paired={},single=()):#-f all : main is run once for each *.umd.dat file of the current folder, with -f <file>.
+    #paired : options taken for each file from its base, e.g. {'-b':'.bonding.dat'} ; single : options that cannot be given then (one output
+    #name, e.g. -o). A file that fails (the scripts stop with sys.exit) does not stop the others. Returns False without -f all.
+    args = list(argv)
+    if '-fall' in args:
+        args[args.index('-fall'):args.index('-fall')+1] = ['-f','all']
+    if '-f' not in args or args.index('-f')+1 >= len(args) or args[args.index('-f')+1] != 'all' or '-h' in args:
+        return False
+    for opt in list(paired)+list(single):
+        if opt in args:
+            print('with -f all,',opt,'cannot be given'+(' : each file takes <base>'+paired[opt] if opt in paired else ' : it would be the same for all the files'))
+            sys.exit(2)
+    files = sorted(glob.glob('*.umd.dat'))
+    if not files:
+        print('no *.umd.dat file in the current folder')
+        sys.exit()
+    k = args.index('-f')
+    stopped = []
+    for i, f in enumerate(files):
+        base = f[:-8]
+        print('\n========== '+f+'  ('+str(i+1)+'/'+str(len(files))+')')
+        try:
+            main(args[:k+1]+[f]+args[k+2:]+[x for opt,suffix in paired.items() for x in (opt,base+suffix)])
+        except SystemExit as e:#the end of a script, or an error for this file : the next file
+            if e.code not in (None,0):
+                stopped.append(f)
+        except Exception as e:#a crash on this file does not stop the others
+            print('\nERROR on',f,':',type(e).__name__,e)
+            stopped.append(f)
+    print('\n========== '+str(len(files))+' UMD files : '+', '.join(files)+((' ; stopped with an error : '+', '.join(stopped)) if stopped else ''))
+    return True
 
 def former_outputs(folder,pattern):#The files of folder whose whole name matches the regular expression pattern (the names of the outputs of a script)
     return [os.path.join(folder,f) for f in sorted(os.listdir(folder or os.curdir)) if re.fullmatch(pattern,f)]
