@@ -1,9 +1,9 @@
-gcc -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
+gcc -O2 -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
 gcc -dynamiclib -o c_bonds_full.dylib c_bonds_full.c
 gcc -dynamiclib -o c_clusters.dylib c_clusters.c
 gcc -O2 -dynamiclib -o c_gofr.dylib c_gofr.c
 
-gcc -fPIC -c  c_UMDprocess.c
+gcc -O2 -fPIC -c  c_UMDprocess.c
 gcc -fPIC -c  c_bonds_full.c
 gcc -fPIC -c  c_clusters.c
 gcc -O2 -fPIC -c  c_gofr.c

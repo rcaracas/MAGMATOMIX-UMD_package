@@ -11,136 +11,64 @@ import sys, os.path
 import crystallography as cr
 from functools import partial
 import concurrent.futures
-from os.path import join
 import ctypes
 import numpy as np
 import time
 import platform
 
-#from src.crystallography import Lattice
-
-OS = platform.system()
-LibraryName =""
-
-if OS == "Linux":
-    LibraryName = 'c_UMDprocess.so'
-elif OS == "Windows":
-    LibraryName = 'c_UMDprocess.dll'
-elif OS == "Darwin":
-    LibraryName = 'c_UMDprocess.dylib'
-
-
-
-
-current_path=os.path.abspath(__file__)
-path_split=current_path.split('/')
-path_red=path_split[1:-1]
-path_new=''
-for u in path_red:
-    path_new+='/'+u
-
-
-
-read_lib = ctypes.cdll.LoadLibrary(join(path_new, LibraryName))
+LibraryName = {'Linux':'c_UMDprocess.so', 'Windows':'c_UMDprocess.dll', 'Darwin':'c_UMDprocess.dylib'}.get(platform.system(),'c_UMDprocess.so')
+read_lib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(os.path.abspath(__file__)),LibraryName))
 read_lib.defineBonds.argtypes = [ctypes.POINTER(ctypes.c_char),ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.c_int,ctypes.c_int]
 read_lib.defineBonds.restype = ctypes.POINTER(ctypes.c_int)
-read_lib.read_umd_values.argtypes = [ctypes.POINTER(ctypes.c_char),ctypes.c_int,ctypes.c_int]
-read_lib.read_umd_values.restype = ctypes.POINTER(ctypes.c_double)
-read_lib.free_memory.argtypes = [ctypes.POINTER(ctypes.c_double)]
+read_lib.free_memory.argtypes = [ctypes.c_void_p]
 read_lib.free_memory.restype = None
+read_lib.umd_count.argtypes = [ctypes.c_char_p,ctypes.c_long,ctypes.POINTER(ctypes.c_long)]
+read_lib.umd_count.restype = ctypes.c_long
+read_lib.umd_read.argtypes = [ctypes.c_char_p,ctypes.c_long,ctypes.c_long,ctypes.c_long,ctypes.c_long,ctypes.c_int,ctypes.c_int,ctypes.c_void_p,ctypes.c_void_p]
+read_lib.umd_read.restype = ctypes.c_long
 
+COLUMNS = {'xred':(0,3), 'xcart':(3,3), 'absxcart':(6,3), 'velocity':(9,3), 'everything':(0,12)}   #first column and number of columns of the atom lines
 
-def read_snapshot_values_C(octettop,octetbot,step,natom,File,X,mode,maxStep):#Extracts the coordinates from a snapshot 
-                                                                #whose data is contained between the octets "octettop" and "octetbot" in the umd file (thus the prep_read_coord function)
-                                                                #The parameter X is the first index of the relevant 3 coordinate on each line in the umd file
-#    print(octettop," ",octetbot," ",step," ",natom," ",File," ",X," ",mode," ",maxStep)
-    if(100*step//maxStep!=100*(step-1)//maxStep):
-        sys.stdout.write("\rReading coordinates. Progress : "+str(100*step//maxStep)+"%\t")
-        sys.stdout.flush()
-    ff=open(File,"r")
-    ff.seek(octettop,0)
-    snapshot=ff.read(octetbot-octettop)
-    ff.close()
-    snapPointer = ctypes.c_char_p(snapshot.encode('utf-8'))
-    CList=read_lib.read_umd_values(snapPointer,natom,X)
-    SnapshotValues=[]
-    if X==-1:
-        k=12
-    else :
-        k=3
-    #Converts the C data into a python list
-    if mode=="lists":#Returns a list of 3-elements list (x,y,z) for each atom
-        for i in range(natom):
-            List=[]
-            for j in range(k):
-                List.append(round(CList[k*i+j],5))
-            SnapshotValues.append(np.array(List))
-    elif mode=="line":#Returns a unique list of values for all the atoms, atom after atom
-        for i in range(k*natom):
-            SnapshotValues.append(round(CList[i],5))
-    elif mode=="chunks":#Returns a unique list of values for all the atoms, axis after axis
-        for j in range(k):
-            for i in range(natom):
-                SnapshotValues.append(round(CList[k*i+j],5))
-    
-    read_lib.free_memory(CList)
-  #  if step==300 :
-#        print(SnapshotValues[41:45])
- #       sys.exit()
-        
-    return SnapshotValues
 
 def read_snapshotbonds_C(octettop,octetbot,CentIndexes,AdjIndexes,File,natom):#Converts the bonding information of a given snapshot into a list of atoms 
                                                                                #the data is contained between the octets "octettop" and "octetbot" in the bonding file
-    ff=open(File,"r")
-    ff.seek(octettop,0)
-    snapshot=ff.read(octetbot-octettop)
-    ff.close()
-    
-    snapPointer = ctypes.c_char_p(snapshot.encode('utf-8'))
+    with open(File,"rb") as ff:
+        ff.seek(octettop,0)
+        snapshot = ff.read(octetbot-octettop)
     CIp = (ctypes.c_int * len(CentIndexes))(*CentIndexes)
     AIp = (ctypes.c_int * len(AdjIndexes))(*AdjIndexes)
-
-    
-    BList = read_lib.defineBonds(snapPointer,len(snapshot),CIp,AIp,int(len(CentIndexes)/2),int(len(AdjIndexes)/2),natom)
-    SnapshotBondingTable = []
-    SnapshotBondIndexes = []
-   
-    #Converts the C data into two python lists
-    for i in range(2,BList[0]+1):
-        SnapshotBondingTable.append(BList[i])#This one contains the atoms
-    for i in range(BList[0]+2,BList[0]+BList[1]+2):
-        SnapshotBondIndexes.append(BList[i])#This one contains the information about which is bound to which in the other list
+    BList = read_lib.defineBonds(snapshot,len(snapshot),CIp,AIp,len(CentIndexes)//2,len(AdjIndexes)//2,natom)
+    SnapshotBondingTable = BList[2:BList[0]+1]                          #the bound atoms
+    SnapshotBondIndexes = BList[BList[0]+2:BList[0]+BList[1]+2]         #where the bound atoms of each atom begin in SnapshotBondingTable
+    read_lib.free_memory(BList)
     return SnapshotBondingTable,SnapshotBondIndexes
 
-def Octets_from_File(File,key,nlines):#Returns the indexes of octets pertaining to each snapshot in the file.
-    ff=open(File,"r")                 #"key" is the pattern that makrs the separation between the successive snapshots in the file
-    OctIndexes = []                   #"nlines" is the number of lines (= atoms) in each snapshot
-
+def Octets_from_File(File,key,nlines):#Byte offsets of the snapshots of a file : after each line beginning with key, and the end of the file (nlines
+    OctIndexes = []                   #lines, the atoms, follow each key line)
     print("Preparing the file ",File," to be read...")
-    while True :
-        line = ff.readline()
-        if not line :
-            break
-        line=line.strip().split()
-        if len(line)>0 and line[0]==key:
-            OctIndexes.append(ff.tell())
-            for _ in range(nlines):
-                ff.readline()
-    OctIndexes.append(ff.tell())
-    ff.close()
+    with open(File,"rb") as ff:
+        key = key.encode()
+        while True :
+            line = ff.readline()
+            if not line :
+                break
+            line = line.split()
+            if len(line)>0 and line[0]==key:
+                OctIndexes.append(ff.tell())
+                for _ in range(nlines):
+                    ff.readline()
+        OctIndexes.append(ff.tell())
     return OctIndexes
 
-def Crystallization(File,readlength = ""):#builds the Crystal
+def Crystallization(File):#The header of a UMD file (or of a bonding file) and the cell of its first snapshot : returns a Lattice (natom, ntypat, types,
+    #elements, masses, zelec, typat, noelectrons, lambda_ThermoInt, acell, rprim, rprimd) and the timestep (fs ; 0.0 when absent)
     MyCrystal = cr.Lattice()
-    ff=open(File,"r")
-    while True:
-        line = ff.readline()
-        if not line: break
-            #print(line,len(line))
-        if len(line) > 1:
-            line=line.strip()
-            entry=line.split()
+    TimeStep = 0.0
+    with open(File,"r") as ff:
+        for line in ff:
+            entry = line.split()
+            if len(entry) == 0:
+                continue
             if entry[0] == 'natom':
                 MyCrystal.natom = int(entry[1])
                 MyCrystal.typat = [0 for _ in range(MyCrystal.natom)]
@@ -150,194 +78,96 @@ def Crystallization(File,readlength = ""):#builds the Crystal
                 MyCrystal.elements = ['X' for _ in range(MyCrystal.ntypat)]
                 MyCrystal.masses = [1.0 for _ in range(MyCrystal.ntypat)]
                 MyCrystal.zelec = [1.0 for _ in range(MyCrystal.ntypat)]
+            elif entry[0] == 'no.of.electrons':
+                MyCrystal.noelectrons = float(entry[1])
             elif entry[0] == 'types':
-                for ii in range(MyCrystal.ntypat):
-                    MyCrystal.types[ii]=int(entry[ii+1])
+                MyCrystal.types = [int(x) for x in entry[1:MyCrystal.ntypat+1]]
             elif entry[0] == 'elements':
-                for ii in range(MyCrystal.ntypat):
-                    MyCrystal.elements[ii]=entry[ii+1]
+                MyCrystal.elements = entry[1:MyCrystal.ntypat+1]
             elif entry[0] == 'masses':
-                for ii in range(MyCrystal.ntypat):
-                    MyCrystal.masses[ii]=float(entry[ii+1])
+                MyCrystal.masses = [float(x) for x in entry[1:MyCrystal.ntypat+1]]
             elif entry[0] == 'Zelectrons':
-                for ii in range(MyCrystal.ntypat):
-                    MyCrystal.zelec[ii]=float(entry[ii+1])
+                MyCrystal.zelec = [float(x) for x in entry[1:MyCrystal.ntypat+1]]
             elif entry[0] == 'typat':
-                for ii in range(MyCrystal.natom):
-                    MyCrystal.typat[ii] = int(entry[ii+1])
+                MyCrystal.typat = [int(x) for x in entry[1:MyCrystal.natom+1]]
+            elif entry[0] == 'lambda_ThermoInt':
+                MyCrystal.lambda_ThermoInt = float(entry[1])
             elif entry[0] == 'timestep':
                 TimeStep = float(entry[1])
-            elif entry[0] == 'time':
-                TimeInit = float(entry[1])
             elif entry[0] == 'acell':
-                MyCrystal.acell=[float(entry[1]),float(entry[2]),float(entry[3])]
-            elif entry[0] == 'rprim_a':
-                MyCrystal.rprim[0]=[float(entry[1]),float(entry[2]),float(entry[3])]
-            elif entry[0] == 'rprim_b':
-                MyCrystal.rprim[1]=[float(entry[1]),float(entry[2]),float(entry[3])]
-            elif entry[0] == 'rprim_c':
-                MyCrystal.rprim[2]=[float(entry[1]),float(entry[2]),float(entry[3])]
-            elif entry[0] == 'rprimd_a':
-                MyCrystal.rprimd[0]=[float(entry[1]),float(entry[2]),float(entry[3])]
-            elif entry[0] == 'rprimd_b':
-                MyCrystal.rprimd[1]=[float(entry[1]),float(entry[2]),float(entry[3])]
-            elif entry[0] == 'rprimd_c':
-                MyCrystal.rprimd[2]=[float(entry[1]),float(entry[2]),float(entry[3])]
-            if entry[0] == 'atoms:':
+                MyCrystal.acell = [float(x) for x in entry[1:4]]
+            elif entry[0] in ('rprim_a','rprim_b','rprim_c'):
+                MyCrystal.rprim['abc'.index(entry[0][-1])] = [float(x) for x in entry[1:4]]
+            elif entry[0] in ('rprimd_a','rprimd_b','rprimd_c'):
+                MyCrystal.rprimd['abc'.index(entry[0][-1])] = [float(x) for x in entry[1:4]]
+            elif entry[0] in ('atoms:','step'):                         #first snapshot of a UMD file, of a bonding file
                 break
-    ff.close()
-    
-    if readlength == "WithLength" :
-    
-        ff = open(File,"rb")
-    
-        ff.seek(0,2)-1
-        octet = ff.tell()
-    
-        char = ff.read(1)
-    
-        while char in [b'0',b'1',b'2',b'3',b'4',b'5',b'6',b'7',b'8',b'9',b'\t',b'.',b'\n',b" ",b"-",b"e",b"+",b'']:
-            octet -= 1
-            ff.seek(octet)
-            char = ff.read(1)
+    return MyCrystal, TimeStep
 
-        timeBool = [0,0,0,0,0]
-        timeName = [b't',b'i',b'm',b'e',b' ']
-        index = 4
-    
-        while 0 in timeBool :
-            ff.seek(octet)
-            char = ff.read(1)
-            octet -= 1
-            if char in timeName and index==timeName.index(char):
-            
-                timeBool[index]=1
-                index -=1
+def count_snapshots(UMDfile,natom):#Number of complete snapshots of a UMD file (a last snapshot cut short, by a run still being written, is left out)
+    total = ctypes.c_long(0)
+    nsnap = read_lib.umd_count(os.fsencode(UMDfile),natom,ctypes.byref(total))
+    if nsnap < 0:
+        print('Cannot open',UMDfile)
+        sys.exit()
+    if total.value > nsnap:
+        print('WARNING : the last snapshot of',UMDfile,'is incomplete ; it is left out')
+    return nsnap
 
-            else :
-                index = 4
-                timeBool=[0,0,0,0,0]
-    
-        octet += 6
-        time = 0
-        decimal = 0
-        ff.seek(octet)
-        char = ff.read(1)
-        while char in [b'0',b'1',b'2',b'3',b'4',b'5',b'6',b'7',b'8',b'9']:
-            time*=10
-            time+=int(char)
-            octet +=1 
-            ff.seek(octet)
-            char = ff.read(1)
+def read_atoms(UMDfile,natom,first,last,sampling,col0,ncol,cells=False):#Columns col0 to col0+ncol-1 of the atom lines of the snapshots first,
+    #first+sampling, ... before last (from 0), in one pass in C : array (snapshot, atom, column), and with cells the lattice vectors (rows a, b, c) of
+    #each of these snapshots (rprimd, else acell, else NaN)
+    nsel = max(0,-(-(last-first)//sampling))
+    values = np.empty((nsel,natom,ncol))
+    cellvalues = np.empty((nsel,3,3)) if cells else None
+    nread = read_lib.umd_read(os.fsencode(UMDfile),natom,first,last,sampling,col0,ncol,values.ctypes.data,cellvalues.ctypes.data if cells else None)
+    if nread == -1:
+        print('Cannot open',UMDfile)
+        sys.exit()
+    if nread < -1:
+        print('ERROR : an atom line of the snapshot',first+sampling*(-2-nread),'of',UMDfile,'has fewer than',col0+ncol,'numbers, or a value that is not a number')
+        sys.exit()
+    if nread != nsel:
+        print('ERROR :',nread,'snapshots read in',UMDfile,'instead of',nsel)
+        sys.exit()
+    return (values, cellvalues) if cells else values
 
-        if char == b'.':
-            exp=0
-            octet +=1 
-            ff.seek(octet)
-            char = ff.read(1)
-            while char in [b'0',b'1',b'2',b'3',b'4',b'5',b'6',b'7',b'8',b'9']:
-                decimal*=10
-                decimal+=int(char)
-                exp+=1
-                octet +=1 
-                ff.seek(octet)
-                char = ff.read(1)
-            decimal/=10**exp
-
-        time += decimal
-    
-        ff.close()
-    
-        length = int((time-TimeInit)/TimeStep)+1
-    
-        return MyCrystal, TimeStep, length
-
-    else :
-
-        return MyCrystal, TimeStep
-
-def read_values(UMDfile,key,mode="line",Nsteps=1,firststep = 0,laststep = None,cutoff="all",nCores = None):
-    
-    t=time.time()
-    MyCrystal,TimeStep = Crystallization(UMDfile)
-    OctIndexesRaw = Octets_from_File(UMDfile, 'atoms:', MyCrystal.natom)
-    
-    if cutoff=="all":
-        cutoff = len(OctIndexesRaw)-1
-    
-    OctIndexes=OctIndexesRaw[:cutoff+1]
-
-    if laststep == None :
-        print(" extracting all steps starting with ",firststep)
-        OctIndexes = OctIndexes[firststep:]
-    else :
-        print(" extracting all steps between ", firststep, " and ", laststep)
-        OctIndexes = OctIndexes[firststep:laststep+1]
-    
-    OctTop = [OctIndexes[i*Nsteps] for i in range(int((len(OctIndexes)-1)/Nsteps))]#Indicates the beginning of each relevant snapshot
-    OctBot = [OctIndexes[i*Nsteps+1] for i in range(int((len(OctIndexes)-1)/Nsteps))]#Indicates it's end
-#    print("will read umd between octets: ",OctTop," and ",OctBot)
-
-    if key == "xred":
-        X=0
-        print('Extracting the reduced coordinates from the file '+UMDfile+'... ')
- 
-    elif key == "xcart":
-        X=3
-        print('Extracting the cartesian coordinates from the file '+UMDfile+'... ')
-
-    elif key == "absxcart":
-        X=6
-        print('Extracting the absolute coordinates from the file '+UMDfile+'... ')
-
-    elif key == "velocity":
-        X=9
-        print('Extracting the velocities from the file '+UMDfile+'... ')
-    elif key == "everything":
-        X=-1
-
-    else :
+def read_values(UMDfile,key,mode="line",Nsteps=1,firststep = 0,laststep = None,cutoff="all",nCores = None):#Positions or velocities of the snapshots
+    #firststep, firststep+Nsteps, ... before laststep (default : the end ; cutoff : only the first cutoff snapshots of the file), of the key
+    #xred, xcart, absxcart (unwrapped), velocity, or everything (the four, 12 columns) : returns the header (Crystallization), an array of the values of
+    #each snapshot (mode line : atom after atom ; lists : (snapshot, atom, column) ; chunks : column after column), the timestep, and the number of
+    #snapshots from firststep to laststep. One pass in C (nCores is not used, kept for the callers)
+    t = time.time()
+    if key not in COLUMNS:
         print("Parameter < ",key," > not recognized")
         sys.exit()
-
-    if mode!="line" and mode !="lists" and mode!="chunks":
+    if mode not in ("line","lists","chunks"):
         print("Parameter < ",mode," > not recognized")
         sys.exit()
-    
-        
-    
-#    readvalues = partial(read_snapshot_values_C,natom=MyCrystal.natom,File=UMDfile,X=X,mode=mode,maxStep=len(OctTop-1))
-    readvalues = partial(read_snapshot_values_C,natom=MyCrystal.natom,File=UMDfile,X=X,mode=mode,maxStep=len(OctTop))
-    if nCores != None :
-        with concurrent.futures.ProcessPoolExecutor(max_workers = nCores) as executor :
-            SnapshotsValuesList = list(executor.map(readvalues,OctTop,OctBot,[step for step in range(len(OctTop))]))        
-    else:
-        with concurrent.futures.ProcessPoolExecutor() as executor :
-            SnapshotsValuesList = list(executor.map(readvalues,OctTop,OctBot,[step for step in range(len(OctTop))]))        
-
-
-    print("Values extracted in ",(time.time()-t)," s")
-    return MyCrystal, SnapshotsValuesList, TimeStep, len(OctIndexes)-1
-
-def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, c) of the nsnap snapshots read by read_values with the same Nsteps and firststep
-    cells = []                                         #the cell of each snapshot (NPT), from its rprimd lines ; the first cell for all if they are missing
-    cell = []
-    ntotal = 0
-    with open(UMDfile,'r') as f:
-        for line in f:
-            if line.startswith('rprimd_'):
-                entry = line.split()
-                cell.append([float(entry[1]),float(entry[2]),float(entry[3])])
-                if len(cell) == 3:
-                    cells.append(cell)
-                    cell = []
-            elif line.startswith('atoms:'):
-                ntotal += 1
-    if len(cells) == ntotal and ntotal > 0:
-        return np.array(cells)[firststep+Nsteps*np.arange(nsnap)]
     MyCrystal,TimeStep = Crystallization(UMDfile)
-    return np.repeat(np.array(MyCrystal.rprimd,dtype=float)[None],nsnap,axis=0)
+    nsnap = count_snapshots(UMDfile,MyCrystal.natom)
+    if cutoff != "all":
+        nsnap = min(nsnap,cutoff)
+    first = min(max(0,firststep),nsnap)
+    last = nsnap if laststep is None else min(max(laststep,first),nsnap)
+    col0,ncol = COLUMNS[key]
+    print('Extracting the',key,'values of the snapshots',first,'to',last-1,'every',Nsteps,'from the file',UMDfile)
+    values = read_atoms(UMDfile,MyCrystal.natom,first,last,Nsteps,col0,ncol)
+    if mode == "line":
+        values = values.reshape(len(values),-1)
+    elif mode == "chunks":
+        values = values.transpose(0,2,1).reshape(len(values),-1)
+    print(len(values),'snapshots read in',round(time.time()-t,2),'s')
+    return MyCrystal, values, TimeStep, last-first
 
+def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, c) of the nsnap snapshots read by read_values with the same Nsteps and
+    #firststep : the cell of each snapshot (NPT), from its rprimd lines, else its acell
+    MyCrystal,TimeStep = Crystallization(UMDfile)
+    values, cells = read_atoms(UMDfile,MyCrystal.natom,firststep,firststep+Nsteps*nsnap,Nsteps,0,0,cells=True)
+    if np.isnan(cells).any():
+        print('ERROR : snapshots of',UMDfile,'without rprimd or acell lines')
+        sys.exit()
+    return cells
 
 def read_snapshots(UMDfile,natom,first=0,sampling=1,fields=None,atoms=True):#Line by line, any file size : yields (snapshot, fields, atoms) for every
     #snapshot ; fields = {name : list of the numbers of its line} (the names of fields, default all), atoms = array natom x columns (reduced*3,
@@ -475,8 +305,8 @@ def read_bonds(BondFile,centEls,adjEls,Nsteps=1,nCores = None):#Bonds of every N
 
     OctIndexes = Octets_from_File(BondFile,"step",MyCrystal.natom)
 
-    OctTop = [OctIndexes[i*Nsteps] for i in range(int((len(OctIndexes)-1)/Nsteps))]#Indicates the beginning of each relevant snapshot
-    OctBot = [OctIndexes[i*Nsteps+1] for i in range(int((len(OctIndexes)-1)/Nsteps))]#Indicates it's end
+    OctTop = OctIndexes[0:-1:Nsteps]                                   #beginning of the snapshots 0, Nsteps, 2 Nsteps, ...
+    OctBot = OctIndexes[1::Nsteps]                                      #and their end
 
     print("Extracting bonds from file ",BondFile)
     
@@ -496,49 +326,22 @@ def read_bonds(BondFile,centEls,adjEls,Nsteps=1,nCores = None):#Bonds of every N
     BondsIndexes = [D[1] for D in Data]
     return CentIndexes, AdjIndexes, MyCrystal, [Bonds, BondsIndexes], TimeStep*Nsteps#TimeStep*Nsteps : time between two snapshots used
 
-def read_stresses_4visc(UMDfile):
-    #print(' in read_stresses_4visc')
-    MyCrystal = cr.Lattice()
-    TimeStep = 1.0
-    (MyCrystal,TimeStep) = Crystallization(UMDfile)
-
-    ff=open(UMDfile,"r")
-    AllSnapshots=[]
-    line = ff.readline().strip().split()
-    natom=int(line[1])
-    
-    while True : 
+def read_stresses_4visc(UMDfile):#The header (Crystallization), one Lattice per snapshot (stress, temperature, rprimd, cellvolume) and the timestep
+    MyCrystal,TimeStep = Crystallization(UMDfile)
+    AllSnapshots = []
+    for isnap,fields,atoms in read_snapshots(UMDfile,MyCrystal.natom,fields={'timestep','StressTensor','Temperature','acell','rprimd_a','rprimd_b','rprimd_c'},atoms=False):
         SnapshotCrystal = cr.Lattice()
-        flagheader=1
-        while flagheader :
-            l = ff.readline()
-            if not l :
-                l=ff.readline()
-                if not l :#If we encounter two empty lines in a row, we're at the end of the file
-                    #print('len of allsnapshots is',len(AllSnapshots))
-                    return MyCrystal, AllSnapshots,TimeStep
-            line = l.strip().split()
-            if len(line)>0 :
-                if line[0]=='timestep':
-                    TimeStep = float(line[1])
-                if line[0]=='atoms:':
-                    flagheader=0
-                elif line[0]=='rprimd_a':
-                    SnapshotCrystal.rprimd[0]=[float(line[ii]) for ii in range(1,4)]
-                elif line[0]=='rprimd_b':
-                    SnapshotCrystal.rprimd[1]=[float(line[ii]) for ii in range(1,4)]
-                elif line[0]=='rprimd_c':
-                    SnapshotCrystal.rprimd[2]=[float(line[ii]) for ii in range(1,4)]
-                elif line[0]=='StressTensor':
-                    SnapshotCrystal.stress=[float(line[i]) for i in range(1,7)]
-                elif line[0]=='Temperature':
-                     SnapshotCrystal.temperature=float(line[1])
- 
+        TimeStep = fields['timestep'][0]
+        if 'StressTensor' in fields:
+            SnapshotCrystal.stress = fields['StressTensor'][0:6]
+        if 'Temperature' in fields:
+            SnapshotCrystal.temperature = fields['Temperature'][0]
+        cell = cell_of(fields)
+        if cell is not None:
+            SnapshotCrystal.rprimd = cell.tolist()
         SnapshotCrystal.cellvolume = SnapshotCrystal.makevolume()
         AllSnapshots.append(SnapshotCrystal)
-        
-        for _ in range(natom):
-            next(ff)
+    return MyCrystal, AllSnapshots, TimeStep
 
 def headerumd():
     print ('\n * * * * * ')
@@ -602,163 +405,56 @@ def read_poscar(filename):#VASP5 POSCAR/CONTCAR (element line), reduced or Carte
     return lines[0].strip(), cell, symbols, xred, vels
 
 
-def print_header(FileName,MyCrystal):
-    newfile = FileName + '.umd.dat'
-    nf = open(newfile,'a')
+def print_header(FileName,MyCrystal):#Appends the header of a UMD file to FileName.umd.dat
     string = 'natom ' + str(MyCrystal.natom) + '\n'
-    nf.write(string)
-    string = 'ntypat ' + str(MyCrystal.ntypat) + '\n'
-    nf.write(string)
-    string = 'no.of.electrons ' + str(MyCrystal.noelectrons) + '\n'
-    nf.write(string)
-    string = 'types '
-    for ii in range(MyCrystal.ntypat):
-        string = string + str(MyCrystal.types[ii]) + ' '
-    string = string + '\n'
-    nf.write(string)
-    string = 'elements '
-    for ii in range(MyCrystal.ntypat):
-        string = string + str(MyCrystal.elements[ii]) + ' '
-    string = string + '\n'
-    nf.write(string)
-    string = 'masses '
-    for ii in range(MyCrystal.ntypat):
-        string = string + str(MyCrystal.masses[ii]) + ' '
-    string = string + '\n'
-    nf.write(string)
-    string = 'Zelectrons '
-    for ii in range(MyCrystal.ntypat):
-        string = string + str(MyCrystal.zelec[ii]) + ' '
-    string = string + '\n'
-    nf.write(string)
-    string = 'typat '
-    for ii in range(MyCrystal.natom):
-        string = string + str(MyCrystal.typat[ii]) + ' '
-    string = string + '\n\n'
-    nf.write(string)
-    string = 'lambda_ThermoInt' + ' ' +  str(MyCrystal.lambda_ThermoInt)
-    string = string + '\n\n'
-    nf.write(string)
-    nf.close()
-
-def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):
-    newfile = FileName + '.umd.dat'
-    nf = open(newfile,'a')
-    string = 'timestep ' + str(TimeStep) + ' fs\n' + 'time ' + str(CurrentTime) + ' fs\n'
-    nf.write(string)
-    string = 'InternalEnergy ' + str(round(MyCrystal.internalenergy,6)) + ' eV\n'
-    nf.write(string)
-    string = 'TotalElectronicEnergy ' + str(round(MyCrystal.toten, 6)) + ' eV\n'  #needed for thermo int
-    nf.write(string)
-    string = 'ElectronicEntropy ' + str(round(MyCrystal.electronicentropy,6)) + ' eV\n'
-    nf.write(string)
-    string = 'KineticEnergyIons ' + str(round(MyCrystal.kineticenergy,6)) + ' eV\n'
-    nf.write(string)
-    string = 'EnergyWithDrift ' + str(round(MyCrystal.energywithdrift,6)) + ' eV\n'
-    nf.write(string)
-    string = 'Enthalpy ' + str(round(MyCrystal.enthalpy,6)) + ' eV\n'
-    nf.write(string)
-    string = 'Magnetization ' + str(round(MyCrystal.magnetization,6)) + ' Magneton-Bohr\n'
-    nf.write(string)
-    string = 'Temperature ' + str(round(MyCrystal.temperature,1)) + ' K\n'
-    nf.write(string)
-    string = 'Pressure ' + str(round(MyCrystal.pressure,4)) + ' GPa\n'
-    nf.write(string)
-    string = 'Density ' + str(round(MyCrystal.density,3)) + ' g.cm-3\n'
-    nf.write(string)
-    string = 'StressTensor '
-    for ii in range(6):
-        string = string + str(round(MyCrystal.stress[ii],4)) + ' '
-    string = string + ' GPa\n'
-    nf.write(string)
-#    string = 'acell ' + str(round(MyCrystal.acell[0],3)) + ' ' + str(round(MyCrystal.acell[1],3) + ' ' + str(round(MyCrystal.acell[2],3)) + ' A\n'
-    string = 'acell ' + str(MyCrystal.acell[0]) + ' ' + str(MyCrystal.acell[1]) + ' ' + str(MyCrystal.acell[2]) + ' A\n'
-    nf.write(string)
-    string = 'rprim_a ' + str(MyCrystal.rprimd[0][0]/MyCrystal.acell[0]) + '  ' +str(MyCrystal.rprimd[0][1]/MyCrystal.acell[0]) + '  ' +str(MyCrystal.rprimd[0][2]/MyCrystal.acell[0]) + '\n'
-    nf.write(string)
-    string = 'rprim_b ' + str(MyCrystal.rprimd[1][0]/MyCrystal.acell[1]) + '  ' +str(MyCrystal.rprimd[1][1]/MyCrystal.acell[1]) + '  ' +str(MyCrystal.rprimd[1][2]/MyCrystal.acell[1]) + '\n'
-    nf.write(string)
-    string = 'rprim_c ' + str(MyCrystal.rprimd[2][0]/MyCrystal.acell[2]) + '  ' +str(MyCrystal.rprimd[2][1]/MyCrystal.acell[2]) + '  ' +str(MyCrystal.rprimd[2][2]/MyCrystal.acell[2]) + '\n'
-    nf.write(string)
-    string = 'rprimd_a ' + str(MyCrystal.rprimd[0][0]) + '  ' +str(MyCrystal.rprimd[0][1]) + '  ' +str(MyCrystal.rprimd[0][2]) + ' A\n'
-    nf.write(string)
-    string = 'rprimd_b ' + str(MyCrystal.rprimd[1][0]) + '  ' +str(MyCrystal.rprimd[1][1]) + '  ' +str(MyCrystal.rprimd[1][2]) + ' A\n'
-    nf.write(string)
-    string = 'rprimd_c ' + str(MyCrystal.rprimd[2][0]) + '  ' +str(MyCrystal.rprimd[2][1]) + '  ' +str(MyCrystal.rprimd[2][2]) + ' A\n'
-    nf.write(string)
-    string = 'atoms: reduced*3 cartesian*3(A) abs.diff.*3(A) velocity*3(A/fs) force*3(eV/A) charge(no.elec) magnetization(magneton-Bohr) \n'
-    nf.write(string)
-    for iatom in range(MyCrystal.natom):
-        string = str(round(MyCrystal.atoms[iatom].xred[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xred[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xred[2],5)) + ' '
-        string = string + str(round(MyCrystal.atoms[iatom].xcart[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xcart[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].xcart[2],5)) + ' '
-        string = string + str(round(diffcoords[iatom][0],5)) + ' ' + str(round(diffcoords[iatom][1],5)) + ' ' + str(round(diffcoords[iatom][2],5)) + ' '
-        string = string + str(round(MyCrystal.atoms[iatom].vels[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].vels[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].vels[2],5)) + ' '
-        string = string + str(round(MyCrystal.atoms[iatom].forces[0],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[1],5)) + ' ' + str(round(MyCrystal.atoms[iatom].forces[2],5)) + ' '
-        string = string + str(MyCrystal.atoms[iatom].charge) + ' ' + str(MyCrystal.atoms[iatom].magnet) + '\n'
+    string += 'ntypat ' + str(MyCrystal.ntypat) + '\n'
+    string += 'no.of.electrons ' + str(MyCrystal.noelectrons) + '\n'
+    string += 'types ' + ''.join(str(MyCrystal.types[ii]) + ' ' for ii in range(MyCrystal.ntypat)) + '\n'
+    string += 'elements ' + ''.join(str(MyCrystal.elements[ii]) + ' ' for ii in range(MyCrystal.ntypat)) + '\n'
+    string += 'masses ' + ''.join(str(MyCrystal.masses[ii]) + ' ' for ii in range(MyCrystal.ntypat)) + '\n'
+    string += 'Zelectrons ' + ''.join(str(MyCrystal.zelec[ii]) + ' ' for ii in range(MyCrystal.ntypat)) + '\n'
+    string += 'typat ' + ''.join(str(MyCrystal.typat[ii]) + ' ' for ii in range(MyCrystal.natom)) + '\n\n'
+    string += 'lambda_ThermoInt ' + str(MyCrystal.lambda_ThermoInt) + '\n\n'
+    with open(FileName + '.umd.dat','a') as nf:
         nf.write(string)
-    string='\n'
-    nf.write(string)
-    nf.close()
+
+def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):#Appends a snapshot to FileName.umd.dat : the fields of MyCrystal, and per atom
+    #xred, xcart, the unwrapped positions diffcoords, velocities, forces (str(round(x,5))), charge, magnetization
+    lines = ['timestep ' + str(TimeStep) + ' fs\n' + 'time ' + str(CurrentTime) + ' fs\n',
+             'InternalEnergy ' + str(round(MyCrystal.internalenergy,6)) + ' eV\n',
+             'TotalElectronicEnergy ' + str(round(MyCrystal.toten, 6)) + ' eV\n',                  #needed for thermo int
+             'ElectronicEntropy ' + str(round(MyCrystal.electronicentropy,6)) + ' eV\n',
+             'KineticEnergyIons ' + str(round(MyCrystal.kineticenergy,6)) + ' eV\n',
+             'EnergyWithDrift ' + str(round(MyCrystal.energywithdrift,6)) + ' eV\n',
+             'Enthalpy ' + str(round(MyCrystal.enthalpy,6)) + ' eV\n',
+             'Magnetization ' + str(round(MyCrystal.magnetization,6)) + ' Magneton-Bohr\n',
+             'Temperature ' + str(round(MyCrystal.temperature,1)) + ' K\n',
+             'Pressure ' + str(round(MyCrystal.pressure,4)) + ' GPa\n',
+             'Density ' + str(round(MyCrystal.density,3)) + ' g.cm-3\n',
+             'StressTensor ' + ''.join(str(round(MyCrystal.stress[ii],4)) + ' ' for ii in range(6)) + ' GPa\n',
+             'acell ' + str(MyCrystal.acell[0]) + ' ' + str(MyCrystal.acell[1]) + ' ' + str(MyCrystal.acell[2]) + ' A\n']
+    for ii,name in enumerate(('a','b','c')):
+        lines.append('rprim_' + name + ' ' + '  '.join(str(MyCrystal.rprimd[ii][jj]/MyCrystal.acell[ii]) for jj in range(3)) + '\n')
+    for ii,name in enumerate(('a','b','c')):
+        lines.append('rprimd_' + name + ' ' + '  '.join(str(MyCrystal.rprimd[ii][jj]) for jj in range(3)) + ' A\n')
+    lines.append('atoms: reduced*3 cartesian*3(A) abs.diff.*3(A) velocity*3(A/fs) force*3(eV/A) charge(no.elec) magnetization(magneton-Bohr) \n')
+    for iatom in range(MyCrystal.natom):
+        atom = MyCrystal.atoms[iatom]
+        lines.append(' '.join([str(round(x,5)) for x in (atom.xred[0],atom.xred[1],atom.xred[2],atom.xcart[0],atom.xcart[1],atom.xcart[2],
+                                                          diffcoords[iatom][0],diffcoords[iatom][1],diffcoords[iatom][2],atom.vels[0],atom.vels[1],atom.vels[2],
+                                                          atom.forces[0],atom.forces[1],atom.forces[2])]+[str(atom.charge),str(atom.magnet)]) + '\n')
+    lines.append('\n')
+    with open(FileName + '.umd.dat','a') as nf:
+        nf.write(''.join(lines))
     return(CurrentTime,TimeStep)
 
-def read_bigheader_umd(umdfile, short=0):
-    MyCrystal = cr.Lattice()
-    with open(umdfile,'r') as ff:
-        while True:
-            line = ff.readline()
-            if not line: break
-            #print(line,len(line))
-            if len(line) > 1:
-                line=line.strip()
-                entry=line.split()
-                if entry[0] == 'natom':
-                    MyCrystal.natom = int(entry[1])
-                    MyCrystal.typat = [0 for _ in range(MyCrystal.natom)]
-                if entry[0] == 'ntypat':
-                    MyCrystal.ntypat = int(entry[1])
-                    MyCrystal.types = [0 for _ in range(MyCrystal.ntypat)]
-                    MyCrystal.elements = ['X' for _ in range(MyCrystal.ntypat)]
-                    MyCrystal.masses = [1.0 for _ in range(MyCrystal.ntypat)]
-                    MyCrystal.zelec = [1.0 for _ in range(MyCrystal.ntypat)]
-                if entry[0] == 'types':
-                    for ii in range(MyCrystal.ntypat):
-                        MyCrystal.types[ii]=int(entry[ii+1])
-                if entry[0] == 'elements':
-                    for ii in range(MyCrystal.ntypat):
-                        MyCrystal.elements[ii]=entry[ii+1]
-                if entry[0] == 'masses':
-                    for ii in range(MyCrystal.ntypat):
-                        MyCrystal.masses[ii]=float(entry[ii+1])
-                if entry[0] == 'Zelectrons':
-                    for ii in range(MyCrystal.ntypat):
-                        MyCrystal.zelec[ii]=float(entry[ii+1])
-                if entry[0] == 'typat':
-                    for ii in range(MyCrystal.natom):
-                        MyCrystal.typat[ii] = int(entry[ii+1])
-                if entry[0] == 'timestep':
-                    TimeStep = float(entry[1])
+def copyhead(Target,File,Nsteps):#Writes to Target the lines of File before its first "atoms:" line (header and fields of the first snapshot), the timestep
+    with open(File,"r") as ff, open(Target,"w") as fa:              #multiplied by Nsteps
+        for line in ff:
+            l = line.split()
+            if len(l)>0 :
+                if l[0] == "timestep":
+                    line = l[0] +" "+ str(float(l[1])*Nsteps) + " "+ l[2] +"\n"
+                if l[0] == "atoms:":
                     break
-    return(MyCrystal,TimeStep)
-
-def copyhead(Target,File,Nsteps):
-    
-    ff = open(File,"r")
-    fa = open(Target,"w")
-    
-    while True : 
-        line = ff.readline()
-        if not line :
-            ff.close()
-            fa.close()
-            break
-        l = line.strip().split()
-        
-        if len(l)>0 :
-            if l[0] == "timestep":
-                line = l[0] +" "+ str(float(l[1])*Nsteps) + " "+ l[2] +"\n"
-            if l[0] == "atoms:":
-                ff.close()
-                fa.close()
-                break                
-        fa.write(line)
-
+            fa.write(line)

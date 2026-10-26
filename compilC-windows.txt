@@ -1,5 +1,5 @@
 
-gcc -fPIC -c  c_UMDprocess.c
+gcc -O2 -fPIC -c  c_UMDprocess.c
 gcc -fPIC -c  c_bonds_full.c
 gcc -fPIC -c  c_clusters.c
 gcc -O2 -fPIC -c  c_gofr.c

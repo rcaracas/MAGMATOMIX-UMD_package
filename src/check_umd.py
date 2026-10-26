@@ -141,7 +141,7 @@ def main(argv):
         print('the radius file',radiusfile,'does not exist')
         sys.exit()
 
-    MyCrystal,TimeStep = umdpf.read_bigheader_umd(umdfile)
+    MyCrystal,TimeStep = umdpf.Crystallization(umdfile)
     natom = MyCrystal.natom
     elements = MyCrystal.elements
     typat = np.array(MyCrystal.typat)

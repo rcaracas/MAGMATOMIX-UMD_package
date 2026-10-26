@@ -46,9 +46,8 @@ class Structure:#One configuration : cell (rows a, b, c, A), element of each ato
 
 #****Input
 
-def count_snapshots(UMDname):
-    with open(UMDname,'r') as f:
-        return sum(1 for line in f if line.startswith('atoms:'))
+def count_snapshots(UMDname):#complete snapshots
+    return umdpf.count_snapshots(UMDname,umdpf.Crystallization(UMDname)[0].natom)
 
 
 def read_umd(UMDname,first,sampling):#Snapshots first, first+sampling, ... (only first if sampling is 0) ; also the Zelectrons of the elements
@@ -383,7 +382,7 @@ def selection(arg,elements,typat):#Atoms of a selection : indices and ranges cou
 
 def extract(UMDname,arg,first,sampling,outname):#Trajectory of the selected atoms, every sampling-th snapshot from first on, read and written line by line : the atom lines
     #are copied, and so are the lines of each snapshot (energies, T, P, cell : those of the whole system), with the timestep multiplied by sampling
-    MyCrystal,TimeStep = umdpf.read_bigheader_umd(UMDname)
+    MyCrystal,TimeStep = umdpf.Crystallization(UMDname)
     atoms = selection(arg,MyCrystal.elements,MyCrystal.typat)
     keep = set(atoms)
     present = sorted(set(MyCrystal.typat[i] for i in atoms))           #elements of the selection, in the order of the file

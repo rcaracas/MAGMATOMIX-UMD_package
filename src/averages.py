@@ -94,7 +94,7 @@ def kinetic_included(IE,K,TEE,ES=None):#Whether InternalEnergy contains KineticE
 
 
 def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kinetic energy included) and Cv (eV/K per cell) of one UMD file : statistics, and notes
-    MyCrystal,TimeStep = umdpf.read_bigheader_umd(FileName)
+    MyCrystal,TimeStep = umdpf.Crystallization(FileName)
     natom = MyCrystal.natom
     mass = sum(cr.Elements2rest(el)[3]*n for el,n in zip(MyCrystal.elements,MyCrystal.types))/NA      #g per cell
     fields = {}
@@ -154,14 +154,14 @@ def write_thermo(files,SkipSteps,units):#Thermodynamics of the UMD files, in ful
         firstline = 'file\tnsteps\tDensity(g/cm3)\tstdev_rho\terr_rho\tPressure(GPa)\tstdev_P\terr_P\tTemperature(K)\tstdev_T\terr_T\tInternEnergy(eV/atm)\tstdev_E\terr_E\tCvm(Nkb)\tstdev_Cvm\n'
     else:
         firstline = 'file\tnsteps\tDensity(g/cm3)\tstdev_rho\terr_rho\tPressure(GPa)\tstdev_P\terr_P\tTemperature(K)\tstdev_T\terr_T\tTemperature(eV)\tstdev_T\terr_T\tInternEnergy(eV/atm)\tstdev_E\terr_E\tInternEnergy(eV/unitcell)\tstdev_E\terr_E\tInternEnergy(J/g)\tstdev_E\terr_E\tCvm(Nkb)\tstdev_Cvm\tCvm(J/K/mol)\tstdev_Cvm\tCvm(J/K/g)\tstdev_Cvm\tCv(J/K/unitcell)\tstdev_Cv\n'
-    MyCrystal,TimeStep = umdpf.read_bigheader_umd(files[0])
+    MyCrystal,TimeStep = umdpf.Crystallization(files[0])
     f = open('fullthermo.dat','w')
     f.write('elements\t' + '\t'.join(MyCrystal.elements) + '\n')
     f.write('number\t' + '\t'.join(str(n) for n in MyCrystal.types) + '\n')
     f.write(firstline)
     for FileName in files:
         print('\nAveraging in file',FileName)
-        Crystal,TimeStep = umdpf.read_bigheader_umd(FileName)
+        Crystal,TimeStep = umdpf.Crystallization(FileName)
         if Crystal.elements != MyCrystal.elements or Crystal.types != MyCrystal.types:
             print('WARNING : composition',Crystal.elements,Crystal.types,'differs from the header of fullthermo.dat (',files[0],')')
         nsteps, natom, mass, results, notes = thermodynamics(FileName,SkipSteps)
