@@ -94,7 +94,7 @@ def read_outcar(FileName,InitialStep,SkipStep):
 
 
     ff.close()
-    umdpf.print_header(FileName,MyCrystal)
+    umdpf.print_header(FileName,MyCrystal,'VASP : the UMD file originated from a VASP ab initio molecular dynamics simulation')
     with open(FileName,'r') as ff:
         while True:
             line = ff.readline()

@@ -61,7 +61,7 @@ def Octets_from_File(File,key,nlines):#Byte offsets of the snapshots of a file :
     return OctIndexes
 
 def Crystallization(File):#The header of a UMD file (or of a bonding file) and the cell of its first snapshot : returns a Lattice (natom, ntypat, types,
-    #elements, masses, zelec, typat, noelectrons, lambda_ThermoInt, acell, rprim, rprimd) and the timestep (fs ; 0.0 when absent)
+    #elements, masses, zelec, typat, noelectrons, lambda_ThermoInt, origin, acell, rprim, rprimd) and the timestep (fs ; 0.0 when absent)
     MyCrystal = cr.Lattice()
     TimeStep = 0.0
     with open(File,"r") as ff:
@@ -92,6 +92,8 @@ def Crystallization(File):#The header of a UMD file (or of a bonding file) and t
                 MyCrystal.typat = [int(x) for x in entry[1:MyCrystal.natom+1]]
             elif entry[0] == 'lambda_ThermoInt':
                 MyCrystal.lambda_ThermoInt = float(entry[1])
+            elif entry[0] == 'origin':
+                MyCrystal.origin = ' '.join(entry[1:])
             elif entry[0] == 'timestep':
                 TimeStep = float(entry[1])
             elif entry[0] == 'acell':
@@ -405,7 +407,9 @@ def read_poscar(filename):#VASP5 POSCAR/CONTCAR (element line), reduced or Carte
     return lines[0].strip(), cell, symbols, xred, vels
 
 
-def print_header(FileName,MyCrystal):#Appends the header of a UMD file to FileName.umd.dat
+def print_header(FileName,MyCrystal,origin=None):#Appends the header of a UMD file to FileName.umd.dat ; origin : the line 'origin <origin>' at the end of
+    #the header, the code that produced the run (every reader skips the header lines it does not know ; not the first line, which old readers take as
+    #natom, and no field name in it, as averages.py greps the fields)
     string = 'natom ' + str(MyCrystal.natom) + '\n'
     string += 'ntypat ' + str(MyCrystal.ntypat) + '\n'
     string += 'no.of.electrons ' + str(MyCrystal.noelectrons) + '\n'
@@ -414,7 +418,10 @@ def print_header(FileName,MyCrystal):#Appends the header of a UMD file to FileNa
     string += 'masses ' + ''.join(str(MyCrystal.masses[ii]) + ' ' for ii in range(MyCrystal.ntypat)) + '\n'
     string += 'Zelectrons ' + ''.join(str(MyCrystal.zelec[ii]) + ' ' for ii in range(MyCrystal.ntypat)) + '\n'
     string += 'typat ' + ''.join(str(MyCrystal.typat[ii]) + ' ' for ii in range(MyCrystal.natom)) + '\n\n'
-    string += 'lambda_ThermoInt ' + str(MyCrystal.lambda_ThermoInt) + '\n\n'
+    string += 'lambda_ThermoInt ' + str(MyCrystal.lambda_ThermoInt) + '\n'
+    if origin:
+        string += 'origin ' + origin + '\n'
+    string += '\n'
     with open(FileName + '.umd.dat','a') as nf:
         nf.write(string)
 

@@ -314,7 +314,7 @@ def main(argv):
             atommass = np.array([masses[k] for k in elindex[order]])
             ref_symbols = [symbols[i] for i in order]
             open(outname,'w').close()
-            umdpf.print_header(base,MyCrystal)
+            umdpf.print_header(base,MyCrystal,'LAMMPS : the UMD file originated from a LAMMPS molecular dynamics simulation')
             colpos = {k:columns_of(columns,v) for k,v in (('x',('x','y','z')),('xs',('xs','ys','zs')),('xu',('xu','yu','zu')),('xsu',('xsu','ysu','zsu')),
                                                           ('i',('ix','iy','iz')),('v',('vx','vy','vz')),('f',('fx','fy','fz')))}
             if not any(colpos[k] for k in ('x','xs','xu','xsu')):

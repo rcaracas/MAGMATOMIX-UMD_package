@@ -474,7 +474,7 @@ def write_umd(filename,st,zelec):#One snapshot ; positions, velocities, cell, de
         MyCrystal.atoms[inew].vels = list(st.vels[i])
     base = filename[:-8]
     open(filename,'w').close()                                          #print_header and print_snapshots append
-    umdpf.print_header(base,MyCrystal)
+    umdpf.print_header(base,MyCrystal,'build_umd.py : the UMD file is a structure built by build_umd.py, '+st.title)
     umdpf.print_snapshots(base,MyCrystal,1.0,0.0,xcart[order])
 
 

@@ -53,6 +53,10 @@ Use `-h` or read the argument-parsing block at the bottom of each script to disc
 ### UMD File Format (`.umd.dat`)
 Human-readable ASCII: one header section per snapshot followed by per-atom lines. Fields include `timestep`, `time`, `InternalEnergy`, `Enthalpy`, `Temperature`, `Pressure`, `StressTensor`, `acell`, `rprim`, and per-atom `xred`/`xcart`/`vels`/`forces`. Parsers write this format; analysis scripts read it.
 
+**Rule: no update or new feature may change the format in a way that breaks the reading of UMD files, by the current or by former versions of the package.** New information goes into new lines that every reader skips: never the first line (old readers take it as `natom`), never between the `atoms:` line and the atom lines, and with no field name as a separate word (`averages.py` greps the fields anywhere in the file).
+
+The header ends with `origin <code> : <sentence>` (`umd_processes_fast.print_header(…,origin)`, read into `Lattice.origin` by `Crystallization`), the code that produced the run: `VaspParser.py` writes `origin VASP : the UMD file originated from a VASP ab initio molecular dynamics simulation`, `LAMMPSParser2umd.py` `origin LAMMPS : …`, `build_umd.py` `origin build_umd.py : the UMD file is a structure built by build_umd.py, <title>`; copied by `build_umd.py --extract`, `repair_umd.py` and into the bonding files. Files written before have no origin line. Checked: the readers of the current and of the former version (before fad7cee) give identical outputs with and without the line.
+
 ### Parsers (simulation code → `.umd.dat`)
 | Script | Source format |
 |---|---|

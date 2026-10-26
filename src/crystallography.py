@@ -80,6 +80,7 @@ class Lattice(object):#Remplacer les vecteurs de vecteurs par des matrices ?
         self.elecgap=elecgap
         self.noelectrons=noelectrons
         self.lambda_ThermoInt=lambda_ThermoInt
+        self.origin=''                          #the code that produced the run (origin line of the UMD header)
     #Coordinates : xcart = xred @ rprimd (rows of rprimd = the vectors a, b, c), xred = xcart @ inverse(rprimd) ; the cell is rprimd as it is
     def xred2xcart(self,red):
         return np.dot(red,self.rprimd).tolist()
