@@ -79,7 +79,7 @@ umd_workflow.py                 automated workflow: runs the scripts of the stru
                                 one summary table of the results per folder
 
     structural properties:
-gofr_umd.py                     pair distribution functions (C library c_gofr)
+gofr_umd.py                     pair distribution functions of all pairs or of central-adjacent elements (C library c_gofr)
 analyze_gofr.py                 first maxima, minima and coordination numbers; bond cutoffs
 bonding_umd.py                  bonds of every snapshot (C library c_bonds_full)
 speciation_and_angles.py        chemical species, angles, bond lifetimes (C library c_clusters)
@@ -154,3 +154,4 @@ v 2.8.1, October 2026 - fix: analyze_msd.py runs as a command (python3 line at t
 - documentation folder: quick help of the scripts (umd-quick-help.pdf)
 
 Since v 2.8.1 (not yet released):
+- gofr_umd.py: -c central and -a adjacent elements, the g(r) of these pairs only, in <base>.<central>-<adjacent>.gofr.dat

@@ -51,9 +51,9 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="io"><b>out:</b> <code>&lt;base&gt;.check.dat</code> (+ <code>.overlap.dat</code> with <code>-r</code>)</span></div>
 
 <h2>Structural properties</h2>
-<div class="card"><span class="name">gofr_umd.py</span> <span class="what">&mdash; pair distribution functions g(r) and running coordination numbers of all pairs; any cell, NPT.</span>
-<span class="cmd">gofr_umd.py -f run.umd.dat -i skip -s sampling -d 0.01</span>
-<span class="io"><b>out:</b> <code>&lt;base&gt;.gofr.dat</code></span></div>
+<div class="card"><span class="name">gofr_umd.py</span> <span class="what">&mdash; pair distribution functions g(r) and running coordination numbers of all pairs, or of central&ndash;adjacent elements; any cell, NPT.</span>
+<span class="cmd">gofr_umd.py -f run.umd.dat -i skip -s sampling -d 0.01 -c O -a Si,Mg</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.gofr.dat</code> (with -c/-a: <code>&lt;base&gt;.O-SiMg.gofr.dat</code>)</span></div>
 
 <div class="card"><span class="name">analyze_gofr.py</span> <span class="what">&mdash; first maximum, minimum (bond cutoff), coordination number and mean distance of every pair; automatic, <code>-v</code> to check and correct.</span>
 <span class="cmd">analyze_gofr.py [-f &lt;base&gt;.gofr.dat] -a Si-O,Mg-O -v</span>

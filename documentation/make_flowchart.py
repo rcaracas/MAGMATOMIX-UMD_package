@@ -111,7 +111,7 @@ line([(680,188),(1340,280),(1340,592+DY),(1148,592+DY)])
 out.append('<g transform="translate(0,%g)">' % DY)
 #---------------------------------------------------------------- structural
 gofr = box(40,372,124,64,'.gofr.')
-cmd(120,328,'gofr_umd.py -f -d -s -i')
+cmd(120,328,'gofr_umd.py -f -d -s -i -c -a')
 gray(166,404,222,404)
 prop(230,398,['INTERATOMIC','BONDING'])
 line([(102,436),(102,478)])

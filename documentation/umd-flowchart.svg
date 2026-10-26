@@ -63,7 +63,7 @@
 <g transform="translate(0,45)">
 <rect x="40" y="372" width="124" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="102" y="411.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.gofr.</tspan></text>
-<text x="120" y="328" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="120" dy="0">gofr_umd.py -f -d -s -i</tspan></text>
+<text x="120" y="328" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="120" dy="0">gofr_umd.py -f -d -s -i -c -a</tspan></text>
 <path d="M 166 404 L 193.2 404" stroke="#231F20" stroke-width="3"/>
 <path d="M 222 404 L 182 387 L 193.2 404 L 182 421 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
 <text x="230" y="398" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">INTERATOMIC</tspan><tspan x="230" dy="19.6">BONDING</tspan></text>

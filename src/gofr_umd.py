@@ -3,7 +3,7 @@
 
 ### Authors : Kevin Jiguet-Covex, Razvan Caracas
 ### One method for all the cells : nearest image in reduced coordinates, cell of every snapshot (NPT), threads around the C library : Razvan Caracas
-### Pair distribution functions g(r) and running coordination numbers of all the pairs of elements
+### Pair distribution functions g(r) and running coordination numbers of all the pairs of elements, or of central and adjacent elements (-c, -a)
 
 
 import sys, getopt, os.path
@@ -51,9 +51,11 @@ def main(argv):
     discrete = 0.01
     InitialStep = 0
     nCores = None
-    usage = 'gofr_umd.py -f <umdfile> -s <Sampling_Frequency> -d <discretization.interval> -i <InitialStep> -k <nCores>'
+    central = 'all'
+    adjacent = 'all'
+    usage = 'gofr_umd.py -f <umdfile> -s <Sampling_Frequency> -d <discretization.interval> -i <InitialStep> -c <central> -a <adjacent> -k <nCores>'
     try:
-        opts, arg = getopt.getopt(argv,"hf:s:d:i:k:",["fumdfile","sSampling_Frequency","ddiscrete","iInitialStep","knCores"])
+        opts, arg = getopt.getopt(argv,"hf:s:d:i:c:a:k:",["fumdfile","sSampling_Frequency","ddiscrete","iInitialStep","ccentral","aadjacent","knCores"])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -65,12 +67,18 @@ def main(argv):
             print('-s : Sampling_Frequency. one snapshot out of s is used. Default is 1.')
             print('-d : width of the bins of the g(r), in A. Default is 0.01.')
             print('-i : InitialStep. number of initial snapshots discarded. Default is 0.')
+            print('-c : central elements, separated by commas, e.g. O or Si,Mg. Default is all.')
+            print('-a : adjacent elements, separated by commas, e.g. O. Default is all.')
+            print('     The pairs computed are central-adjacent : -c O gives O-X for every element X, i.e. the g(r) and the X atoms around an O atom.')
+            print('     Only the atoms of these elements are read into the computation, so a subset is faster than all the pairs.')
             print('-k : number of cores. Default is all.')
             print('Any cell, orthogonal or not, and cells changing at every snapshot (NPT) : the nearest image of each pair is taken in')
             print('reduced coordinates with the cell of its snapshot, which is exact up to half the smallest distance between opposite faces')
             print('of the cell, the largest distance computed. g(r) is normalized with the volume of each snapshot and tends to 1 at large r.')
             print('Output : <base>.gofr.dat : dist (center of the bin, A), then for each pair A-B its g(r) and Int(A-B), the mean number of')
             print('         B atoms around an A atom up to the outer edge of the bin.')
+            print('         With -c or -a : <base>.<central>-<adjacent>.gofr.dat, the elements written one after the other, e.g. -c Si,Mg -a O :')
+            print('         <base>.SiMg-O.gofr.dat, -c O : <base>.O-all.gofr.dat ; the pairs in the order of the elements of the UMD file.')
             sys.exit()
         elif opt in ("-f","--fumdfile"):
             umdfile = str(arg)
@@ -80,16 +88,37 @@ def main(argv):
             discrete = float(arg)
         elif opt in ("-i","--iInitialStep"):
             InitialStep = int(arg)
+        elif opt in ("-c","--ccentral"):
+            central = arg
+        elif opt in ("-a","--aadjacent"):
+            adjacent = arg
         elif opt in ("-k","--knCores"):
             nCores = int(arg)
     if not os.path.isfile(umdfile):
         print('umd file ',umdfile,'does not exist')
         sys.exit()
+    MyCrystal = umdpf.Crystallization(umdfile)[0]
+    selected = {}
+    for name, value in (('central',central),('adjacent',adjacent)):
+        if value == 'all':
+            selected[name] = list(MyCrystal.elements)
+        else:
+            selected[name] = [el.strip() for el in value.split(',') if el.strip()]
+            unknown = [el for el in selected[name] if el not in MyCrystal.elements]
+            if unknown or not selected[name]:
+                print('the',name,'elements',value,'are not all in the UMD file, whose elements are',','.join(MyCrystal.elements))
+                sys.exit(2)
 
     MyCrystal,SnapshotsXCart,TimeStep,length = umdpf.read_values(umdfile,"xcart",Nsteps=Nsteps,firststep=InitialStep,nCores=nCores)
     natom = MyCrystal.natom
     X = np.array(SnapshotsXCart,dtype=float).reshape(len(SnapshotsXCart),natom,3)
     del SnapshotsXCart
+    #Only the atoms of the central and adjacent elements are kept ; all the atoms of an element are, so the normalization is unchanged
+    elements = MyCrystal.elements
+    used = [i for i in range(MyCrystal.ntypat) if elements[i] in selected['central'] or elements[i] in selected['adjacent']]
+    typat_all = np.array(MyCrystal.typat)
+    keep = np.isin(typat_all,used)
+    X = X[:,keep]
     nsnap = len(X)
     cells = umdpf.read_cells(umdfile,nsnap,Nsteps,InitialStep)#the cell of each snapshot, as read by read_values : from InitialStep, every Nsteps
     volumes = np.abs(np.linalg.det(cells))
@@ -97,10 +126,11 @@ def main(argv):
     del X
     rmax = half_width(cells).min()
     nbins = int(rmax/discrete)
-    elements = MyCrystal.elements
-    ntypes = MyCrystal.ntypat
-    typat = np.array(MyCrystal.typat,dtype=np.int32)
+    ntypes = len(used)
+    typat = np.searchsorted(used,typat_all[keep]).astype(np.int32)#types renumbered 0..ntypes-1 in the order of the UMD file
     counts_el = np.bincount(typat,minlength=ntypes)
+    elements = [elements[i] for i in used]
+    pairlist = [(i,j) for i in range(ntypes) for j in range(ntypes) if elements[i] in selected['central'] and elements[j] in selected['adjacent']]
     print(nsnap,' snapshots ; volume ','%.3f' % volumes.mean(),' A^3'+('' if np.ptp(volumes) < 1.0E-6*volumes.mean() else ' (from %.3f to %.3f)' % (volumes.min(),volumes.max()))
           +' ; g(r) up to ','%.4f' % (nbins*discrete),' A, half the smallest distance between opposite faces of the cell')
 
@@ -120,11 +150,14 @@ def main(argv):
         g = np.where(pairs[:,:,None] > 0,wcounts/(nsnap*pairs[:,:,None]*shells),0.0)
     coord = np.cumsum(counts,axis=-1)/(nsnap*counts_el[:,None,None])
 
-    gofrname = (umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0])+'.gofr.dat'
+    gofrname = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
+    if central != 'all' or adjacent != 'all':
+        gofrname += '.'+('all' if central == 'all' else ''.join(selected['central']))+'-'+('all' if adjacent == 'all' else ''.join(selected['adjacent']))
+    gofrname += '.gofr.dat'
     with open(gofrname,'w') as fa:
-        fa.write('dist\t'+'\t'.join(elements[i]+'-'+elements[j]+'\tInt('+elements[i]+'-'+elements[j]+')' for i in range(ntypes) for j in range(ntypes))+'\n')
+        fa.write('dist\t'+'\t'.join(elements[i]+'-'+elements[j]+'\tInt('+elements[i]+'-'+elements[j]+')' for i,j in pairlist)+'\n')
         for k in range(nbins):
-            fa.write(str(round(edges[k]+0.5*discrete,5))+'\t'+'\t'.join(str(g[i,j,k])+'\t'+str(coord[i,j,k]) for i in range(ntypes) for j in range(ntypes))+'\n')
+            fa.write(str(round(edges[k]+0.5*discrete,5))+'\t'+'\t'.join(str(g[i,j,k])+'\t'+str(coord[i,j,k]) for i,j in pairlist)+'\n')
     print('gofr file successfully created under the name ',gofrname)
     print('runtime : ','%.1f' % (time.time()-start),' s')
 
