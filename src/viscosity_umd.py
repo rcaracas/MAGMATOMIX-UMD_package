@@ -108,8 +108,9 @@ def main(argv):
             print('2 errors over the second half of the integral : then use a longer run or fewer blocks. Check the plateau with -v, and use -e')
             print('to stop earlier for fast-relaxing liquids, whose eta(t) is noisier at long times. With few blocks the error may be underestimated')
             print('by 10-30%.')
-            print('Output : <base>.visc.dat with the autocorrelation and the running viscosity of each component, the combined running')
-            print('viscosity and its error from the blocks, as a function of time.')
+            print('Outputs, as a function of time : <base>.stress.scf.dat, the autocorrelation of each component of the traceless stress and their')
+            print('weighted mean, also normalized to 1 at t=0 ; <base>.visc.dat, the running viscosity of each component, the combined running')
+            print('viscosity and its error from the blocks.')
             sys.exit()
         elif opt in ("-f","--fumdfile"):
             UMDfile = str(arg)
@@ -175,18 +176,28 @@ def main(argv):
         print('WARNING : the running viscosity still rises by ','%.2g' % (res['rise']*1e3),' mPa.s over the second half of the integral (more than 2 errors) :')
         print('          it has not converged, and the value is a lower bound ; use fewer blocks -n (longer integral) or a longer run.')
 
-    if UMDfile.endswith('.umd.dat'):
-        viscfile = UMDfile[:-8]+'.visc.dat'
-    else:
-        viscfile = os.path.splitext(UMDfile)[0]+'.visc.dat'
-    with open(viscfile,'w') as f:
-        f.write('# Green-Kubo viscosity from '+UMDfile+' : '+str(nsteps)+' snapshots from '+str(firststep)+', T = '+'%.1f' % temperature+' K, V = '+'%.2f' % volume+' A^3, components '+Components+', '+str(nBlocks)+' blocks of '+str(blocklen)+' steps\n')
-        f.write('# viscosity = '+str(res['eta'])+' +/- '+str(res['error'])+' Pa.s, at the end of the integral '+str(res['tend'])+' fs'+('' if res['converged'] else ' (NOT converged : lower bound)')+'\n')
-        f.write('# acf_ab : autocorrelation of the traceless stress N_ab (GPa^2) ; eta_ab : its running Green-Kubo integral (Pa.s, x3/4 for the diagonal ones, bias-corrected) ; eta : weighted mean, eta_err : error from the blocks\n')
-        f.write('time_(fs)\t'+'\t'.join('acf_'+comp for comp in COMPONENTS)+'\t'+'\t'.join('eta_'+comp for comp in COMPONENTS)+'\teta\teta_err\n')
+    base = UMDfile[:-8] if UMDfile.endswith('.umd.dat') else os.path.splitext(UMDfile)[0]
+    run = '# Green-Kubo viscosity from '+UMDfile+' : '+str(nsteps)+' snapshots from '+str(firststep)+', T = '+'%.1f' % temperature+' K, V = '+'%.2f' % volume+' A^3, components '+Components+', '+str(nBlocks)+' blocks of '+str(blocklen)+' steps\n'
+    result = '# viscosity = '+str(res['eta'])+' +/- '+str(res['error'])+' Pa.s, at the end of the integral '+str(res['tend'])+' fs'+('' if res['converged'] else ' (NOT converged : lower bound)')+'\n'
+    acfmean = acf @ (weights*DIAGSCALE)                                  #the integrand of the viscosity : pref * integral = eta (before the bias correction)
+    acfs = np.column_stack([acf,acfmean])
+    scffile = base+'.stress.scf.dat'
+    with open(scffile,'w') as f:                                        #the autocorrelations, as vibrations_umd.py writes the VACFs to <base>.vels.scf.dat
+        f.write(run)
+        f.write(result)
+        f.write('# acf_ab : autocorrelation of the traceless stress N_ab (GPa^2) ; acf_mean : their weighted mean (diagonal ones x3/4), whose running integral x V/kBT is the viscosity ; norm_ab, norm_mean : the same, normalized to 1 at t=0\n')
+        f.write('time_(fs)\t'+'\t'.join('acf_'+comp for comp in COMPONENTS)+'\tacf_mean\t'+'\t'.join('norm_'+comp for comp in COMPONENTS)+'\tnorm_mean\n')
         for ii in range(window):
-            f.write(str(t[ii])+'\t'+'\t'.join(str(x) for x in acf[ii])+'\t'+'\t'.join(str(x) for x in etacomp[ii])+'\t'+str(eta[ii])+'\t'+str(etaerr[ii])+'\n')
-    print('Autocorrelations and running viscosities printed in file ',viscfile)
+            f.write(str(t[ii])+'\t'+'\t'.join(str(x) for x in acfs[ii])+'\t'+'\t'.join(str(x) for x in acfs[ii]/acfs[0])+'\n')
+    viscfile = base+'.visc.dat'
+    with open(viscfile,'w') as f:
+        f.write(run)
+        f.write(result)
+        f.write('# eta_ab : running Green-Kubo integral of the autocorrelation of N_ab (Pa.s, x3/4 for the diagonal ones, bias-corrected) ; eta : weighted mean, eta_err : error from the blocks\n')
+        f.write('time_(fs)\t'+'\t'.join('eta_'+comp for comp in COMPONENTS)+'\teta\teta_err\n')
+        for ii in range(window):
+            f.write(str(t[ii])+'\t'+'\t'.join(str(x) for x in etacomp[ii])+'\t'+str(eta[ii])+'\t'+str(etaerr[ii])+'\n')
+    print('Stress autocorrelations printed in file ',scffile,' ; running viscosities in file ',viscfile)
 
     if plot:
         plot_viscosity(t,acf,etacomp,eta,etaerr,res,UMDfile+' : '+Components+' components')

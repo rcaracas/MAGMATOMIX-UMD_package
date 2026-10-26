@@ -133,5 +133,6 @@ Since v 2.7 (not yet released):
 - VaspParser.py writes the total electronic (free) energy again
 - thermo_integration_umd.py rewritten (Gauss-Legendre quadrature, errors)
 - crystallography.py: coordinate conversions correct for any cell
+- viscosity_umd.py: the stress autocorrelations in their own file, <base>.stress.scf.dat, also normalized
 - umd_processes_fast.py: faster and more robust reader of UMD files; the last snapshot is no longer missed with sampling
 - the header of the UMD files ends with a line stating the code that produced the run (origin)
