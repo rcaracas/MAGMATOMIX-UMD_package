@@ -165,3 +165,5 @@ v 2.8.3, October 2026 - g(r) analysis by clicks and with better minima; former o
 - analyze_gofr.py -v: buttons Discard, Automatic, Manual input (the automatic fits on the clicked peak and dip), All manual (the clicked points), Previous, Next; two left clicks, maximum then minimum (the right click for the minimum did not work on Mac trackpads); one pass over the pairs, Next on the last pair closes and writes the files; the terminal table once, one line per pair with the coordination numbers of A-B and B-A
 
 Since v 2.8.3 (not yet released):
+- msd_umd.py and analyze_msd.py: the fit of D starts by default at the end of the ballistic regime of each element (local exponent of the MSD below 1.2), no longer at 0; -b / -s as before; <base>.diffusion.dat gives the window of each column; D changes (pyrolite Na 3.1 -> 2.4 x 10^-8 m2/s)
+- analyze_msd.py and analyze_msd_clusters.py -v: two clicks on the graph set the fit window of each MSD (start, then end), refitted at once; buttons Automatic (the -s/-e window), Previous, Next (one pass); the files are written when the window is closed, diffusivities.txt with the window of each column (8 columns per species)

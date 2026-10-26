@@ -84,9 +84,9 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">msd_umd.py -f run.umd.dat -i skip -s sampling -m elements|atoms -a cart|cryst|tensor -n 5 -b -e</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.msd.dat</code>, <code>.msd.blocks.dat</code>, <code>.diffusion.dat</code> (+ <code>.diffusion.tensor.dat</code>)</span></div>
 
-<div class="card"><span class="name">analyze_msd.py</span> <span class="what">&mdash; refits the D of all the MSD files below the folder, with another window or with plots.</span>
+<div class="card"><span class="name">analyze_msd.py</span> <span class="what">&mdash; refits the D of all the MSD files below the folder, with another window; -v: plots, two clicks set the fit window.</span>
 <span class="cmd">analyze_msd.py -s start_fs -e end_fs -v</span>
-<span class="io"><b>out:</b> <code>diffusivities.txt</code> per folder (D, error, R&sup2;, alpha)</span></div>
+<span class="io"><b>out:</b> <code>diffusivities.txt</code> per folder (D, error, R&sup2;, alpha, fit window)</span></div>
 
 <div class="card"><span class="name">viscosity_umd.py</span> <span class="what">&mdash; shear viscosity by Green&ndash;Kubo from the stress tensor, with block errors and a convergence warning.</span>
 <span class="cmd">viscosity_umd.py -f run.umd.dat -i skip -n 4 -e end_steps -c all|offdiag -v</span>
@@ -96,7 +96,7 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">msd_clusters_umd.py -f run.umd.dat -p &lt;base&gt;.r1.popul.dat -b min_life_steps -c max_size</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1__&lt;species&gt;.msd.dat</code>, one per species</span></div>
 
-<div class="card"><span class="name">analyze_msd_clusters.py</span> <span class="what">&mdash; diffusion coefficients of the species, from the instances living through the fit window.</span>
+<div class="card"><span class="name">analyze_msd_clusters.py</span> <span class="what">&mdash; diffusion coefficients of the species, from the instances living through the fit window; -v: two clicks set it.</span>
 <span class="cmd">analyze_msd_clusters.py -s start_fs -e end_fs -v</span>
 <span class="io"><b>out:</b> <code>diffusivities_clusters.txt</code> per folder (check alpha: short-lived species stay ballistic)</span></div>
 

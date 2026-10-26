@@ -52,6 +52,16 @@ def analyze_cluster_file(msdfile,SkipTemps,EndTemps):
     return result, True
 
 
+def refit_cluster(fit,tmin,tmax):
+    """the fit of a cluster file over another window (the instances used change with it) ; False when none is usable"""
+    result, ok = analyze_cluster_file(fit['file'],tmin,tmax)
+    if ok is None:
+        return False
+    fit.update(result)
+    fit['title'] = fit['file']+' : '+fit['cluster']+' ('+str(result['nused'])+' instances)'
+    return True
+
+
 def main(argv):
     SkipTemps = 0
     EndTemps = None
@@ -70,7 +80,10 @@ def main(argv):
             print('The MSD of the center of mass is averaged over the instances of the cluster that live through the whole fit window,')
             print('then fitted linearly between SkipTemps and EndTemps : D = slope/6.')
             print('Default EndTemps : 0.75 of the median lifetime (last time of the MSD) of the instances, so that most of them are used.')
-            print('-v : display each averaged MSD with its linear fit and the fit window, with Previous/Next buttons (default: no display)')
+            print('-v : display each averaged MSD with its linear fit and the fit window (grey), one at a time (default: no display). Two clicks')
+            print('     on the graph set the fit window of this cluster : the first one its start, the second one its end ; the instances living')
+            print('     through it are averaged and fitted again at once. Automatic : back to the window of -s/-e. Previous/Next : the other')
+            print('     clusters, one pass ; Next on the last one closes the window, and the files are then written with the windows set.')
             print('')
             print('diffusivities_clusters.txt has one line per cluster file, with:')
             print('     file, cluster, number of instances, number used in the fit, start and end of the fit (fs),')
@@ -86,34 +99,42 @@ def main(argv):
             EndTemps = float(arg)
         elif opt in ('-v','--visual'):
             plot = True
-    fits = []
+    folders = []                                                                    #(folder, [(file, cluster, fit or the result without fit)])
     for dirpath, dirnames, filenames in os.walk(os.curdir):
         files = [file for file in sorted(glob.glob(dirpath+'/*.msd.dat')) if is_cluster_file(read_columns(file)[1])]
         if files == []:
             continue
-        newfilename = dirpath+'/diffusivities_clusters.txt'
-        print('The file ',newfilename,' is created')
-        f = open(newfilename,'w')
-        f.write('\t'.join(['file','cluster','n_instances','n_used','fit_start(fs)','fit_end(fs)','D(m2/s)','D_stdev','error','R_squared','slope','intercept','alpha'])+'\n')
+        rows = []
         for file in files:
             cluster = os.path.basename(file)[:-len('.msd.dat')].split('__')[-1]
             result, ok = analyze_cluster_file(file,SkipTemps,EndTemps)
-            row = [file, cluster, str(result['ninst']), str(result['nused']), str(result['tmin']), str(result['tmax'])]
             if ok is None:
                 print(file,': no instance lives through a fit window of at least 3 points, between ',result['tmin'],' and ',result['tmax'],' fs ; set -e')
-                row += ['nan']*7
-            else:
-                print(file,': ',cluster,', fit between ',result['tmin'],' and ',result['tmax'],' fs on ',result['nused'],' of ',result['ninst'],' instances ; D = ','%.3e' % result['D'],' +/- ','%.2e' % result['D_err'],' m2/s, alpha = ','%.2f' % result['alpha'])
-                warning = regime_warning(result['alpha'])
-                if warning != '':
-                    print('    alpha',warning)
-                row += [str(result[key]) for key in ('D','D_err','error','R2','slope','intercept','alpha')]
-                if plot:
-                    fits.append(dict(result, title=file+' : '+cluster+' ('+str(result['nused'])+' instances)'))
-            f.write('\t'.join(row)+'\n')
-        f.close()
+                rows.append((file,cluster,result,False))
+                continue
+            print(file,': ',cluster,', fit between ',result['tmin'],' and ',result['tmax'],' fs on ',result['nused'],' of ',result['ninst'],' instances ; D = ','%.3e' % result['D'],' +/- ','%.2e' % result['D_err'],' m2/s, alpha = ','%.2f' % result['alpha'])
+            warning = regime_warning(result['alpha'])
+            if warning != '':
+                print('    alpha',warning)
+            rows.append((file,cluster,dict(result,file=file,cluster=cluster,default=(result['tmin'],result['tmax']),
+                                           title=file+' : '+cluster+' ('+str(result['nused'])+' instances)'),True))
+        folders.append((dirpath,rows))
+    fits = [fit for dirpath, rows in folders for file, cluster, fit, ok in rows if ok]
     if plot and fits != []:
-        plot_fits(fits)
+        plot_fits(fits,refit_cluster)
+        for fit in fits:
+            if (fit['tmin'],fit['tmax']) != fit['default']:
+                print(fit['title'],': window set by hand, ','%.0f' % fit['tmin'],' - ','%.0f' % fit['tmax'],' fs : D = ','%.3e' % fit['D'],' +/- ',
+                      '%.2e' % fit['D_err'],' m2/s, alpha = ','%.2f' % fit['alpha'])
+    for dirpath, rows in folders:                                                   #written after the plots, with the windows set there
+        newfilename = dirpath+'/diffusivities_clusters.txt'
+        print('The file ',newfilename,' is created')
+        with open(newfilename,'w') as f:
+            f.write('\t'.join(['file','cluster','n_instances','n_used','fit_start(fs)','fit_end(fs)','D(m2/s)','D_stdev','error','R_squared','slope','intercept','alpha'])+'\n')
+            for file, cluster, fit, ok in rows:
+                row = [file, cluster, str(fit['ninst']), str(fit['nused']), str(fit['tmin']), str(fit['tmax'])]
+                row += [str(fit[key]) for key in ('D','D_err','error','R2','slope','intercept','alpha')] if ok else ['nan']*7
+                f.write('\t'.join(row)+'\n')
 
 
 if __name__ == "__main__":

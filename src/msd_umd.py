@@ -11,7 +11,7 @@ import umd_processes_fast as umdpf
 import time
 import ast
 import numpy as np
-from analyze_msd import calculation_diffusivities, block_diffusivity_error, diffusion_exponent, regime_warning, fit_end
+from analyze_msd import calculation_diffusivities, block_diffusivity_error, diffusion_exponent, regime_warning, fit_end, ballistic_end, BALLISTIC_ALPHA
 
 
 def msd_fft(x):#Mean square displacement of each column of x (time along axis 0), averaged over all the time origins
@@ -101,16 +101,16 @@ def plane_directions(arg,step=5):#Unit vectors every step degrees in the plane o
     return thetas, np.cos(np.radians(thetas))[:,None]*a+np.sin(np.radians(thetas))[:,None]*b, a, b
 
 
-def write_tensor(filename,umdfile,elements,Dfull,Dblocks,tmin,tmax,tend,plane):#Diffusion tensor of each element, principal values and directions, and D in a plane
+def write_tensor(filename,umdfile,elements,Dfull,Dblocks,tmins,tmax,tend,plane):#Diffusion tensor of each element, principal values and directions, and D in a plane
     #Dfull[element] : the 6 components (m2/s) ; Dblocks[element] : the 6 components fitted on each block (list), or [] ; errors from the spread over the blocks,
     #scaled as block_diffusivity_error : stdev * sqrt(tmax/(nblocks*tend))
     def err(values):#values : one row per block
         return np.std(values,axis=0,ddof=1)*np.sqrt(tmax/(len(values)*tend))
     f = open(filename,'w')
-    f.write('# Diffusion tensors from '+umdfile+' : <dr_i dr_j> = 2 D_ij t, fit between '+str(tmin)+' and '+str(tmax)+' fs ; D in m2/s ; '
-            +('errors from '+str(len(Dblocks[0]))+' blocks' if len(Dblocks[0]) > 1 else 'no errors (no blocks)')+'\n')
+    f.write('# Diffusion tensors from '+umdfile+' : <dr_i dr_j> = 2 D_ij t, fit from fit_start (of each element) to '+str(tmax)+' fs ; D in m2/s ; '
+            +('errors from '+str(max(len(B) for B in Dblocks))+' blocks' if max(len(B) for B in Dblocks) > 1 else 'no errors (no blocks)')+'\n')
     f.write('# D along a unit vector n : n.D.n ; isotropic D = trace/3 (= D of the total MSD) ; principal directions : cartesian unit vectors\n')
-    for el,D6,B in zip(elements,Dfull,Dblocks):
+    for el,D6,B,tmin in zip(elements,Dfull,Dblocks,tmins):
         B = np.array(B)
         blocks = len(B) > 1
         e6 = err(B) if blocks else np.full(6,np.nan)
@@ -119,6 +119,7 @@ def write_tensor(filename,umdfile,elements,Dfull,Dblocks,tmin,tmax,tend,plane):#
         iso = np.trace(tensor(D6))/3.0
         eiso = err([np.trace(tensor(b))/3.0 for b in B]) if blocks else np.nan
         f.write('\nelement '+el+'\n')
+        f.write('fit_start_(fs)\t'+str(tmin)+'\n')
         f.write('component\tD_(m2/s)\terror\n')
         for lab,d,e in zip(TensorLabels,D6,e6):
             f.write(lab+'\t'+str(d)+'\t'+str(e)+'\n')
@@ -147,6 +148,7 @@ def write_tensor(filename,umdfile,elements,Dfull,Dblocks,tmin,tmax,tend,plane):#
 def main(argv):
     vv = 1
     ballistic = 0
+    autostart = True            #the fit starts at the end of the ballistic regime of each element, unless -b is given
     FitEnd = None
     nBlocks = 5
     umdpf.headerumd()
@@ -175,7 +177,10 @@ def main(argv):
             print (' The MSD is averaged over all the possible time origins, for time lags up to half the length of the trajectory.')
             print (' It is computed with Fast Fourier Transforms, so no sub-sampling of the time origins is needed.')
             print ('-v : VerticalJump. the MSD is written every VerticalJump time lags. Default is 1.')
-            print ('-b : Ballistic. number of steps of the ballistic regime; the MSD is written and fitted only for time lags >= Ballistic. Default is 0. Typical values of 100 are sufficient.')
+            print ('-b : Ballistic. number of steps of the ballistic regime; the MSD is written and fitted only for time lags >= Ballistic.')
+            print ('     Default : the MSD is written from the lag 0, and the fit of each element starts at the end of its ballistic regime, the first')
+            print ('     time at which the local exponent d ln MSD / d ln t (2 in free flight, 1 in diffusion), averaged over a factor 1.3 in time,')
+            print ('     falls below '+str(BALLISTIC_ALPHA)+' (as analyze_msd.py) ; its axes and tensor components start there too.')
             print ('-e : FitEnd. last time lag, in steps, of the linear fit of the MSD giving the diffusion coefficients.')
             print ('     Default is 0.75 of the last lag of a block (see -n ; with -n 0 or 1, of a block as for 5 blocks), i.e. 7.5% of the trajectory for 5 blocks.')
             print ('     Longer fits, up to lags with few independent time origins, give much noisier D ; increase -e for slow, sub-diffusive systems.')
@@ -223,6 +228,7 @@ def main(argv):
                 sys.exit()
         elif opt in ("-b", "--bBallistic"):
             ballistic = int(arg)
+            autostart = False
             if ballistic<0 :
                 print('ERROR : ballistic -b has to be positive or zero.')
                 sys.exit()
@@ -385,20 +391,27 @@ def main(argv):
             f.close()
             print ('MSDs of the blocks printed in file ',blockfile)
 
-        #Diffusion coefficients : linear fit of the MSD between the end of the ballistic regime and FitEnd
-        tmin = ballistic*TimeStep
+        #Diffusion coefficients : linear fit of the MSD between the end of the ballistic regime (of each element, or -b) and FitEnd
         tmax = FitEnd*TimeStep
         times = np.array(Instants)
+        tmins = []
+        for itypat in range(MyCrystal.ntypat):
+            tb = ballistic_end(times,MSDel[itypat][0],tmax) if autostart else ballistic*TimeStep
+            if tb is None:
+                print('WARNING : the ballistic regime of ',MyCrystal.elements[itypat],' (local alpha > ',BALLISTIC_ALPHA,') lasts beyond the fit window : fitted from 0')
+                tb = 0.0
+            tmins.append(tb)
+        fitstart = 'the end of the ballistic regime of each element (column fit_start_(fs) : local exponent below '+str(BALLISTIC_ALPHA)+')' if autostart else str(ballistic*TimeStep)
         difffile = base + '.diffusion.dat'
         f = open(difffile,'w')
         if BlockMSD != []:
             errorstring = 'error from the spread of D over '+str(nBlocks)+' blocks of '+str(blocklen)+' steps'
         else :
             errorstring = 'error = standard error of the slope of the fit (underestimated : the MSD points are correlated)'
-        f.write('# Diffusion coefficients from '+msdfile+' : linear fit of the MSD between '+str(tmin)+' and '+str(tmax)+' fs ; D = slope/6 (total) or slope/2 (along one axis) ; '+errorstring+'\n')
-        f.write('column\tD_(m2/s)\tD_error_(m2/s)\tR_squared\talpha\n')
-        print ('\nDiffusion coefficients, fit between '+str(tmin)+' and '+str(tmax)+' fs ; '+errorstring)
-        print ('{:<10s}{:>14s}{:>14s}{:>10s}{:>8s}'.format('column','D (m2/s)','error','R^2','alpha'))
+        f.write('# Diffusion coefficients from '+msdfile+' : linear fit of the MSD from '+fitstart+' to '+str(tmax)+' fs ; D = slope/6 (total) or slope/2 (along one axis) ; '+errorstring+'\n')
+        f.write('column\tD_(m2/s)\tD_error_(m2/s)\tR_squared\talpha\tfit_start_(fs)\tfit_end_(fs)\n')
+        print ('\nDiffusion coefficients, fit from '+fitstart+' to '+str(tmax)+' fs ; '+errorstring)
+        print ('{:<10s}{:>14s}{:>14s}{:>10s}{:>8s}{:>12s}'.format('column','D (m2/s)','error','R^2','alpha','start (fs)'))
         icol = 0
         lowalpha = False
         Dtensor = []        #6 components of each element (tensor mode), on the full trajectory and on each block
@@ -406,6 +419,7 @@ def main(argv):
         blocktimes = blocklags*TimeStep
         tend = min(fit_end(blocktimes),tmax) if BlockMSD != [] else tmax
         for itypat in range(MyCrystal.ntypat):
+            tmin = tmins[itypat]
             for jj in range(1+nAxes):
                 lab = ellabels[icol]
                 icol += 1
@@ -415,18 +429,22 @@ def main(argv):
                     D_err = block_diffusivity_error(blocktimes,[BlockMSD[kk][itypat][jj] for kk in range(nBlocks)],tmin,tmax,dimension)
                 offdiagonal = AxesMode == "tensor" and jj > 3          #<dr_i dr_j> with i != j : of any sign, no exponent
                 alpha = float('nan') if offdiagonal else diffusion_exponent(times,MSDel[itypat][jj],tmin,tmax)#1 for normal diffusion, < 1 if the window is still sub-diffusive
-                f.write(lab+'\t'+str(D)+'\t'+str(D_err)+'\t'+str(R2)+'\t'+str(alpha)+'\n')
-                print ('{:<10s}{:>14.4e}{:>14.4e}{:>10.4f}{:>8.2f}'.format(lab,D,D_err,R2,alpha))
+                f.write(lab+'\t'+str(D)+'\t'+str(D_err)+'\t'+str(R2)+'\t'+str(alpha)+'\t'+str(tmin)+'\t'+str(tmax)+'\n')
+                print ('{:<10s}{:>14.4e}{:>14.4e}{:>10.4f}{:>8.2f}{:>12.1f}'.format(lab,D,D_err,R2,alpha,tmin))
                 if not offdiagonal and regime_warning(alpha) != '':
                     lowalpha = True
             if AxesMode == "tensor":
                 Dtensor.append([calculation_diffusivities(times,MSDel[itypat][1+k],tmin,1,tmax)[0] for k in range(6)])
-                Dtensorblocks.append([[calculation_diffusivities(blocktimes,BlockMSD[kk][itypat][1+k],tmin,1,tend)[0] for k in range(6)] for kk in range(nBlocks)] if BlockMSD != [] else [])
+                blockfit = BlockMSD != [] and np.sum((blocktimes >= tmin) & (blocktimes <= tend)) >= 3   #the blocks reach beyond the ballistic regime
+                Dtensorblocks.append([[calculation_diffusivities(blocktimes,BlockMSD[kk][itypat][1+k],tmin,1,tend)[0] for k in range(6)] for kk in range(nBlocks)] if blockfit else [])
         f.close()
         print ('Diffusion coefficients printed in file ',difffile)
         if AxesMode == "tensor":
             print('')
-            write_tensor(base+'.diffusion.tensor.dat',umdfile,MyCrystal.elements,Dtensor,Dtensorblocks,tmin,tmax,tend,plane)
+            write_tensor(base+'.diffusion.tensor.dat',umdfile,MyCrystal.elements,Dtensor,Dtensorblocks,tmins,tmax,tend,plane)
+        noerror = [el for el,tmin in zip(MyCrystal.elements,tmins) if BlockMSD != [] and np.sum((blocktimes >= tmin) & (blocktimes <= tend)) < 3]
+        if noerror:
+            print ('WARNING : no error on D for',','.join(noerror),': their ballistic regime ends after the end of the block fits (',tend,'fs). Use fewer blocks -n.')
         if lowalpha:
             print ('WARNING : alpha is outside 0.9-1.1 for some columns : the fit window is not in the diffusive regime (MSD ~ t^alpha) ;')
             print ('          alpha < 0.9 (sub-diffusive) : consider a larger -e ; alpha > 1.1 (ballistic) : consider a larger -b and -e.')
