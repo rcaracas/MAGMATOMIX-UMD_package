@@ -249,7 +249,14 @@ def main(argv):
     MyCrystal = None
     missing = set()
     nframes = nwritten = nothermo = 0
+    nostress = []                                                       #steps of the frames written without a line in the stress file
     previous = None
+    if stressname:
+        if not stressfile:
+            print('No line step pxx pyy pzz pxy pxz pyz in the stress file',stressname)
+            sys.exit()
+        steps = sorted(stressfile)
+        print('Stress file',stressname,':',len(steps),'steps from',steps[0],'to',steps[-1])
     for step, time, cell, origin, columns, rows in read_dump(dumpname,log['box']):
         natom = rows.shape[0]
         if 'id' in columns:
@@ -325,6 +332,9 @@ def main(argv):
                 sys.exit()
             unwrap = ('from xu yu zu' if colpos['xu'] else 'from xsu ysu zsu') if colpos['xu'] or colpos['xsu'] else ('from the image flags' if colpos['i'] else 'followed from frame to frame')
             print(natom,'atoms :',' '.join(str(n)+' '+el for n,el in zip(MyCrystal.types,elements)),'; unwrapped positions :',unwrap)
+            if 'id' not in columns:
+                print('No id column in the dump : the atoms are taken in the order of the dump, which must be the same in every frame')
+                print('   (one MPI process, or dump_modify sort id ; add id to the dump otherwise)')
         if natom != MyCrystal.natom:
             print('Frame at step',step,'has',natom,'atoms instead of',MyCrystal.natom)
             sys.exit()
@@ -388,6 +398,8 @@ def main(argv):
         if T is None:
             T = 2.0*kinetic/(max(3*natom-3,1)*KB)
         stress = stressfile.get(step)
+        if stressfile and stress is None:
+            nostress.append(step)
         if stress is None:
             stress = [thermo[k] for k in STRESS] if all(k in thermo for k in STRESS) else None
             if stress is None:
@@ -416,6 +428,10 @@ def main(argv):
         print('No frame in the dump file',dumpname)
         sys.exit()
     print(nframes,'frames read,',nwritten,'written in',outname)
+    if nostress:
+        print('WARNING :',len(nostress),'of the',nwritten,'frames written have no line at their step in the stress file',stressname,
+              '(frames at steps',nostress[0],'to',str(nostress[-1])+') :')
+        print('   their stress tensor is from the log, else 0 ; the stress file must come from the run of the dump')
     if nothermo:
         print('WARNING :',nothermo,'of the',nwritten,'frames written have no thermo output at their step (thermo and dump every N steps differ ?) :')
         print('   their energies, pressure and stress are 0 and their temperature is that of the velocities')
@@ -424,8 +440,14 @@ def main(argv):
         if notfound:
             print('Not found in the thermo output (or no thermo output at the step of some frames) :',', '.join(notfound))
             print('   KineticEnergyIons = TotEng - PotEng, else computed from the velocities as the Temperature when missing ; the other fields 0')
+        if not colpos['v']:
+            print('No velocities in the dump : KineticEnergyIons and Temperature 0 where the thermo output lacks them')
     else:
-        print('No log file : KineticEnergyIons and Temperature from the velocities, energies, pressure and stress 0')
+        kinetic = 'from the velocities' if colpos['v'] else '0 (no velocities in the dump)'
+        if stressname and len(nostress) < nwritten:
+            print('No log file : KineticEnergyIons and Temperature',kinetic+', pressure and stress from the stress file, energies 0')
+        else:
+            print('No log file : KineticEnergyIons and Temperature',kinetic+', energies, pressure and stress 0')
 
 
 def write_snapshot(base,MyCrystal,atommass,record,TimeStep):#One snapshot by umd_processes_fast.print_snapshots

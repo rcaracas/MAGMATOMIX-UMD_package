@@ -246,6 +246,8 @@ def main(argv):
     ratio = Tvel/np.where(Tfield > 0,Tfield,np.nan)
     faulty = np.array(zero) | (ratio > 2.0) | (ratio < 0.5)           #velocities 0, or off by more than 2 (e.g. positions written as velocities by old parsers)
     good = ~faulty & ~np.isnan(ratio)
+    novel = all(zero)                                                   #no velocities in the file (e.g. a LAMMPS dump without vx vy vz)
+    NOVEL = 'all the velocities are 0 : not in the file (e.g. a LAMMPS dump without vx vy vz)'
 
     rep = Report()
     rep.write('Checks of '+umdfile+' : '+str(natom)+' atoms ('+', '.join('%d %s' % (n,el) for el,n in zip(elements,MyCrystal.types))+'), '+str(nsnap)
@@ -286,7 +288,9 @@ def main(argv):
         rep.result('skipped','fewer than 2 snapshots read')
     else:
         rep.write('   largest displacement between two snapshots read (A) : '+', '.join('%s %.3f' % (el,d) for el,d in zip(elements,maxdisp)))
-        if jumps:
+        if novel:
+            rep.result('skipped',NOVEL+' : no bound for the displacements')
+        elif jumps:
             j = max(jumps,key=lambda x: x[2]/x[3])
             rep.result('WARNING',str(len(jumps))+' atom displacements above 2 max(|v|) dt + 0.2 A, the largest atom '+str(j[1])+' at snapshot '+str(j[0])
                        +' : %.2f A (bound %.2f A) : restarts or wrapping errors ?' % (j[2],j[3]))
@@ -299,6 +303,8 @@ def main(argv):
     t = times[run]
     if np.all(np.isnan(E)) or len(E) < 3:
         rep.result('skipped','no EnergyWithDrift in the file')
+    elif not np.any(E):
+        rep.result('skipped','EnergyWithDrift 0 in every snapshot : not in the file (e.g. a LAMMPS dump without its log)')
     else:
         dE = np.diff(E)
         typical = np.median(np.abs(dE))
@@ -321,16 +327,19 @@ def main(argv):
 
     #5. Time step
     rep.check('Time step')
-    speeds = np.array(speeds)[~faulty] if (~faulty).any() else np.array(speeds)
-    fastest = int(np.argmax(np.median(speeds,axis=0)))
-    vfast = np.median(speeds[:,fastest])
-    dtmax = 0.1/vfast if vfast > 0 else np.inf
-    rep.write('   fastest element %s : median of its largest speed %.4f A/fs (largest %.4f) ; time step for 0.1 A per step : %.2f fs ; timestep of the file %s fs'
-              % (elements[fastest],vfast,speeds[:,fastest].max(),dtmax,TimeStep))
-    if TimeStep > dtmax:
-        rep.result('WARNING','the fastest atoms move %.2f A per timestep of the file : too long a time step if the snapshots are consecutive MD steps' % (vfast*TimeStep))
+    if novel:
+        rep.result('skipped',NOVEL)
     else:
-        rep.result('OK','(if the snapshots are not consecutive MD steps, compare the MD time step with %.2f fs)' % dtmax)
+        speeds = np.array(speeds)[~faulty] if (~faulty).any() else np.array(speeds)
+        fastest = int(np.argmax(np.median(speeds,axis=0)))
+        vfast = np.median(speeds[:,fastest])
+        dtmax = 0.1/vfast if vfast > 0 else np.inf
+        rep.write('   fastest element %s : median of its largest speed %.4f A/fs (largest %.4f) ; time step for 0.1 A per step : %.2f fs ; timestep of the file %s fs'
+                  % (elements[fastest],vfast,speeds[:,fastest].max(),dtmax,TimeStep))
+        if TimeStep > dtmax:
+            rep.result('WARNING','the fastest atoms move %.2f A per timestep of the file : too long a time step if the snapshots are consecutive MD steps' % (vfast*TimeStep))
+        else:
+            rep.result('OK','(if the snapshots are not consecutive MD steps, compare the MD time step with %.2f fs)' % dtmax)
 
     #6. Momentum
     rep.check('Momentum and centre of mass')
@@ -377,6 +386,9 @@ def main(argv):
         if np.all(np.isnan(x)):
             rep.write('   '+name+' : not in the file')
             continue
+        if not np.any(x):
+            rep.write('   '+name+' : 0 in every snapshot, not in the file')
+            continue
         mean, err, drift, text = mean_with_error(x,{'Temperature':'K','Pressure':'GPa','InternalEnergy':'eV'}[name])
         rep.write('   %-15s %s ; largest deviation of a quarter %.1f errors' % (name,text,drift))
         if drift > 4.0:
@@ -385,29 +397,35 @@ def main(argv):
 
     #9. Temperature
     rep.check('Temperature of the velocities')
-    nzero = int(np.sum(zero))
-    nfaulty = int(faulty.sum())-nzero
-    if good.any():
-        r = np.median(ratio[good])
-        rep.write('   kinetic temperature of the velocities (3N-3 degrees of freedom) / Temperature field : median %.4f (means %.1f K / %.1f K, faulty snapshots left out)'
-                  % (r,Tvel[good].mean(),Tfield[good].mean()))
+    if novel:
+        rep.result('skipped',NOVEL)
     else:
-        r = 1.0
-    rep.write('   snapshots with all velocities 0 : %d ; with velocities off by more than a factor 2 : %d%s'
-              % (nzero,nfaulty,(' (snapshots '+', '.join(str(read[k]) for k in np.nonzero(faulty & ~np.array(zero))[0][:5])+')') if nfaulty else ''))
-    later = faulty.copy()
-    if read[0] == 0 and faulty[0]:
-        later[0] = False
-        rep.write('   the first snapshot has '+('zero velocities' if zero[0] else 'velocities off by more than a factor 2')+' : expected from the parsers (no previous step ;'
-                  +' older versions wrote the positions there) ; left out of checks 5, 6, 9')
-    text = []
-    if abs(r-1.0) > 0.05:
-        text.append('the velocities and the Temperature field differ by more than 5 %')
-    nlater = int(later.sum())
-    if nlater:
-        text.append(str(nlater)+' snapshots after the first with velocities 0 or off by more than a factor 2 (VaspParser.py before October 2026 wrote 0 on the learning steps of ML runs) :'
-                    +' re-parse the OUTCAR or repair_umd.py ; left out of checks 5, 6, 9')
-    rep.result('WARNING',' ; '.join(text)) if text else rep.result('OK')
+        nzero = int(np.sum(zero))
+        nfaulty = int(faulty.sum())-nzero
+        if good.any():
+            r = np.median(ratio[good])
+            rep.write('   kinetic temperature of the velocities (3N-3 degrees of freedom) / Temperature field : median %.4f (means %.1f K / %.1f K, faulty snapshots left out)'
+                      % (r,Tvel[good].mean(),Tfield[good].mean()))
+        else:
+            r = 1.0
+        rep.write('   snapshots with all velocities 0 : %d ; with velocities off by more than a factor 2 : %d%s'
+                  % (nzero,nfaulty,(' (snapshots '+', '.join(str(read[k]) for k in np.nonzero(faulty & ~np.array(zero))[0][:5])+')') if nfaulty else ''))
+        later = faulty.copy()
+        if read[0] == 0 and faulty[0]:
+            later[0] = False
+            rep.write('   the first snapshot has '+('zero velocities' if zero[0] else 'velocities off by more than a factor 2')+' : expected from the parsers (no previous step ;'
+                      +' older versions wrote the positions there) ; left out of checks 5, 6, 9')
+        text = []
+        if abs(r-1.0) > 0.05:
+            text.append('the velocities and the Temperature field differ by more than 5 %')
+        nlater = int(later.sum())
+        if nlater:
+            text.append(str(nlater)+' snapshots after the first with velocities 0 or off by more than a factor 2 (VaspParser.py before October 2026 wrote 0 on the learning steps of ML runs) :'
+                        +' re-parse the OUTCAR or repair_umd.py ; left out of checks 5, 6, 9')
+        if text:
+            rep.result('WARNING',' ; '.join(text))
+        else:
+            rep.result('OK')
 
     #10. Cell
     rep.check('Cell (NPT)')
