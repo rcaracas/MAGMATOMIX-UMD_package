@@ -134,7 +134,7 @@ def lammps_dump_frame(step,time,box,symbols,types,x,image,vels,forces):#One fram
 #****DeepMD
 
 class DeepMDSet:#deepmd/npy training set : type.raw, type_map.raw, then folders set.000, set.001... of SETSIZE frames : box.npy, coord.npy (A),
-    #energy.npy (eV), force.npy (eV/A), virial.npy (eV, if the file has stresses)
+    #energy.npy (eV), force.npy (eV/A, if the forces of the set are not all 0), virial.npy (eV, if the file has stresses)
     def __init__(self,folder,elements,types):
         self.folder = folder
         os.makedirs(folder,exist_ok=True)#the files of a former run are overwritten (those not written again removed at the end) ; other files are kept
@@ -144,6 +144,7 @@ class DeepMDSet:#deepmd/npy training set : type.raw, type_map.raw, then folders 
         self.nsets = 0
         self.nframes = 0
         self.novirial = 0
+        self.noforce = 0
         self.frames = []
 
     def add(self,box,coord,energy,force,virial):
@@ -160,7 +161,10 @@ class DeepMDSet:#deepmd/npy training set : type.raw, type_map.raw, then folders 
         np.save(os.path.join(folder,'box.npy'),np.array(box).reshape(len(box),9))
         np.save(os.path.join(folder,'coord.npy'),np.array(coord).reshape(len(box),-1))
         np.save(os.path.join(folder,'energy.npy'),np.array(energy))
-        np.save(os.path.join(folder,'force.npy'),np.array(force).reshape(len(box),-1))
+        if np.any(np.array(force)):                 #forces all 0 : not in the file (e.g. a LAMMPS dump without fx fy fz), not a training target
+            np.save(os.path.join(folder,'force.npy'),np.array(force).reshape(len(box),-1))
+        else:
+            self.noforce += len(box)
         if all(v is not None for v in virial):
             np.save(os.path.join(folder,'virial.npy'),np.array(virial).reshape(len(box),9))
         else:
@@ -289,6 +293,7 @@ def main(argv):
         sys.exit()
     xyzfile = dumpfile = deepmd = None
     nwritten = 0
+    anyforce = False
     isnap = -1
     lefthanded = False
     for isnap, fields, atoms in umdpf.read_snapshots(UMDname,natom,firststep,sampling):
@@ -304,6 +309,7 @@ def main(argv):
         if cell is None:
             cell = np.array(MyCrystal.rprimd,dtype=float)
         lefthanded = lefthanded or np.linalg.det(cell) < 0.0
+        anyforce = anyforce or bool(np.any(atoms[:,12:15]))
         time = fields.get('time',[isnap*TimeStep])[0]
         if xyzfile or deepmd:
             energy = free_energy(fields,included) if fields.get('InternalEnergy') else None
@@ -340,6 +346,10 @@ def main(argv):
         print('No snapshot selected : the file has',isnap+1,'snapshots')
         sys.exit()
     print(nwritten,'snapshots written')
+    if not anyforce and (xyzfile or dumpfile or deepmd):
+        print('WARNING : all the forces of the file are 0 (not written by the MD code, e.g. a LAMMPS dump without fx fy fz) :'
+              +(' no force.npy in the DeepMD set' if deepmd else '')+(' ;' if deepmd and (xyzfile or dumpfile) else '')
+              +(' the forces of the xyz/lammpstrj files are 0' if xyzfile or dumpfile else ''))
     if lefthanded and ('lammps' in formats or dumpfile):
         print('left-handed cell : c replaced by -c in the LAMMPS files')
     for fmt in formats:
@@ -353,8 +363,8 @@ def main(argv):
         dumpfile.close()
     if deepmd:
         deepmd.flush()
-        print('deepmd :',names['deepmd'],':',deepmd.nframes,'frames in',deepmd.nsets,'sets',
-              '' if deepmd.novirial == 0 else '(no virial : the file has no stresses)')
+        notes = (['(no virial : the file has no stresses)'] if deepmd.novirial else [])+(['(no force.npy in '+str(deepmd.noforce)+' frames : forces 0)'] if deepmd.noforce else [])
+        print(' '.join(['deepmd :',names['deepmd'],':',str(deepmd.nframes),'frames in',str(deepmd.nsets),'sets']+notes))
 
 
 if __name__ == "__main__":

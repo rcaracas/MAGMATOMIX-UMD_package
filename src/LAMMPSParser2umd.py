@@ -37,6 +37,8 @@ def read_log(logname):#Units, time step, masses, elements, box and thermo output
             if not tokens:
                 multistep = None
                 continue
+            if tokens[0] != 'pair_coeff' and re.search(r'pair_coeff\s+\*\s+\*',line):#the info of pair_style deepmd ends without a newline :
+                tokens = line[line.index('pair_coeff'):].split()                    #the pair_coeff command follows on the same line
             if tokens[0] == 'units' and len(tokens) > 1:
                 log['units'] = tokens[1]
             elif tokens[0] == 'timestep' and len(tokens) > 1 and numbers(tokens[1:2]):
@@ -186,7 +188,8 @@ def main(argv):
             print('-l : log file (optional) : units, timestep, mass, dump_modify ... element, pair_coeff * * ... <elements>, box, and the thermo')
             print('     output (thermo_style one, custom or multi), matched to the frames by their step. Read : Temp, Press, PotEng, KinEng,')
             print('     TotEng, Econserve, Enthalpy, Pxx Pyy Pzz Pxy Pxz Pyz. InternalEnergy = TotEng (potential + kinetic, as VaspParser.py),')
-            print('     TotalElectronicEnergy = PotEng, KineticEnergyIons = KinEng, EnergyWithDrift = Econserve (TotEng + thermostat energy) or TotEng.')
+            print('     TotalElectronicEnergy = PotEng, KineticEnergyIons = KinEng (else TotEng - PotEng), EnergyWithDrift = Econserve')
+            print('     (TotEng + thermostat energy) or TotEng.')
             print('     Without them : kinetic energy and temperature (3N-3 degrees of freedom) from the velocities, the other fields 0.')
             print('-a : stress file (optional ; replaces Pxx... of the log) : lines step pxx pyy pzz pxy pxz pyz, e.g. the output of')
             print('     fix ave/time 1 1 N c_thermo_press[1] c_thermo_press[2] ... c_thermo_press[6] file <stress file>')
@@ -320,7 +323,7 @@ def main(argv):
             if not any(colpos[k] for k in ('x','xs','xu','xsu')):
                 print('No positions in the dump (x y z, xs ys zs, xu yu zu or xsu ysu zsu)')
                 sys.exit()
-            unwrap = 'unwrapped positions' if colpos['xu'] or colpos['xsu'] else ('image flags' if colpos['i'] else 'followed from frame to frame')
+            unwrap = ('from xu yu zu' if colpos['xu'] else 'from xsu ysu zsu') if colpos['xu'] or colpos['xsu'] else ('from the image flags' if colpos['i'] else 'followed from frame to frame')
             print(natom,'atoms :',' '.join(str(n)+' '+el for n,el in zip(MyCrystal.types,elements)),'; unwrapped positions :',unwrap)
         if natom != MyCrystal.natom:
             print('Frame at step',step,'has',natom,'atoms instead of',MyCrystal.natom)
@@ -376,7 +379,7 @@ def main(argv):
         PE = get('PotEng',U['energy'])
         TE = get('TotEng',U['energy'])
         if KE is None:
-            KE = kinetic
+            KE = TE - PE if TE is not None and PE is not None else kinetic   #TotEng - PotEng = KinEng of LAMMPS, else the velocities
         if TE is None and PE is not None:
             TE = PE + KE
         if PE is None and TE is not None:
@@ -420,7 +423,7 @@ def main(argv):
         notfound = sorted(missing & {'KinEng','PotEng','TotEng','Temp','Press','Pxx...'})
         if notfound:
             print('Not found in the thermo output (or no thermo output at the step of some frames) :',', '.join(notfound))
-            print('   KineticEnergyIons and Temperature computed from the velocities when missing, the other fields 0')
+            print('   KineticEnergyIons = TotEng - PotEng, else computed from the velocities as the Temperature when missing ; the other fields 0')
     else:
         print('No log file : KineticEnergyIons and Temperature from the velocities, energies, pressure and stress 0')
 

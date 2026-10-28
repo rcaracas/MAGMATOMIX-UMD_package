@@ -141,6 +141,10 @@ def main(argv):
     AllSnapshots = AllSnapshots[firststep:]
     nsteps = len(AllSnapshots)
     stress = np.array([snapshot.stress for snapshot in AllSnapshots])
+    if not np.any(stress):
+        print('ERROR : the StressTensor is 0 in every snapshot : the file has no stresses (e.g. a LAMMPS log without Pxx Pyy Pzz Pxy Pxz Pyz,')
+        print('        or LAMMPSParser2umd.py -a <stress file>) : no viscosity')
+        sys.exit(1)
     temperature = np.mean([snapshot.temperature for snapshot in AllSnapshots])
     volume = np.mean([snapshot.cellvolume for snapshot in AllSnapshots])
     pref = gk_prefactor(volume,temperature)

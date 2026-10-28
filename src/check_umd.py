@@ -356,6 +356,8 @@ def main(argv):
     rep.check('Net force')
     if not netforce:
         rep.result('skipped','no forces in the file')
+    elif not np.any(np.array(rmsforce) > 0):
+        rep.result('skipped','all the forces are 0 : not in the file (e.g. a LAMMPS dump without fx fy fz)')
     else:
         netforce = np.array(netforce)
         rmsforce = np.array(rmsforce)
@@ -430,6 +432,8 @@ def main(argv):
     S = [s for s,keep in zip(series['StressTensor'],run) if keep and s and len(s) >= 6]
     if not S:
         rep.result('skipped','no StressTensor in the file')
+    elif not np.any(np.array(S)[:,:6]):
+        rep.result('skipped','StressTensor 0 in every snapshot : not in the file (e.g. a LAMMPS log without Pxx Pyy Pzz Pxy Pxz Pyz)')
     else:
         S = np.array(S)[:,:6]
         stats = [mean_with_error(S[:,k],'GPa') for k in range(6)]
