@@ -182,8 +182,9 @@ def main(argv):
             print('LAMMPSParser2umd.py -f <dump file> -l <log file> -a <stress file> -o <output> -u <units> -t <timestep> -e <elements> -i <InitialStep> -s <SkipStep>')
             print('-f : dump file, text : dump custom/atom (ITEM: lines ; any box, also NPT) or dump xyz (box from the log). Columns read : id, type,')
             print('     element, x y z or xs ys zs (wrapped), xu yu zu or xsu ysu zsu (unwrapped), ix iy iz (image flags), vx vy vz, fx fy fz, q.')
-            print('     Unwrapped positions from xu/xsu, else from the image flags, else by following the atoms from frame to frame (as')
-            print('     VaspParser.py ; the dump must then be frequent enough that no atom moves half a cell between frames).')
+            print('     Unwrapped positions from xu/xsu, else from the image flags, else by following the atoms from frame to frame (the dump must then')
+            print('     be frequent enough that no atom moves half a cell between frames). With a changing box (NPT) the atoms do not move with the box :')
+            print('     each move is the change of the reduced coordinates in the box of the frame, not the change of xu.')
             print('     The atoms are sorted by id and grouped by element (by id within an element), the same order in every frame.')
             print('-l : log file (optional) : units, timestep, mass, dump_modify ... element, pair_coeff * * ... <elements>, box, and the thermo')
             print('     output (thermo_style one, custom or multi), matched to the frames by their step. Read : Temp, Press, PotEng, KinEng,')
@@ -251,6 +252,7 @@ def main(argv):
     nframes = nwritten = nothermo = 0
     nostress = []                                                       #steps of the frames written without a line in the stress file
     previous = None
+    boxmove = 0.0
     if stressname:
         if not stressfile:
             print('No line step pxx pyy pzz pxy pxz pyz in the stress file',stressname)
@@ -306,10 +308,13 @@ def main(argv):
             masses = []
             for el in elements:
                 mass = cr.Elements2rest(el)[3]
+                found = []
                 if types is not None and log['masses']:
                     found = sorted(set(log['masses'].get(int(t)) for t,s in zip(types,symbols) if s == el) - {None})
-                    if len(found) == 1:
-                        mass = found[0]
+                elif log['elements'] and log['masses']:                 #no type column in the dump : the types of the elements from the log
+                    found = sorted(set(log['masses'].get(k+1) for k,s in enumerate(log['elements']) if s == el) - {None})
+                if len(found) == 1:
+                    mass = found[0]
                 masses.append(mass)
             MyCrystal = cr.Lattice()
             MyCrystal.natom = natom
@@ -353,18 +358,29 @@ def main(argv):
             s = (floats('xu')-origin) @ inverse if colpos['xu'] else floats('xsu')
         xred = s - np.floor(s)
         xcart = xred @ cell
+        #Unwrapped positions : su = reduced coordinate + images, from xu, xsu or the image flags, else the nearest move between frames. Each move of an atom is the
+        #change of su in the cell of the frame, so that the atoms do not move with the box. LAMMPS writes xu = su L(t) : with a changing box an atom at rest moves
+        #by su dL, more the more cells it crossed ; boxmove removes this, and is 0 for a constant cell (the positions of the dump as they are)
         if colpos['xu']:
-            absx = floats('xu')-origin
+            unwrapped = floats('xu')-origin
+            su = unwrapped @ inverse
         elif colpos['xsu']:
-            absx = floats('xsu') @ cell
+            su = floats('xsu')
+            unwrapped = su @ cell
         elif colpos['i']:
-            absx = (s + floats('i')) @ cell
+            su = s + floats('i')
+            unwrapped = su @ cell
         elif previous is None:
-            absx = xcart.copy()
-        else:                                                           #nearest move between frames, in reduced coordinates of the current cell
+            su = xred
+            unwrapped = xcart
+        else:
             d = xred - previous
-            absx = previousabs + (d - np.rint(d)) @ cell
-        previous, previousabs = xred, absx
+            su = previoussu + d - np.rint(d)
+            unwrapped = su @ cell
+        if previous is not None and not np.array_equal(cell,previouscell):
+            boxmove = boxmove + previoussu @ (previouscell-cell)
+        absx = unwrapped + boxmove
+        previous, previoussu, previouscell = xred, su, cell
         if time is None:
             time = (step if step is not None else nframes)*dt
         else:

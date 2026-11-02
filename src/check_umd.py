@@ -173,6 +173,7 @@ def main(argv):
     unwrap = []                                                         #per snapshot read : largest non-integer part of (unwrapped - wrapped) in reduced coordinates
     jumps = []                                                          #(snapshot, atom, displacement, bound)
     maxdisp = np.zeros(MyCrystal.ntypat)
+    cellmoves = False
     speeds = []                                                         #per snapshot read : largest speed of each element (A/fs)
     Pcom = []
     Rcom = []
@@ -199,20 +200,27 @@ def main(argv):
         speed = np.linalg.norm(vel,axis=1)
         speeds.append([speed[m].max() for m in masks])
         if previous is not None:
-            pstep, pabs, pspeed, ptime, pcart = previous
+            pstep, pabs, pspeed, ptime, pcart, pcell, pxred = previous
             frac = ((absx-pabs)-(xcart-pcart)) @ np.linalg.inv(cell)    #the unwrapped positions move as the wrapped ones, plus whole cell vectors at the crossings
-            unwrap.append(np.abs(frac-np.rint(frac)).max())
+            deviation = np.abs(frac-np.rint(frac)).max()
+            if not np.array_equal(cell,pcell):                          #a changing cell : in reduced coordinates (LAMMPSParser2umd.py), or also with the cell (VaspParser.py)
+                frac = (absx-pabs) @ np.linalg.inv(cell)-(xred-pxred)
+                deviation = min(deviation,np.abs(frac-np.rint(frac)).max())
+            unwrap.append(deviation)
             if np.array_equal(absx,pabs):
                 repeated += 1
             dt = fields['time'][0]-ptime if 'time' in fields else TimeStep*sampling
             disp = np.linalg.norm(absx-pabs,axis=1)
             bound = 2.0*np.maximum(speed,pspeed)*abs(dt)+0.2
+            if not np.array_equal(cell,pcell):                          #NPT : the atoms also move with the cell, which the velocities do not include
+                bound = bound+np.linalg.norm(pcart @ np.linalg.inv(pcell) @ (cell-pcell),axis=1)
+                cellmoves = True
             for ia in np.nonzero(disp > bound)[0]:
                 jumps.append((isnap,ia,disp[ia],bound[ia]))
             maxdisp = np.maximum(maxdisp,[disp[m].max() for m in masks])
         else:
             first_abs = absx.copy()
-        previous = (isnap,absx,speed,fields['time'][0] if 'time' in fields else isnap*TimeStep,xcart)
+        previous = (isnap,absx,speed,fields['time'][0] if 'time' in fields else isnap*TimeStep,xcart,cell,xred)
         Pcom.append((masses[:,None]*vel).sum(axis=0))
         Rcom.append((masses[:,None]*absx).sum(axis=0)/masses.sum())
         if atoms.shape[1] >= 15:
@@ -280,7 +288,7 @@ def main(argv):
         nbad = int((np.array(unwrap) > 1e-3).sum())
         rep.write('   between two snapshots read, the change of the unwrapped positions minus that of the wrapped ones, in reduced coordinates of the cell,')
         rep.write('   should be whole numbers (crossings of the faces) : largest deviation %.2e ; pairs of snapshots above 1e-3 : %d' % (max(unwrap),nbad))
-        rep.result('WARNING','the unwrapped positions do not follow the wrapped ones : re-parse the OUTCAR or use repair_umd.py') if nbad else rep.result('OK')
+        rep.result('WARNING','the unwrapped positions do not follow the wrapped ones : parse the output of the run again (LAMMPS in NPT, parsed before November 2026 : the changes of the box moved xu) ; VASP : also repair_umd.py') if nbad else rep.result('OK')
 
     #3. Jumps
     rep.check('Jumps of the atoms between snapshots')
@@ -292,7 +300,7 @@ def main(argv):
             rep.result('skipped',NOVEL+' : no bound for the displacements')
         elif jumps:
             j = max(jumps,key=lambda x: x[2]/x[3])
-            rep.result('WARNING',str(len(jumps))+' atom displacements above 2 max(|v|) dt + 0.2 A, the largest atom '+str(j[1])+' at snapshot '+str(j[0])
+            rep.result('WARNING',str(len(jumps))+' atom displacements above 2 max(|v|) dt + 0.2 A'+(' + the move with the cell' if cellmoves else '')+', the largest atom '+str(j[1])+' at snapshot '+str(j[0])
                        +' : %.2f A (bound %.2f A) : restarts or wrapping errors ?' % (j[2],j[3]))
         else:
             rep.result('OK')
@@ -317,7 +325,10 @@ def main(argv):
         if abs(slope) > 1.0 or len(big):
             text = []
             if abs(slope) > 1.0:
-                text.append('drift above 1 meV/atom/ps : time step too long, or electronic convergence (EDIFF) too loose')
+                if np.array_equal(E,np.array(series['InternalEnergy'],dtype=float)[run]):
+                    text.append('drift above 1 meV/atom/ps, but EnergyWithDrift is the total energy here : it is conserved only without a thermostat, so with one this says nothing about the time step (LAMMPS : add econserve to thermo_style)')
+                else:
+                    text.append('drift above 1 meV/atom/ps : time step too long, or electronic convergence (EDIFF) too loose')
             if len(big):
                 text.append(str(len(big))+' jumps above 20 x the median change (snapshots '+', '.join(str(k) for k in np.array(steps)[run][big[:6]+1])+(' ...' if len(big) > 6 else '')
                             +') : restarts (thermostat reset), learning steps of an on-the-fly ML run, or electronic steps not converged')
