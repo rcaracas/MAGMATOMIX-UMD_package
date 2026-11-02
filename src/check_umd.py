@@ -488,6 +488,8 @@ def main(argv):
     Sel = np.array(series['ElectronicEntropy'],dtype=float)[run]
     if np.all(np.isnan(Sel)):
         rep.result('skipped','no ElectronicEntropy in the file')
+    elif np.all(np.nan_to_num(Sel) == 0.0):
+        rep.result('skipped','ElectronicEntropy 0 in every snapshot : not given by the code that made the run (ABINIT prints it at the end of the run only, classical MD has none)')
     else:
         tsel = np.nanmean(np.abs(Sel))*1000.0/natom
         rep.write('   |T S_el| : mean %.4f meV/atom, largest %.4f meV/atom' % (tsel,np.nanmax(np.abs(Sel))*1000.0/natom))

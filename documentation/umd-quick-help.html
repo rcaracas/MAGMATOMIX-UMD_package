@@ -38,6 +38,10 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">VaspParser.py -f OUTCAR -i first_step -s every_s_steps</span>
 <span class="io"><b>out:</b> <code>OUTCAR.umd.dat</code></span></div>
 
+<div class="card"><span class="name">AbinitParser.py</span> <span class="what">&mdash; ABINIT MD output (layout of 6.4.1, constant cell) &rarr; UMD file.</span>
+<span class="cmd">AbinitParser.py -f abinit.out -i first_step -s every_s_steps</span>
+<span class="io"><b>out:</b> <code>abinit.out.umd.dat</code></span></div>
+
 <div class="card"><span class="name">LAMMPSParser2umd.py</span> <span class="what">&mdash; LAMMPS dump (+ log) &rarr; UMD file; any box, NPT, metal/real units.</span>
 <span class="cmd">LAMMPSParser2umd.py -f dump -l log.lammps -u metal -t timestep_fs -e Si,O -i -s</span>
 <span class="io"><b>out:</b> <code>&lt;dump&gt;.umd.dat</code></span></div>
