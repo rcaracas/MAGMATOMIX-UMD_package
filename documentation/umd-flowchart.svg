@@ -30,7 +30,7 @@
 <path d="M 452 230 L 468.918 226.533 L 461.985 223.344 L 461.707 215.716 Z" fill="#231F20"/>
 <path d="M 300 241 L 124 241 L 124 148" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 124 148 L 117.5 164 L 124 160 L 130.5 164 Z" fill="#231F20"/>
-<text x="286" y="288" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="286" dy="0">build_umd.py -f -i -s -a</tspan><tspan x="286" dy="17.25">--supercell --shuffle --insert</tspan><tspan x="286" dy="17.25">--scale --replace --remove</tspan></text>
+<text x="286" y="288" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="286" dy="0">build_umd.py -f -i -s -a --scale</tspan><tspan x="286" dy="17.25">--supercell --shuffle --insert</tspan><tspan x="286" dy="17.25">--vacuum --replace --remove</tspan></text>
 <path d="M 680 172 L 858 172" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 858 172 L 842 165.5 L 846 172 L 842 178.5 Z" fill="#231F20"/>
 <text x="688" y="163" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15.5" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="688" dy="0">umd2out.py -f -r -s -i</tspan></text>

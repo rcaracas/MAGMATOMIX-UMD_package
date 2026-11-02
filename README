@@ -196,3 +196,4 @@ v 2.9.4, October 2026 - LAMMPS parser checked on real runs; files without forces
 Since v 2.9.4 (not yet released):
 - AbinitParser.py (new): ABINIT molecular dynamics output -> UMD, in the layout of ABINIT 6.4.1 (checked on an ionmov 9 run, spin polarized, non-orthogonal cell); other values of ionmov are flagged, variable cells and several datasets are refused
 - check_umd.py: the smearing check is skipped when ElectronicEntropy is 0 in every snapshot (it reported OK)
+- build_umd.py: --vacuum adds a void along x, y, z (the vectors a, b, c), independently, each with its own thickness, which the script asks for when it is not on the command line

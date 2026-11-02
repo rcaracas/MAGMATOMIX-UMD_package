@@ -90,7 +90,7 @@ cmd(512,112,'repair_umd.py -f',anchor='end',size=15)
 new = box(300,212,150,58,['new','structures'],18)
 line([(500,198),(452,230)])
 line([(300,241),(124,241),(124,148)])
-cmd(286,288,['build_umd.py -f -i -s -a','--supercell --shuffle --insert','--scale --replace --remove'],size=15)
+cmd(286,288,['build_umd.py -f -i -s -a --scale','--supercell --shuffle --insert','--vacuum --replace --remove'],size=15)
 #conversion to other formats
 line([(680,172),(858,172)])
 cmd(688,163,'umd2out.py -f -r -s -i',size=15.5)

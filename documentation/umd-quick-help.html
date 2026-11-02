@@ -122,7 +122,7 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="io"><b>out:</b> <code>thermo_integration.dat</code> (+ <code>.pdf</code> with <code>-v</code>)</span></div>
 
 <h2>Building and converting</h2>
-<div class="card"><span class="name">build_umd.py</span> <span class="what">&mdash; new structures from a snapshot, a POSCAR or an empty box: supercell, shuffle, insert, scale, density, replace, remove; MB velocities.</span>
+<div class="card"><span class="name">build_umd.py</span> <span class="what">&mdash; new structures from a snapshot, a POSCAR or an empty box: supercell, shuffle, insert, scale, density, vacuum, replace, remove; MB velocities.</span>
 <span class="cmd">build_umd.py -f run.umd.dat -i -1 --supercell 2,2,2 --insert molecules.dat -t 3000 -o umd,poscar,xyz</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;[.&lt;snapshot&gt;].build&lt;k&gt;.umd.dat</code>, <code>.POSCAR</code>, <code>.xyz</code>; <code>--extract O,0-9</code>: <code>&lt;base&gt;.&lt;atoms&gt;.umd.dat</code></span></div>
 

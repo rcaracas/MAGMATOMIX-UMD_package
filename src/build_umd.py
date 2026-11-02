@@ -3,7 +3,7 @@
 @author: Razvan Caracas, Tim Bögels
 Builds new structures - UMD files and VASP POSCAR files - from a snapshot of a UMD file, a POSCAR file or an empty box, by
 operations applied in the order of the command line : supercell, shuffle of sub-cells, insertion of molecules, scaling of the cell,
-replacement of atoms, removal of molecules ; the atoms without velocities get Maxwell-Boltzmann velocities.
+void along the axes of the cell, replacement of atoms, removal of molecules ; the atoms without velocities get Maxwell-Boltzmann velocities.
 --extract writes instead the trajectory of a selection of atoms (formerly extratom_umd.py).
 Merges build_supercell.py, box_shuffle.py and insert_umd.py.
 """
@@ -271,6 +271,68 @@ def scale(st,arg,density):#Scales the lengths of the cell by f, or fa, fb, fc al
     return new
 
 
+VACUUM_AXES = {'x':0,'y':1,'z':2,'a':0,'b':1,'c':2}                    #x, y, z = the lattice vectors a, b, c
+
+
+def read_vacuum(arg):#'x:10,y' -> [('x','10'),('y',None)] : the axes of --vacuum, each with its thickness if given
+    axes = []
+    for item in arg.split(','):
+        letter, colon, value = item.partition(':')
+        if letter not in VACUUM_AXES or VACUUM_AXES[letter] in [VACUUM_AXES[a] for a,v in axes] or (colon and not value):
+            print('--vacuum takes axes x, y, z (or a, b, c), each once, with or without a thickness in A : e.g. x:10 ; x:10,y:5 ; x,y,z ; not "'+arg+'"')
+            sys.exit()
+        axes.append((letter,value if colon else None))
+    return axes
+
+
+def thickness(text):#A thickness in A from text ; None if it is not a positive number
+    try:
+        value = float(text)
+    except ValueError:
+        return None
+    return value if 0.0 < value < float('inf') else None
+
+
+def ask_vacuum(arg,st):#The argument of --vacuum with all its thicknesses : those not given on the command line are asked for, once (not per structure)
+    axes = read_vacuum(arg)
+    missing = [a for a,v in axes if v is None]
+    if missing:
+        print('Cell of the input : lengths of a, b, c (A)',' '.join('%.3f' % x for x in np.linalg.norm(st.cell,axis=1)),'; widths between the faces (A)',' '.join('%.3f' % w for w in st.widths()))
+    done = []
+    for letter,value in axes:
+        if value is not None and thickness(value) is None:
+            print('--vacuum',arg,': the thickness of',letter,'must be a positive number of A')
+            sys.exit()
+        while value is None:
+            try:
+                text = input('Thickness of the void to add along '+letter+' (A) : ').strip()
+            except EOFError:
+                print('\nNo thickness given for',letter,': answer the question, or give it on the command line, e.g. --vacuum '+letter+':10')
+                sys.exit()
+            if thickness(text) is None:
+                print('   a positive number of A, please')
+            else:
+                value = text
+        done.append(letter+':'+value)
+    return ','.join(done)
+
+
+def vacuum(st,arg):#Adds a void along a, b, c (x, y, z), independently : the Cartesian positions and the velocities of the atoms do not change, the vector is
+    #lengthened along itself so that the distance between the faces of the cell grows by the thickness ; lengthening one vector leaves the widths along the other
+    #two unchanged, so the additions do not depend on each other or on their order. The structure is cut at the faces of the cell, in the void
+    t = np.zeros(3)
+    for letter,value in read_vacuum(arg):
+        t[VACUUM_AXES[letter]] = float(value)
+    f = 1.0+t/st.widths()
+    cell = st.cell*f[:,None]
+    new = st.new(cell,st.symbols,st.xred/f,st.vels,st.hasvel)
+    masses = st.masses()
+    rho = masses.sum()/6.02214076E23/(abs(np.linalg.det(cell))*1E-24)
+    print('vacuum :',arg,'A ; lengths of a, b, c',' '.join('%.3f' % x for x in np.linalg.norm(cell,axis=1)),'A, widths',' '.join('%.3f' % w for w in new.widths()),
+          'A, volume','%.3f' % abs(np.linalg.det(cell)),'A^3, density','%.4f' % rho,'g/cm3')
+    return new
+
+
 def replace(st,arg,rng):#Replaces atoms of element A by element B : all, n random ones, or a fraction (A:B, A:B:n, A:B:0.25) ; the velocities are scaled by
     #sqrt(m_A/m_B), which keeps the kinetic energy of each atom
     parts = arg.split(':')
@@ -500,18 +562,18 @@ def main(argv):
     name = ''
     umdpf.headerumd()
     usage = ('build_umd.py -f <UMD or POSCAR file> -i <snapshot> -s <sampling> -a <empty box> --supercell <na,nb,nc> --shuffle <sub-cells> '
-             '--insert <molecules file> --scale <factors> --density <g/cm3> --replace <A:B:n> --remove <formula:n> -d <min distance> -c <factor> '
+             '--insert <molecules file> --scale <factors> --density <g/cm3> --vacuum <axis:thickness,...> --replace <A:B:n> --remove <formula:n> -d <min distance> -c <factor> '
              '--tries <tries> -r <cutoff> -l <bond length> -b <bond file> -t <temperature> --velocities all -n <configurations> --seed <seed> -o <outputs> --name <name>'
              '\n       build_umd.py -f <UMD file> --extract <atoms> -i <first snapshot> -s <sampling> --name <name>')
     try:
-        opts, arg = getopt.getopt(argv,"hf:i:s:a:c:d:t:r:l:b:n:o:",["supercell=","shuffle=","insert=","scale=","density=","replace=","remove=","extract=","tries=","velocities=","seed=","name="])
+        opts, arg = getopt.getopt(argv,"hf:i:s:a:c:d:t:r:l:b:n:o:",["supercell=","shuffle=","insert=","scale=","density=","vacuum=","replace=","remove=","extract=","tries=","velocities=","seed=","name="])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print('build_umd.py : builds new structures (UMD, VASP POSCAR or xyz files) from a snapshot of a UMD file, a POSCAR file or an empty box,')
-            print('by the operations --supercell, --shuffle, --insert, --scale, --density, --replace and --remove, applied in the order of the command')
+            print('by the operations --supercell, --shuffle, --insert, --scale, --density, --vacuum, --replace and --remove, applied in the order of the command')
             print('line ; each can be repeated. The atoms without velocities then get Maxwell-Boltzmann velocities (-t). Usage :')
             print(usage)
             print('Input :')
@@ -538,6 +600,11 @@ def main(argv):
             print('--scale f, or fa,fb,fc : multiplies the lengths of the cell by f (or along a, b, c) ; the reduced coordinates and the velocities are')
             print('     kept, so all the distances, bonds included, scale too. The new density and the shortest distance are printed.')
             print('--density rho : scales the cell isotropically to the density rho (g/cm3), as --scale.')
+            print('--vacuum axis:thickness,... : adds a void along any of the axes, each with its own thickness in A, e.g. x:10 ; x:10,y:5 ; x:10,y:10,z:15.')
+            print('     An axis without a thickness (x ; x,y,z) is asked for when the script runs, once. x, y, z are the vectors a, b, c of the cell (a, b, c are')
+            print('     accepted too). The thickness is the distance added between the faces of the cell : the vector is lengthened along itself, by more than')
+            print('     the thickness in a non-orthogonal cell. The Cartesian positions and the velocities of the atoms are kept, so the void lies between the')
+            print('     former face of the cell and the new one. The structure is cut at the face : molecules and bonds across it are broken, not kept whole.')
             print('--replace A:B, A:B:n or A:B:x : replaces all the atoms of element A by element B, or n of them, or a fraction x (with a decimal point),')
             print('     chosen at random ; their velocities are scaled by sqrt(m_A/m_B), which keeps their kinetic energy.')
             print('--remove formula or formula:n : removes all the molecules of this formula (e.g. H2O, CO2, O for free O atoms), or n of them chosen at')
@@ -573,7 +640,7 @@ def main(argv):
         elif opt == '-a':
             box = [float(v) for v in arg.split(',')]
             box = box*3 if len(box) == 1 else box
-        elif opt in ('--supercell','--shuffle','--insert','--scale','--density','--replace','--remove'):
+        elif opt in ('--supercell','--shuffle','--insert','--scale','--density','--vacuum','--replace','--remove'):
             operations.append((opt[2:],arg))
         elif opt == '--extract':
             extraction = arg
@@ -641,6 +708,7 @@ def main(argv):
         if fmt not in ('umd','poscar','xyz'):
             print('Unknown output format',fmt,': use umd, poscar, xyz')
             sys.exit()
+    operations = [(op,ask_vacuum(arg,inputs[0][1]) if op == 'vacuum' else arg) for op,arg in operations]
 
     rng = np.random.default_rng(seed)
     for step,st0 in inputs:
@@ -659,6 +727,8 @@ def main(argv):
                     st = scale(st,arg,None)
                 elif op == 'density':
                     st = scale(st,None,float(arg))
+                elif op == 'vacuum':
+                    st = vacuum(st,arg)
                 elif op == 'replace':
                     st = replace(st,arg,rng)
                 elif op == 'remove':
