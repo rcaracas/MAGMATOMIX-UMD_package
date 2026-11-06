@@ -102,7 +102,7 @@ vibrations_umd.py               velocity autocorrelation functions, vibrational 
 vdos_thermo.py                  harmonic and 2PT thermodynamics, quantum corrections
 thermo_integration_umd.py       free energy and entropy by thermodynamic integration
 
-    graphical interface (to be removed in version 3.0):
+    gui folder (set aside, not maintained, does not run):
 UMD_GUI.py, averages_forGUI.py, val_extract_umd.py
 
     documentation folder:
@@ -201,3 +201,4 @@ v 2.10, November 2026 - ABINIT parser; a void in build_umd.py; LAMMPS NPT runs u
 - check_umd.py: the unwrapping check accepts motion in reduced coordinates when the cell changes, the jump check allows for the move with the cell, the energy drift says when EnergyWithDrift is only the total energy (no econserve in the LAMMPS thermo output)
 
 Since v 2.10 (not yet released):
+- The graphical interface (UMD_GUI.py, averages_forGUI.py, val_extract_umd.py) is set aside in the gui folder: it no longer ran (it imported scripts replaced during the cleanup) and is not maintained

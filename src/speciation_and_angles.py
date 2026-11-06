@@ -290,7 +290,7 @@ def main(argv):
     #TimeStep : time between two of the snapshots used (the timestep of the bonding file times Nsteps)
     CentIndexes,AdjIndexes,MyCrystal,[Bonds,BondsIndexes],TimeStep = umdpf.read_bonds(BondFile,Centrals,Adjacents,Nsteps,nCores=nCores)
 
-    if CentIndexes == -1 :#For the GUI to display an error message whenever an element is missing
+    if CentIndexes == -1 :#an element missing from the run : read_bonds printed the error
         return AdjIndexes
     header = header + ' timestep ' + str(TimeStep/Nsteps) + ' fs'#time between two steps of the bonding file, the unit of the steps written (Begin/End of popul, step of step and angles)
     if MyCrystal.firstsnapshot:#the step 0 of the bonding file is this snapshot of the UMD file (bonding_umd.py -i)
@@ -318,7 +318,7 @@ def main(argv):
 
     if flagpopul==0 :
         print("total duration : ",time.time()-start, " s")
-        return True#For the GUI
+        return True
 
     AllElements = []
     nAts = 0

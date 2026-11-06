@@ -530,7 +530,7 @@ def main(argv):
     vaffile = base+'.vels.scf.dat'
     write_columns(vaffile,['VACF '+comment,'normalized to 1 at t=0 ; Average is mass-weighted over all the atoms ; D_El = running integral of the VACF, up to half a block']+axescomment,labels,columns)
 
-    #vDOS : the first file keeps the format read by UMD_GUI.py (one header line, VDos_El columns, Total_DOS last)
+    #vDOS : one header line, VDos_El columns, Total_DOS last (read by vdos_thermo.py and show_results ; keep it)
     vibrfile = base+'.vibr.dat'
     f = open(vibrfile,'w')
     f.write('Frequency(cm^-1)\t'+'\t'.join('VDos_'+el for el in elements)+'\tTotal_DOS\n')

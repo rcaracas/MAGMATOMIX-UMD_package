@@ -15,7 +15,7 @@ bubble: estimation of the gas/liquid volume and density
 
 MAJOR AIMS for the v3.0 version:
 CPU-parallelization
-removal of the graphical interface (UMD_GUI.py)
+removal of the graphical interface (UMD_GUI.py) : set aside in the gui folder, November 2026
 validation of all the scripts on reference test data
 
 MAJOR AIMS for THE v4.0 version:

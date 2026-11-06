@@ -1,0 +1,17 @@
+The graphical interface of UMD, set aside (November 2026, after version 2.10)
+
+UMD_GUI.py           the PyQt5 interface (2023)
+averages_forGUI.py   averages of a field, as the GUI expects them
+val_extract_umd.py   values of a field snapshot by snapshot, for the GUI plots
+
+These files are not maintained and do not run. UMD_GUI.py imports modules
+removed from src/ during the cleanup of 2026; their replacements are:
+  VaspParser2umd          -> VaspParser.py
+  umd_to_lammps           -> umd2out.py -r lammps
+  umd2poscar              -> umd2out.py -r poscar
+  umd2xyz                 -> umd2out.py -r xyz
+  MSDdistrib              -> msd_umd.py -a tensor -p ...
+and the options and outputs of the other scripts it calls have changed since.
+
+The analysis is done with the scripts of src/ (see the README and
+documentation/umd-quick-help.pdf), or all at once with src/umd_workflow.py.
