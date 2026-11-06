@@ -200,5 +200,7 @@ v 2.10, November 2026 - ABINIT parser; a void in build_umd.py; LAMMPS NPT runs u
 - LAMMPSParser2umd.py checked on two more real runs, with velocities, forces and full thermo output. With a changing box (NPT) the unwrapped positions no longer follow xu, in which an atom at rest moves with the box, more the more cells it crossed; parse NPT runs again. Masses from the log also for dumps without a type column
 - check_umd.py: the unwrapping check accepts motion in reduced coordinates when the cell changes, the jump check allows for the move with the cell, the energy drift says when EnergyWithDrift is only the total energy (no econserve in the LAMMPS thermo output)
 
-Since v 2.10 (not yet released):
+v 2.11, November 2026 - the graphical interface set aside:
 - The graphical interface (UMD_GUI.py, averages_forGUI.py, val_extract_umd.py) is set aside in the gui folder: it no longer ran (it imported scripts replaced during the cleanup) and is not maintained
+
+Since v 2.11 (not yet released):
