@@ -1,7 +1,7 @@
 {
  "about": "the workflow with -i -s -c -a, run again (done before), then -g with other elements (reruns)",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -c Si,Al -a O",
    "code": 0,
-   "time": 16.85
+   "time": 10.95
   },
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -c Si,Al -a O",
    "code": 0,
-   "time": 0.1
+   "time": 0.11
   },
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -g",
    "code": 0,
-   "time": 12.87
+   "time": 3.62
   }
  ],
  "numbers": {
@@ -118,7 +118,7 @@
   "umd_workflow.summary.dat": "9954b2f71f776241ed1756f27b27e45093a81dc763ddede43a56469702a2d33a",
   "umd_workflow.log": "not compared",
   "pyrolite.a13.T3000K.outcar.visc.dat": "48cda46bac5e3d45a6959f73c762253072d85fbb0fc61a992db223a69036cae0",
-  "pyrolite.a13.T3000K.outcar.angles.dat": "3e918578e07cb8ae9daa9efdd18d6db0841bfd1ca58b2925efdbd209a87ca2c2",
+  "pyrolite.a13.T3000K.outcar.angles.dat": "b6cac7ad88ac8d1750727490e85e38e87d5a042eeb51c4587c95ad46d88f9058",
   "pyrolite.a13.T3000K.outcar.r1__Si_1O_3.msd.dat": "c29ebf6a9209b314cc6ddc2077fa0b81a4557c39719889d3634525e6d5d8956f",
   "pyrolite.a13.T3000K.outcar.vels.scf.dat": "4a3cec8edfa1beed52f150288c6b1a91fe5565f18f64e1a60ed4fdf5996cd0c5",
   "pyrolite.a13.T3000K.outcar.msd.blocks.dat": "e4e8397cdeaf0e5346ebc7ba36c98d1a39894e9709510fc30691b15e4c60e28f",

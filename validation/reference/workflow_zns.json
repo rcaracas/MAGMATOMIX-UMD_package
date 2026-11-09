@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, ZnS 1000 K, on-the-fly ML",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f zns.T1000K.prod.outcar.umd.dat",
    "code": 0,
-   "time": 106.83
+   "time": 44.21
   }
  ],
  "numbers": {
@@ -123,7 +123,7 @@
   "zns.T1000K.prod.outcar.stress.scf.dat": "0cde266d62381c4c685d8c6d470af255cc7fc97b230ca9a0dce813d2b56d1c77",
   "zns.T1000K.prod.outcar.msd.blocks.dat": "b9e488695d72b1b08778c1a0a8e9d682a9812555897ec1de710fab14df33fd3b",
   "zns.T1000K.prod.outcar.r1__S_4Zn_1.msd.dat": "178d69cfce3e0d5f088d40e3888e6c8dfd06dfe27810eb962a486f0335c950f5",
-  "zns.T1000K.prod.outcar.angles.dat": "4d1807b860cc1d35fdaef3e09afbe0c385db90b33d07ddddbfaae1e875ef1279",
+  "zns.T1000K.prod.outcar.angles.dat": "c18bf129d571a062409e493184e96a0526f28a6faefd986e308f5d3cc1372d38",
   "zns.T1000K.prod.outcar.diffusion.dat": "cb34a7440fb2b8c8f324a704d49015d545a02479d1103b579c48793f163d8dc5",
   "zns.T1000K.prod.outcar.maximum_bonds.inp": "cd2768fdec8d9876c7f55a463edda64d599833cf5f8de718364c56f99593a4eb",
   "zns.T1000K.prod.outcar.average_bonds.inp": "27feac0cf32e06fb4eb15b565c1aec41d5f37043fbecf72415622f7d165f13b2",

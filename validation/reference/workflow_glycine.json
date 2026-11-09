@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, glycine crystal, cubic, 100 atoms, 10000 snapshots",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f glycine.umd.dat",
    "code": 0,
-   "time": 30.58
+   "time": 23.24
   }
  ],
  "numbers": {
@@ -175,7 +175,7 @@
  },
  "files": {
   "glycine.vibr.dat": "2e9b1cdf4762649ec35a2fb46e0f28a3b04e4c718890a848e721ed5298c4a5c4",
-  "glycine.angles.dat": "0e54bfa592468a748b18599ecf8b85f95905089c033228edc38e9281d3c2e57b",
+  "glycine.angles.dat": "fb8579b4991f150a6224e057fdfcde8503bd9b1b9ff78a01b1b4377e8a7190f5",
   "glycine.r1__N_1H_1.msd.dat": "e2b3d19d716989c186eeb4ad517eb315105229f73dd530cf080912f5d3044bba",
   "glycine.coordinations.inp": "e168ea1409716f98a4ab3fd7f5cf6487b55525b2b4bdf0189d156de1ffb156f8",
   "glycine.vacf.diffusion.dat": "a4e70ad8d4e3a17182caa839258c1997e8f5396c8a45ad0a757b39b716f0b9e5",

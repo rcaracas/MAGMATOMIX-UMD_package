@@ -213,4 +213,10 @@ v 2.12, November 2026 - a validation suite; two corrections found by it:
 - averages.py -a: a UMD file without Pressure, Temperature or InternalEnergy (positions only) is skipped with a message; it stopped the run (a traceback, or no fullthermo.dat for the other files)
 - vdos_thermo.py: the warning on negative parts of the vDOS advises smoothing or a longer window when the Hann taper was already used
 
-Since v 2.12 (not yet released):
+v 2.13, November 2026 - faster speciation angles, bond lifetimes, averages and reading of the atom lines:
+- speciation_and_angles.py -t 1: the angles of a snapshot are computed in one pass (formerly one central atom at a time) and written in one block, and the angle file has the angles with 2 decimals (formerly 17 digits; the means keep all their digits): 4.5 times faster (ZnS 72 s to 16 s), the angle file 40 % smaller; the other outputs identical
+- speciation_and_angles.py -l 1: the bond lifetimes are computed in numpy (ZnS 2.5 s to 0.7 s); output identical
+- check_umd.py, umd2out.py: the atom lines are read by numpy's text parser (np.loadtxt), 1.7 times faster; outputs identical
+- averages.py: the fields are read in one pass over the file in Python (formerly one grep per field, and grep is not on Windows): -a 4 times faster (hydrous andesite 10.3 s to 2.8 s); outputs identical
+
+Since v 2.13 (not yet released):

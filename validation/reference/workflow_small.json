@@ -1,7 +1,7 @@
 {
  "about": "the workflow on small and odd files (1 snapshot, 2 steps, 5 atoms...) ; umd_clean listing",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "umd_workflow.py",
    "code": 0,
-   "time": 70.93
+   "time": 70.73
   },
   {
    "command": "umd_clean.py",
    "code": 0,
-   "time": 0.13
+   "time": 0.14
   }
  ],
  "numbers": {
@@ -499,7 +499,7 @@
   "test.glycine-1step.maximum_bonds.inp": "ef33714d24eac650d2cb161da6e2a88862e0cc4af1fcbfea708d5283e324374e",
   "test.glycine-1step.average_bonds.inp": "8158c56a4f3eae5f6531c81353bfba9b4af1ad0d70d7aaaf14548a60effa8a6a",
   "test.5atoms2step.r1.popul.dat": "d8df789634f3e865c3a3a6a4fd77bf364c097ec7717b12452eb48e2682db7eb2",
-  "glycine.2steps.angles.dat": "c8bd90dcdeeb38d9987f72efdb27cafca2eb76b72d2314c565c79455e2857c34",
+  "glycine.2steps.angles.dat": "9df9f7d1aea72329e34232b179fd315ade3e79d095e5a4a0dd14026a460af4f6",
   "glycine.2steps.bonding.dat": "cdf19551b9e18399012d7677c4f849e71c5c73e02cf6756702887d570c4b9875",
   "short.at6.msd.dat": "88a9f7657f99f15d7cc1f4a164772513521505525577318997920f13184eb495",
   "test.glycine-1step.r1.step.dat": "c3f2f128ef99f306a2b71c9502b40925f518fdba6c3aa527141d0ce478f5ad44",
@@ -510,7 +510,7 @@
   "test.gofr.dat": "5d01b220d2d52c1d728165405af5f2b4e243cadf6f80eb8588e74c5b87b13623",
   "short.at6.r0.step.dat": "cad7a0984ca96ca563035eb0f4efdf1ef107b2e59e3e673e986c28165821c05d",
   "test.vels.scf.dat": "8771f76feeb8c22422a956910b79c5d92de5f7952c30014e117beae0642346f2",
-  "test.glycine-10steps.angles.dat": "364739c904aca49413411e54d170c048f0c3013c12f218e58ae51693bd5371af",
+  "test.glycine-10steps.angles.dat": "66cb44ed196f7e097e1bf16501487e906f37a0f580c2e2a40b6b40f8d0d6a896",
   "short.at1.average_bonds.inp": "1898fcd84a96f8a74d538d37b4a5b44ac35fdd9aa4441496d4e45b6d1ee80e1e",
   "short.at1.maximum_bonds.inp": "1898fcd84a96f8a74d538d37b4a5b44ac35fdd9aa4441496d4e45b6d1ee80e1e",
   "short.at2.2pt.dat": "1e466b4a8e264dea06dfaab279c500dc393f083cb4dc3b079eac65e665125aeb",
@@ -528,7 +528,7 @@
   "test.bonding.dat": "ce95e924d59456e63f1c55619b92f709e7141d76d042d1f15fd1ffdbba3e2c8c",
   "outcar.maximum_bonds.inp": "36c97000841edb3377c43aa57b7258df8386ed090f2474912de322f8da08c8ba",
   "outcar.average_bonds.inp": "36c97000841edb3377c43aa57b7258df8386ed090f2474912de322f8da08c8ba",
-  "test.glycine-1step.angles.dat": "7af0e3b8bd322efbd29c1b592d9dd330346643409db9c8635a3a6d0896331858",
+  "test.glycine-1step.angles.dat": "0fb0ddaff76875630202b274cf35daec70c03ae1b799b1c1e1988ac1ac957d96",
   "glycine.2steps.average_bonds.inp": "1f47da7da0dce9820c537a3be2c7df12dd6f4f77d44d4ad5e94326b7115ceff0",
   "glycine.2steps.maximum_bonds.inp": "d237685f4b098fbcb87f122c1085bd8eb49d041f39b8c98cbf018a8d4f87dbe3",
   "test.glycine-10steps.check.dat": "68e1b271f433dba68ed05c382b041a13f3eede17b598bc24472ad69a8470a363",

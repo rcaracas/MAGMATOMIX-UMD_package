@@ -10,6 +10,7 @@ import sys
 import glob
 import getopt
 import os
+import re
 import subprocess
 import umd_processes_fast as umdpf
 import crystallography as cr
@@ -31,21 +32,40 @@ def is_number(s):
     except ValueError:
         return False
 
-def grep_pattern(FileName, Pattern, SkipSteps, required=True):
+def grep_lines(FileName, Patterns):
+    """The lines of FileName containing each of Patterns (field names, plain words, anywhere in the line, as grep), in one pass
+    over the file : {pattern : lines}. Several grep passes took 1 s each per 470 MB, and grep with several patterns as long."""
+    found = {p:[] for p in Patterns}
+    encoded = [(p,p.encode()) for p in Patterns]
+    anyof = re.compile(b'|'.join(re.escape(b) for p,b in encoded))
+    with open(FileName,'rb') as f:
+        for line in f:
+            if anyof.search(line):
+                for p,b in encoded:
+                    if b in line:
+                        found[p].append(line.decode('utf-8'))
+    return found
+
+
+def grep_pattern(FileName, Pattern, SkipSteps, required=True, lines=None):
     """Extraction of all the numerical values following Pattern, skipping the first SkipSteps snapshots.
     Returns an array with one row per component (1 row for scalars, 6 for StressTensor, ...) and the unit ;
-    (None, '') when the field is absent and not required."""
+    (None, '') when the field is absent and not required. lines : the lines of the file containing Pattern (grep_lines), else read here."""
     data = []
     unit = ''
     anchor=Pattern.split()[0]
-    try:
-        patterns=subprocess.check_output(['grep',Pattern,FileName]).decode("utf-8")
-    except subprocess.CalledProcessError:
+    if lines is None:
+        try:
+            greps=subprocess.check_output(['grep',Pattern,FileName],env=dict(os.environ,LC_ALL='C')).decode("utf-8").split('\n')#3x faster than in a UTF-8 locale
+        except subprocess.CalledProcessError:
+            greps = []
+    else:
+        greps = lines
+    if not greps:
         if not required:
             return None, ''
         print('Parameter ',Pattern,' not found in ',FileName)
         sys.exit()
-    greps=patterns.split('\n')
     for isteps in range(SkipSteps,len(greps)):
         elems=greps[isteps].split()
         for ii in range(len(elems)):
@@ -99,8 +119,10 @@ def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kin
     natom = MyCrystal.natom
     mass = sum(cr.Elements2rest(el)[3]*n for el,n in zip(MyCrystal.elements,MyCrystal.types))/NA      #g per cell
     fields = {}
-    for name in ('Density','Pressure','Temperature','InternalEnergy','KineticEnergyIons','TotalElectronicEnergy','ElectronicEntropy','rprimd_a','acell'):
-        data, unit = grep_pattern(FileName,name,SkipSteps,required=False)
+    names = ('Density','Pressure','Temperature','InternalEnergy','KineticEnergyIons','TotalElectronicEnergy','ElectronicEntropy','rprimd_a','acell')
+    lines = grep_lines(FileName,names)#one pass over the file
+    for name in names:
+        data, unit = grep_pattern(FileName,name,SkipSteps,required=False,lines=lines[name])
         fields[name] = data
     missing = [name for name in ('Pressure','Temperature','InternalEnergy') if fields[name] is None]
     if missing:
@@ -312,8 +334,9 @@ def averages(FileName,Pattern,SkipSteps,LongOutput,Visual):#One quantity, or P, 
     #****Calculations
     series = []         #(title, unit, data, average, stdev) for every quantity and component
     short = []          #(nsteps, means, stdevs) for every quantity
+    lines = {Pattern:None} if Pattern else grep_lines(FileName,Patterns)#-p : grep as given ; P, T, E : one pass over the file
     for pattern in Patterns:
-        data, unit = grep_pattern(FileName, pattern, SkipSteps)
+        data, unit = grep_pattern(FileName, pattern, SkipSteps, lines=lines[pattern])
         anchor = pattern.split()[0]
         means = data.mean(axis=1)
         variances = data.var(axis=1)

@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, hydrous andesite melt 3000 K, 468 MB, restarts",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat",
    "code": 0,
-   "time": 12319.61
+   "time": 69.78
   }
  ],
  "numbers": {
@@ -513,7 +513,7 @@
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.coordinations.inp": "9976d0e97279088f3803b8913265935049b45417594a7e842425d71fae596d60",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_6K_1.msd.dat": "a63c004a0cd50b65d535591e47a274862f5671b88be69a6dab262f8677056495",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_8K_1.msd.dat": "a6620fcd8cc0d39caf5f091d15ffeb4750a4991576ad3662454244130588e149",
-  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.angles.dat": "f39147fa9bc4b6f30a6d22090f4954f84eb553fbd48587e5d770e1138c4383b7",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.angles.dat": "39a349686caa06117e7c8f81ab1aaee1916dfa6e1008577cdf90daaaaad33f51",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_6Ca_1.msd.dat": "54e10bf14ff85b1ec3c71e69fe71bb4ac990d585cb995e52fabdd5931b00f261",
   "fullthermo.dat": "f2cb1aa416f98cfefec65de3050907d7b6ae1d237f6b0d7642a47586bdcfa451",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1.popul.dat": "5589732d7588e678d1c218bcb854d92a3700eb761fe9881a995e428366436313",

@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, pyrolite melt 3000 K",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat",
    "code": 0,
-   "time": 28.08
+   "time": 16.64
   }
  ],
  "numbers": {
@@ -347,7 +347,7 @@
   "pyrolite.a13.T3000K.outcar.r1__Fe_1O_2.msd.dat": "068f55b8f6bb170d0c3207b341306624dbacb53b86469b0d91923d4506b661b0",
   "umd_workflow.log": "not compared",
   "pyrolite.a13.T3000K.outcar.visc.dat": "9e54cb11eb1aaa1c799ff555c40600a6fa5732932c365814efa4f6544c75a168",
-  "pyrolite.a13.T3000K.outcar.angles.dat": "4e63b327f5d8b78714b419f9278c95eb807068c041ef03c74fc3f014edbea6a3",
+  "pyrolite.a13.T3000K.outcar.angles.dat": "79f874894b2eb42bc7744ac060db68d8901a691c8586ed26027ea4645db98495",
   "pyrolite.a13.T3000K.outcar.r1__Si_1O_3.msd.dat": "65157c1fb9000b21811cc191b09f5ce05f25244e0eae8706b02da9d9162d0599",
   "pyrolite.a13.T3000K.outcar.vels.scf.dat": "764ef8660a6e193d3c0024602cd4c622547bd168d96a6c5b8530ac298fe7f3fc",
   "pyrolite.a13.T3000K.outcar.msd.blocks.dat": "41d3a77c13118eda9ab0c38e596f1346d2ee07ebb264210e7337d090d00316a6",

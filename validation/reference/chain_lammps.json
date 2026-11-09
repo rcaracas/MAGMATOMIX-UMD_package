@@ -1,7 +1,7 @@
 {
  "about": "LAMMPS water parsed, then the workflow",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -17,7 +17,7 @@
   {
    "command": "umd_workflow.py -f test.dump.umd.dat",
    "code": 0,
-   "time": 456.13
+   "time": 8.64
   }
  ],
  "numbers": {
@@ -90,7 +90,7 @@
   "test.dump.visc.dat": "f1b161ecd7f2e2de4e81387e193bf547ce2831b6a0fdd4f8e19046f88d4f12da",
   "test.dump.msd.blocks.dat": "56d9f9cfa6b14fbaaa3aa5f43f03083328e2ab586ed0295f72a2a5fadff16105",
   "test.dump.stress.scf.dat": "cc869d065892d3e34dc5a9083ea9a3fa11c662cff4f38cd8b9ff75515708bb61",
-  "test.dump.angles.dat": "3a2035a9efb8bd114ebf917b7482df71818f7e047b54b796606569de8d582d49",
+  "test.dump.angles.dat": "c409336ff6684978f7d327609d4fd58af6e73cbcdc2dcb1ef46c589b789cb57b",
   "test.dump.r0.popul.dat": "19edff605f9a8bf96318fc00a4df6e61ccb7287798ab518745a1c1d02015f35a",
   "test.dump.coordinations.inp": "2b788c973e117fac24921bfa2d3671310d50529ef2739ae2f340bc534ea38079",
   "test.dump.vdos.thermo.dat": "435d3b798dd03c15ef680acb6de3ed3e1ea4b92aae11192a2ff3b035a8c88b9d",

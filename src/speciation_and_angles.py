@@ -42,36 +42,69 @@ def in_set(Indexes,natom):#Boolean mask of the atoms designated by Indexes = [fi
     return mask
 
 
-def bond_angles(X,cell,center,neighbours):#Angles (degrees) neighbour i - center - neighbour j, for i<j in the order of the list ; nearest images in any cell
-    d = (X[neighbours]-X[center])@np.linalg.inv(cell)
+PAIRS = {}#n -> the pairs i<j of n neighbours, in the order of np.triu_indices(n,1)
+
+def pairs(n):
+    if n not in PAIRS:
+        PAIRS[n] = np.triu_indices(n,1)
+    return PAIRS[n]
+
+
+def bond_angles(X,cell,center,neighbour,size):#Angles (degrees) neighbour i - center - neighbour j of every group of bonds of a snapshot, in one pass ;
+    #center, neighbour : one entry per bond, the bonds of a group (one center, size[g] >= 2 neighbours) contiguous ; the pairs i<j of each group
+    #in the order of np.triu_indices. Returns the angles and the bonds I, J of each angle (indexes in center/neighbour). Nearest images in any cell
+    first = np.cumsum(size)-size
+    I, J, gid, pid = [], [], [], []
+    for k in np.unique(size):#the groups of k neighbours together, then put back in the order of the groups
+        g = np.flatnonzero(size == k)
+        i,j = pairs(k)
+        I.append((first[g][:,None]+i).ravel())
+        J.append((first[g][:,None]+j).ravel())
+        gid.append(np.repeat(g,len(i)))
+        pid.append(np.tile(np.arange(len(i)),len(g)))
+    order = np.lexsort((np.concatenate(pid),np.concatenate(gid)))
+    I, J = np.concatenate(I)[order], np.concatenate(J)[order]
+    d = (X[neighbour]-X[center])@np.linalg.inv(cell)
     d -= np.rint(d)
     v = d@cell
-    i,j = np.triu_indices(len(neighbours),1)
-    cos = np.sum(v[i]*v[j],axis=1)/(np.linalg.norm(v[i],axis=1)*np.linalg.norm(v[j],axis=1))
-    return np.degrees(np.arccos(np.clip(cos,-1.0,1.0)))
+    norm = np.sqrt(np.sum(v*v,axis=1))
+    cos = np.sum(v[I]*v[J],axis=1)/(norm[I]*norm[J])
+    return np.degrees(np.arccos(np.clip(cos,-1.0,1.0))), I, J
 
 
 def bond_lives(Bonds,BondsIndexes,MyCrystal,CentIndexes,AdjIndexes):#Lifetimes, in snapshots, of the bonds central-adjacent, by pair of elements
+    #{pair of elements : array of the lifetimes}, the pairs in the order of the end of their first bond. Vectorized : every bond (atom*natom +
+    #neighbour) of every snapshot, sorted by bond then snapshot ; a run of consecutive snapshots is one life
     natom = MyCrystal.natom
     central = in_set(CentIndexes,natom)
     adjacent = in_set(AdjIndexes,natom)
+    codes, snaps, places = [], [], []
+    for step,(SnapBonds,SnapIndexes) in enumerate(zip(Bonds,BondsIndexes)):
+        offsets = np.asarray(SnapIndexes[:natom+1])
+        at = np.repeat(np.arange(natom),np.diff(offsets))
+        ne = np.asarray(SnapBonds[offsets[0]:offsets[-1]],dtype=np.int64)
+        keep = central[at] & adjacent[ne] & ~(central[ne] & adjacent[at] & (ne < at))#each bond once, also when both atoms are central and adjacent
+        code = at[keep]*natom+ne[keep]
+        code = code[np.sort(np.unique(code,return_index=True)[1])]#a bond repeated in a snapshot counts once, at its first place
+        codes.append(code)
+        snaps.append(np.full(len(code),step))
+        places.append(np.arange(len(code)))
+    if not codes or not sum(len(c) for c in codes):
+        return {}
+    code, snap, place = np.concatenate(codes), np.concatenate(snaps), np.concatenate(places)
+    order = np.lexsort((snap,code))
+    code, snap, place = code[order], snap[order], place[order]
+    start = np.flatnonzero(np.r_[True,(code[1:] != code[:-1]) | (snap[1:] != snap[:-1]+1)])
+    end = np.r_[start[1:]-1,len(code)-1]
+    rank = np.lexsort((place[end],snap[end]))#the order in which the lives end : last snapshot, then place in it
+    length = (end-start+1)[rank]
+    typat = np.asarray(MyCrystal.typat)
+    ntypes = len(MyCrystal.elements)
+    pair = (typat[code[start]//natom]*ntypes+typat[code[start]%natom])[rank]
+    ids, first = np.unique(pair,return_index=True)
     lives = {}
-    def record(bond,n):
-        name = MyCrystal.elements[MyCrystal.typat[bond[0]]]+"-"+MyCrystal.elements[MyCrystal.typat[bond[1]]]
-        lives.setdefault(name,[]).append(n)
-    current = {}#bond -> number of consecutive snapshots up to the current one
-    for SnapBonds,SnapIndexes in zip(Bonds,BondsIndexes):
-        bonds = {}
-        for at in np.nonzero(central)[0]:
-            for ne in SnapBonds[SnapIndexes[at]:SnapIndexes[at+1]]:
-                if adjacent[ne] and not (central[ne] and adjacent[at] and ne < at):#each bond once, also when both atoms are central and adjacent
-                    bonds[(at,ne)] = current.get((at,ne),0)+1
-        for bond,n in current.items():
-            if bond not in bonds:
-                record(bond,n)
-        current = bonds
-    for bond,n in current.items():#bonds alive at the end
-        record(bond,n)
+    for p in ids[np.argsort(first)]:
+        lives[MyCrystal.elements[p//ntypes]+"-"+MyCrystal.elements[p%ntypes]] = length[pair == p]
     return lives
 
 
@@ -89,8 +122,9 @@ def write_bond_lives(FileName,lives,TimeStep,BondFile,Centrals,Adjacents):
 
 
 def write_angles(FileName,header,Bonds,BondsIndexes,Snapshots,cells,MyCrystal,CentIndexes,AdjIndexes,TimeStep,Nsteps):#All the angles adjacent - central - adjacent of every snapshot
-    adjacent = in_set(AdjIndexes,MyCrystal.natom)
-    centrals = np.nonzero(in_set(CentIndexes,MyCrystal.natom))[0]
+    natom = MyCrystal.natom
+    adjacent = in_set(AdjIndexes,natom)
+    central = in_set(CentIndexes,natom)
     TotSum = 0.0
     TotN = 0
     with open(FileName,'w') as fa:
@@ -99,20 +133,24 @@ def write_angles(FileName,header,Bonds,BondsIndexes,Snapshots,cells,MyCrystal,Ce
             SnapBonds,SnapIndexes = Bonds[step],BondsIndexes[step]
             X = np.array(Snapshots[step],dtype=float).reshape(-1,3)
             fa.write('\nstep : '+str(step*Nsteps)+'\ntime :'+str(step*TimeStep)+" fs \n")
-            line = 'Angles : \n'
+            lines = ['Angles : \n']
+            offsets = np.asarray(SnapIndexes[:natom+1])
+            at = np.repeat(np.arange(natom),np.diff(offsets))
+            ne = np.asarray(SnapBonds[offsets[0]:offsets[-1]],dtype=np.int64)
+            keep = central[at] & adjacent[ne]#the adjacent neighbours of the central atoms, atom after atom, in the order of the bonding file
+            at, ne = at[keep], ne[keep]
+            count = np.bincount(at,minlength=natom)
+            keep = count[at] > 1#the central atoms with at least two
+            at, ne = at[keep], ne[keep]
             SnapshotAngles = []
-            for at in centrals :
-                neighbours = [ne for ne in SnapBonds[SnapIndexes[at]:SnapIndexes[at+1]] if adjacent[ne]]
-                if len(neighbours) > 1 :
-                    angles = bond_angles(X,cells[step],at,neighbours)
-                    i,j = np.triu_indices(len(neighbours),1)
-                    for k in range(len(angles)):
-                        line += str(float(angles[k]))+"\t("+str(neighbours[i[k]])+"-"+str(at)+"-"+str(neighbours[j[k]])+") \n"
-                    SnapshotAngles += list(angles)
-            fa.write(line)
+            if len(at):
+                angles, I, J = bond_angles(X,cells[step],at,ne,count[np.unique(at)])
+                SnapshotAngles = angles.tolist()
+                lines += ['%.2f\t(%d-%d-%d) \n' % t for t in zip(SnapshotAngles,ne[I].tolist(),at[I].tolist(),ne[J].tolist())]#2 decimals (17 digits until 2.12)
+            fa.write(''.join(lines))
             if SnapshotAngles :
                 fa.write("mean : "+str(float(np.mean(SnapshotAngles)))+"\tstdev : "+str(float(np.std(SnapshotAngles)))+"\n")
-                TotSum += sum(SnapshotAngles)
+                TotSum += float(np.cumsum(SnapshotAngles)[-1])#sequential sum (Python's sum of floats is compensated)
                 TotN += len(SnapshotAngles)
             fa.write("end of step\n")
         fa.write("\n\n Mean of all angles : "+str(TotSum/TotN if TotN else 0.0))
@@ -172,9 +210,13 @@ def clustering(SnapshotBonds,SnapshotBondIndexes,SnapshotXCart,cell,step,maxStep
     Angles = {}#Angles within each cluster, keyed by the sorted cluster
     if r==1 and AngleCalc:
         X = np.array(SnapshotXCart,dtype=float).reshape(-1,3)
-        for cluster in Clusters :
-            if len(cluster) > 2 :
-                Angles[str(sorted(cluster))] = [float(a) for a in bond_angles(X,cell,cluster[0],cluster[1:])]
+        groups = [cluster for cluster in Clusters if len(cluster) > 2]#the central atom first
+        if groups:
+            size = np.array([len(cluster)-1 for cluster in groups])
+            angles = bond_angles(X,cell,np.repeat([cluster[0] for cluster in groups],size),np.concatenate([cluster[1:] for cluster in groups]),size)[0].tolist()
+            npairs = np.cumsum(size*(size-1)//2)
+            for cluster,start,end in zip(groups,npairs-size*(size-1)//2,npairs):
+                Angles[str(sorted(cluster))] = angles[start:end]
 
     return [sorted(c) for c in Clusters],Angles
 

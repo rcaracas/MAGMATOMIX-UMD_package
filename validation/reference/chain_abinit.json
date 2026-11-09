@@ -1,7 +1,7 @@
 {
  "about": "ABINIT run parsed, then the workflow",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.11-1-ga3d0b76-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "AbinitParser.py -f abinit.exMD.output",
    "code": 0,
-   "time": 1.02
+   "time": 0.72
   },
   {
    "command": "umd_workflow.py -f abinit.exMD.output.umd.dat",
    "code": 0,
-   "time": 13.33
+   "time": 7.61
   }
  ],
  "numbers": {
@@ -131,7 +131,7 @@
   "diffusivities_clusters.txt": "e16ca25e346ac5e18d5038821c61cc7284252ce49061bd3b60684b3386a23f71",
   "abinit.exMD.output.r1__Mg_1O_11.msd.dat": "251ec45edc3ab6d5ec8805ef4064eea1425c00e752a13e16d253d5dbe03870a6",
   "abinit.exMD.output.r0.popul.dat": "cc83f1c87b4e5c274e345f283700dabf42ae5c66c524e7f9d1afd62e0fb5f100",
-  "abinit.exMD.output.angles.dat": "71cee583c640c81230fdf80c9a52318bbc45f3249b9bc371cbcf2c7425b00dd2",
+  "abinit.exMD.output.angles.dat": "8950736fa136b41131de63bdd8a1afe3737390f2df3816b532415aea607ccc00",
   "abinit.exMD.output.r1__O_8Fe_1.msd.dat": "13c5bb663380beb3040bb151ccf220839cbe223f348fbb8007f671bf8eb58e91",
   "abinit.exMD.output.vacf.diffusion.dat": "ba1625cd88b347c20d94ac9dbf0a45192964e170696ef467f054b5f880fc8809",
   "abinit.exMD.output.r1__Mg_1O_9.msd.dat": "82dd8433cd94693efb2c70b99e699648ca2f85f737a6b5f04994273330d7cb30",
