@@ -10,7 +10,6 @@ import sys,getopt,os.path
 import math
 import time
 from functools import partial
-import concurrent.futures
 import numpy as np
 import ctypes
 from os.path import join
@@ -48,6 +47,11 @@ fullbond_lib.free_memory.restypes = None
 fullbond_lib.free_memory_int.argtypes = [ctypes.POINTER(ctypes.c_int)]
 fullbond_lib.free_memory.restypes = None
 
+fullbond_lib.bonds_text.argtypes = fullbond_lib.compute_Bonds_full.argtypes+[ctypes.POINTER(ctypes.c_long)]
+fullbond_lib.bonds_text.restype = ctypes.c_void_p
+fullbond_lib.free_text.argtypes = [ctypes.c_void_p]
+fullbond_lib.free_text.restype = None
+
 
 def read_inputfile(InputFile,MyCrystal):#Creates a matrix from the .dat file containing the bond length for each pair of atom types
     BondTable = [[0.0 for _ in range(MyCrystal.ntypat)] for _ in range(MyCrystal.ntypat)]
@@ -64,48 +68,27 @@ def read_inputfile(InputFile,MyCrystal):#Creates a matrix from the .dat file con
                                 BondTable[jj][ii]=float(entry[2])*float(entry[2])
     return BondTable
 
-def WriteBonding_C_full(MySnapshotL,step,cell,maxSteps,MyCrystal,BondTable,timestep,natom,numCells,specifics):#Calculates bonds in a given snapshot, cell = its lattice vectors (rows)
-    
-    if True:#maxSteps is 0 for a single snapshot
-        sys.stdout.write("\rDetermining bonds between atoms. Progress : "+str(100*step//max(1,maxSteps))+"%") 
-        sys.stdout.flush()
-
-    #Preparing data to be used by the C function, pointers creation
-    MSp = np.array(list(MySnapshotL)).ctypes.data_as(ctypes.POINTER(ctypes.c_double))    #C pointers
-    BTp = np.array(BondTable).ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-    CrystalTypes = []
-    for ty in range(MyCrystal.ntypat):
-        CrystalTypes+=[ty for _ in range(MyCrystal.types[ty])]
-        
+def bonding_batch(task,UMDname,natom,BondTable,CrystalTypes,ntypat,numCells,specifics,first,Nsteps,TimeStep):#The text of the bonding file for
+    #the snapshots start to stop-1 of the selection (task = (start, stop, byte offset of the snapshot start in the UMD file)), read here from the UMD file
+    start, stop, offset = task
+    X, cells = umdpf.read_atoms_at(UMDname,offset,natom,stop-start,Nsteps,3,3,cells=True)
+    BTp = np.ascontiguousarray(BondTable,dtype=float).ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     CTp = (ctypes.c_int * natom)(*CrystalTypes)
-        
-    if specifics == None :#No restriction of the spatial interval
-        specifics = [0]
-        specification = 0
-        SPp = (ctypes.c_double * 1)(*specifics)
-    else:
-        specification = 1
-        SPp = (ctypes.c_double * 6)(*specifics)
-    
-    Cellp = (ctypes.c_double * 9)(*cell.flatten())#lattice vectors and reciprocal vectors (s_k = x.rvec_k), any cell
-    RVp = (ctypes.c_double * 9)(*np.linalg.inv(cell).T.flatten())
+    SPp = (ctypes.c_double * 6)(*specifics) if specifics is not None else (ctypes.c_double * 1)(0)
     NCp = (ctypes.c_int * 3)(*numCells)
-
-    Bonds = fullbond_lib.compute_Bonds_full(MSp,BTp,CTp,natom,MyCrystal.ntypat,Cellp,RVp,NCp,SPp,specification)
-               
-    BondsList=[[at] for at in range(natom)]
-
-
-    #Converting bond profile from C to python list
-    #The first number of each sub-list is the length of said sub-list  
-    for at in range(natom):
-        L = Bonds[at][0]
-        for ineighbor in range(1,L+1):
-            BondsList[Bonds[at][ineighbor]].append(at)
-        fullbond_lib.free_memory_int(Bonds[at])#Freeing the memory of each sub-list
-    
-    fullbond_lib.free_memory(Bonds)#Freeing the memory of the list
-    return BondsList        
+    length = ctypes.c_long(0)
+    parts = []
+    for k in range(stop-start):
+        step = start+k
+        Cellp = (ctypes.c_double * 9)(*cells[k].flatten())#lattice vectors and reciprocal vectors (s_k = x.rvec_k), any cell
+        RVp = (ctypes.c_double * 9)(*np.linalg.inv(cells[k]).T.flatten())
+        x = np.ascontiguousarray(X[k])
+        text = fullbond_lib.bonds_text(x.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),BTp,CTp,natom,ntypat,Cellp,RVp,NCp,SPp,int(specifics is not None),ctypes.byref(length))
+        if not text:
+            raise MemoryError('bonds of the snapshot '+str(step))
+        parts += ['time '+str(first*TimeStep+step*TimeStep*Nsteps)+' fs\nstep '+str(step)+'\n',ctypes.string_at(text,length.value).decode(),'end\n']
+        fullbond_lib.free_text(text)
+    return ''.join(parts)
 
 def main(argv):
     umdpf.headerumd()
@@ -181,13 +164,17 @@ def main(argv):
 
     start=time.time()
 
-    MyCrystal,AllSnapshotsL,TimeStep,lensnap = umdpf.read_values(UMDname,"xcart","line",Nsteps,first,nCores = nCores)#Creating the list of the xcart coordinates from the UMD file
-    if len(AllSnapshotsL) == 0:
+    MyCrystal,TimeStep = umdpf.Crystallization(UMDname)
+    natom=MyCrystal.natom
+    offsets, cells = umdpf.index_snapshots(UMDname,natom)#byte offset and lattice vectors (rows) of each snapshot (NPT)
+    offsets, cells = offsets[first::Nsteps], cells[first::Nsteps]#the snapshots used
+    if len(offsets) == 0:
         print('No snapshot after the snapshot',first)
         sys.exit()
-    cells = umdpf.read_cells(UMDname,len(AllSnapshotsL),Nsteps,first)#lattice vectors (rows) of each snapshot (NPT)
+    if np.isnan(cells).any():
+        print('ERROR : snapshots of',UMDname,'without rprimd or acell lines')
+        sys.exit()
     widths = (np.abs(np.linalg.det(cells))[:,None]/np.linalg.norm(np.cross(cells[:,[1,2,0]],cells[:,[2,0,1]]),axis=2)).min(axis=0)#smallest distances between opposite faces
-
     if maxlength==None and len(InputFile)>0 :
         BondTable = read_inputfile(InputFile,MyCrystal)#Converts the input file into a matrix
     elif maxlength!=None :#If a unique bonding length is specified
@@ -209,53 +196,29 @@ def main(argv):
     if 2*M > widths.min():
         print('WARNING : the greatest bond length is larger than half the width of the cell : only the nearest image of each pair is bonded.')
 
-    natom=MyCrystal.natom#Creating the output file
-    if UMDname[-8:] == ".umd.dat":
+    if UMDname[-8:] == ".umd.dat":#the output file
         FileAll=UMDname[:-8]+'.bonding.dat'
     else :
         FileAll=UMDname+'.bonding.dat'
-            
+
     umdpf.copyhead(FileAll,UMDname,Nsteps,first)     #Copies the header of the UMD file into the output file
-    WriteBondingRed=partial(WriteBonding_C_full,maxSteps=len(AllSnapshotsL)-1,MyCrystal=MyCrystal,BondTable=BondTable,timestep=TimeStep,natom=natom,numCells=numCells,specifics = specifics)
-        
-    
-#    Lines = []
-#    for i in range(len(AllSnapshotsL)):
-#        Lines.append(WriteBondingRed(AllSnapshotsL[i],i))
-#    print(Lines[0])
-#    sys.exit()
-
-    if nCores != None :    
-        with concurrent.futures.ProcessPoolExecutor(max_workers = nCores) as executor :#Calculation of the bonds
-            Lines=list(executor.map(WriteBondingRed,AllSnapshotsL,[step for step in range(len(AllSnapshotsL))],cells))#Calculates the bond profile for each snapshot
-    else :
-        with concurrent.futures.ProcessPoolExecutor() as executor :#Calculation of the bonds
-            Lines=list(executor.map(WriteBondingRed,AllSnapshotsL,[step for step in range(len(AllSnapshotsL))],cells))#Calculates the bond profile for each snapshot
-
+    CrystalTypes = [ty for ty in range(MyCrystal.ntypat) for _ in range(MyCrystal.types[ty])]
+    #Batches of snapshots, sized from the bytes of a snapshot in the file : each worker reads its snapshots from the UMD file and returns the
+    #text of their bonds, written in order as the batches come (the memory holds a few batches, whatever the size of the run)
+    nsnap = len(offsets)
+    snapbytes = (os.path.getsize(UMDname)-offsets[0])/(nsnap*Nsteps)
+    ranges = umdpf.batch_ranges(nsnap,snapbytes*Nsteps,nCores)
+    worker = partial(bonding_batch,UMDname=UMDname,natom=natom,BondTable=BondTable,CrystalTypes=CrystalTypes,ntypat=MyCrystal.ntypat,
+                     numCells=numCells,specifics=specifics,first=first,Nsteps=Nsteps,TimeStep=TimeStep)
+    print('Determining the bonds of',nsnap,'snapshots in',len(ranges),'batches of up to',ranges[0][1]-ranges[0][0],'snapshots')
+    with open(FileAll,'a') as fa:
+        if specifics != None :
+            fa.write("Space interval ["+str(specifics[0])+","+str(specifics[3])+"] "+"["+str(specifics[1])+","+str(specifics[4])+"] "+"["+str(specifics[2])+","+str(specifics[5])+"]\n")
+        for (a,b),text in zip(ranges,umdpf.ordered_map(worker,[(a,b,offsets[a]) for a,b in ranges],nCores)):
+            fa.write(text)
+            sys.stdout.write("\rDetermining bonds between atoms. Progress : "+str(100*b//nsnap)+"%")
+            sys.stdout.flush()
     print("\n")
-    step=0
-    print("Writing...")#Writing the bonds
-    fa=open(FileAll,'a')
-    
-    if specifics != None :
-        line = "Space interval ["+str(specifics[0])+","+str(specifics[3])+"] "+"["+str(specifics[1])+","+str(specifics[4])+"] "+"["+str(specifics[2])+","+str(specifics[5])+"]\n"
-        fa.write(line)
-    for lines in Lines :                
-        header = 'time '+str(first*TimeStep+step*TimeStep*Nsteps)+' fs\nstep '+str(step)+'\n'
-        fa.write(header)
-        for line in lines :
-            l=''
-            for atom in line :
-                l+=str(atom)+'\t'
-            l+='\n'
-            fa.write(l)
-                
-        fa.write('end\n')
-        step+=1
-                            
-    fa.close()
-    
-    
     print ('Bonds written in <',FileAll,'> file')
 
     end = time.time()

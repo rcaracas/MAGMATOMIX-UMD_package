@@ -7,7 +7,7 @@ Created on Fri Jun 16 12:22:44 2023
 """
 
 
-import sys, os.path, re, glob
+import sys, os.path, re, glob, collections, itertools
 import crystallography as cr
 from functools import partial
 import concurrent.futures
@@ -26,15 +26,21 @@ read_lib.umd_count.argtypes = [ctypes.c_char_p,ctypes.c_long,ctypes.POINTER(ctyp
 read_lib.umd_count.restype = ctypes.c_long
 read_lib.umd_read.argtypes = [ctypes.c_char_p,ctypes.c_long,ctypes.c_long,ctypes.c_long,ctypes.c_long,ctypes.c_int,ctypes.c_int,ctypes.c_void_p,ctypes.c_void_p]
 read_lib.umd_read.restype = ctypes.c_long
+read_lib.umd_read_at.argtypes = [ctypes.c_char_p,ctypes.c_int64,ctypes.c_long,ctypes.c_long,ctypes.c_long,ctypes.c_long,ctypes.c_int,ctypes.c_int,ctypes.c_void_p,ctypes.c_void_p]
+read_lib.umd_read_at.restype = ctypes.c_long
+read_lib.umd_index.argtypes = [ctypes.c_char_p,ctypes.c_long,ctypes.c_long,ctypes.c_void_p,ctypes.c_void_p]
+read_lib.umd_index.restype = ctypes.c_long
 
 COLUMNS = {'xred':(0,3), 'xcart':(3,3), 'absxcart':(6,3), 'velocity':(9,3), 'everything':(0,12)}   #first column and number of columns of the atom lines
 
 
-def read_snapshotbonds_C(octettop,octetbot,CentIndexes,AdjIndexes,File,natom):#Converts the bonding information of a given snapshot into a list of atoms 
-                                                                               #the data is contained between the octets "octettop" and "octetbot" in the bonding file
-    with open(File,"rb") as ff:
-        ff.seek(octettop,0)
-        snapshot = ff.read(octetbot-octettop)
+def read_snapshotbonds_C(octettop,octetbot,CentIndexes,AdjIndexes,File,natom,ff=None):#Converts the bonding information of a given snapshot into a list of atoms
+    #the data is contained between the octets "octettop" and "octetbot" in the bonding file (ff : the file, already open)
+    if ff is None:
+        with open(File,"rb") as ff:
+            return read_snapshotbonds_C(octettop,octetbot,CentIndexes,AdjIndexes,File,natom,ff)
+    ff.seek(octettop,0)
+    snapshot = ff.read(octetbot-octettop)
     CIp = (ctypes.c_int * len(CentIndexes))(*CentIndexes)
     AIp = (ctypes.c_int * len(AdjIndexes))(*AdjIndexes)
     BList = read_lib.defineBonds(snapshot,len(snapshot),CIp,AIp,len(CentIndexes)//2,len(AdjIndexes)//2,natom)
@@ -42,6 +48,10 @@ def read_snapshotbonds_C(octettop,octetbot,CentIndexes,AdjIndexes,File,natom):#C
     SnapshotBondIndexes = BList[BList[0]+2:BList[0]+BList[1]+2]         #where the bound atoms of each atom begin in SnapshotBondingTable
     read_lib.free_memory(BList)
     return SnapshotBondingTable,SnapshotBondIndexes
+
+def read_bonds_batch(octets,CentIndexes,AdjIndexes,File,natom):#The bonds of a batch of snapshots of a bonding file, octets = [(top, bottom), ...]
+    with open(File,"rb") as ff:
+        return [read_snapshotbonds_C(top,bot,CentIndexes,AdjIndexes,File,natom,ff) for top,bot in octets]
 
 def Octets_from_File(File,key,nlines):#Byte offsets of the snapshots of a file : after each line beginning with key, and the end of the file (nlines
     OctIndexes = []                   #lines, the atoms, follow each key line)
@@ -172,6 +182,62 @@ def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, 
         print('ERROR : snapshots of',UMDfile,'without rprimd or acell lines')
         sys.exit()
     return cells
+
+def index_snapshots(UMDfile,natom):#In one pass in C : the byte offset of every complete snapshot (int64 array, for read_atoms_at) and its
+    #lattice vectors (array snapshot x 3 x 3 : rprimd, else acell, else NaN)
+    guess = os.path.getsize(UMDfile)//(10*max(1,natom))+1           #an atom line has at least 10 characters : more than the snapshots
+    while True:
+        offsets = np.empty(guess,dtype=np.int64)
+        cells = np.empty((guess,3,3))
+        nsnap = read_lib.umd_index(os.fsencode(UMDfile),natom,guess,offsets.ctypes.data,cells.ctypes.data)
+        if nsnap < 0:
+            print('Cannot open',UMDfile)
+            sys.exit()
+        if nsnap <= guess:
+            return offsets[:nsnap], cells[:nsnap]
+        guess = nsnap
+
+def read_atoms_at(UMDfile,offset,natom,nsnap,sampling,col0,ncol,cells=False):#As read_atoms, the nsnap snapshots 0, sampling, ... counted from the
+    #snapshot at the byte offset (index_snapshots) : a worker reads its own snapshots, without reading the file from its beginning
+    values = np.empty((nsnap,natom,ncol))
+    cellvalues = np.empty((nsnap,3,3)) if cells else None
+    nread = read_lib.umd_read_at(os.fsencode(UMDfile),int(offset),natom,0,(nsnap-1)*sampling+1,sampling,col0,ncol,values.ctypes.data,cellvalues.ctypes.data if cells else None)
+    if nread == -1:
+        print('Cannot open',UMDfile)
+        sys.exit()
+    if nread < -1:
+        print('ERROR : an atom line of a snapshot of',UMDfile,'has fewer than',col0+ncol,'numbers, or a value that is not a number')
+        sys.exit()
+    if nread != nsnap:
+        print('ERROR :',nread,'snapshots read in',UMDfile,'instead of',nsnap)
+        sys.exit()
+    return (values, cellvalues) if cells else values
+
+BATCH_BYTES = 64*2**20          #size of the input of a batch of snapshots given to a worker (bytes of the file)
+
+def batch_ranges(nitems,bytes_per_item,nworkers=None,target=BATCH_BYTES):#Consecutive ranges [start, stop) of the nitems snapshots, one per task of
+    #ordered_map : as many snapshots as fit in target bytes (one when a snapshot is larger : big systems), and at most nitems/(4 nworkers), so that
+    #every worker gets several tasks (a slow one does not hold the others back)
+    nworkers = nworkers or os.cpu_count() or 1
+    size = max(1,min(int(target//max(1,bytes_per_item)),-(-nitems//(4*nworkers))))
+    return [(start,min(start+size,nitems)) for start in range(0,nitems,size)]
+
+def ordered_map(func,tasks,nworkers=None,ahead=2):#func(task) of every task in worker processes, the results yielded in the order of the tasks,
+    #with at most ahead tasks per worker submitted at a time : the memory holds a few batches, whatever the length of the run, and the results
+    #can be written as they come. One worker : in this process, without a pool
+    nworkers = nworkers or os.cpu_count() or 1
+    if nworkers == 1:
+        for task in tasks:
+            yield func(task)
+        return
+    tasks = iter(tasks)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=nworkers) as executor:
+        pending = collections.deque(executor.submit(func,task) for task in itertools.islice(tasks,ahead*nworkers))
+        while pending:
+            result = pending.popleft().result()
+            for task in itertools.islice(tasks,1):
+                pending.append(executor.submit(func,task))
+            yield result
 
 def read_snapshots(UMDfile,natom,first=0,sampling=1,fields=None,atoms=True):#Line by line, any file size : yields (snapshot, fields, atoms) for every
     #snapshot ; fields = {name : list of the numbers of its line} (the names of fields, default all), atoms = array natom x columns (reduced*3,
@@ -314,18 +380,10 @@ def read_bonds(BondFile,centEls,adjEls,Nsteps=1,nCores = None):#Bonds of every N
 
     print("Extracting bonds from file ",BondFile)
     
-    bondsRed = partial(read_snapshotbonds_C,CentIndexes=CentIndexes,AdjIndexes=AdjIndexes,File=BondFile,natom=MyCrystal.natom)
-
-#    Data=[]
-#    for i in range(len(OctTop)):
-#        Data.append(bondsRed(OctTop[i],OctBot[i]))            
-    if nCores != None :
-        with concurrent.futures.ProcessPoolExecutor(max_workers = nCores) as executor :
-            Data = list(executor.map(bondsRed,OctTop,OctBot))
-    else:
-        with concurrent.futures.ProcessPoolExecutor() as executor :
-            Data = list(executor.map(bondsRed,OctTop,OctBot))
-            
+    #batches of snapshots, sized from their bytes in the file (ordered_map, batch_ranges)
+    ranges = batch_ranges(len(OctTop),(OctIndexes[-1]-OctIndexes[0])/max(1,len(OctIndexes)-1),nCores)
+    worker = partial(read_bonds_batch,CentIndexes=CentIndexes,AdjIndexes=AdjIndexes,File=BondFile,natom=MyCrystal.natom)
+    Data = [D for batch in ordered_map(worker,[list(zip(OctTop[a:b],OctBot[a:b])) for a,b in ranges],nCores) for D in batch]
     Bonds = [D[0] for D in Data]
     BondsIndexes = [D[1] for D in Data]
     return CentIndexes, AdjIndexes, MyCrystal, [Bonds, BondsIndexes], TimeStep*Nsteps#TimeStep*Nsteps : time between two snapshots used
@@ -355,7 +413,7 @@ def headerumd():#once per run, also when a script runs on several files (-f all)
         return
     _headerdone = True
     print ('\n * * * * * ')
-    print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.13')
+    print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.14')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
     print ('https://github.com/rcaracas/MAGMATOMIX-UMD_package')
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')

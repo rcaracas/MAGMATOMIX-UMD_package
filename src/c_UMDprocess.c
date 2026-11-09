@@ -1,11 +1,23 @@
+#ifndef _WIN32
+#define _FILE_OFFSET_BITS 64 //offsets of files larger than 2 GB on 32-bit systems
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 //Readers of UMD files and bonding files, used by umd_processes_fast.py (ctypes)
+
+#ifdef _WIN32
+#define SEEK64(f,o) _fseeki64(f,o,SEEK_SET)
+#define TELL64(f) _ftelli64(f)
+#else
+#define SEEK64(f,o) fseeko(f,(off_t)(o),SEEK_SET)
+#define TELL64(f) ((int64_t)ftello(f))
+#endif
 
 
 void free_memory(void *Tab){
@@ -76,12 +88,13 @@ long umd_count(const char *filename, long natom, long *total){//Number of comple
 }
 
 
-long umd_read(const char *filename, long natom, long first, long last, long sampling, int col0, int ncol, double *out, double *cells){
-	//Snapshots first, first+sampling, ... before last (counted from 0, complete snapshots only) : columns col0 to col0+ncol-1 of the atom lines
-	//(reduced*3, cartesian*3, unwrapped*3, velocity*3, ...) into out (snapshot, atom, column), and if cells is not NULL the lattice vectors of each
-	//of these snapshots (rows a, b, c) from its rprimd lines, else from its acell (orthogonal cell), else NaN.
+long umd_read_at(const char *filename, int64_t offset, long natom, long first, long last, long sampling, int col0, int ncol, double *out, double *cells){
+	//From the byte offset of a snapshot (umd_index ; 0 = the beginning of the file), the snapshots first, first+sampling, ... before last (counted
+	//from that snapshot, complete snapshots only) : columns col0 to col0+ncol-1 of the atom lines (reduced*3, cartesian*3, unwrapped*3, velocity*3,
+	//...) into out (snapshot, atom, column), and if cells is not NULL the lattice vectors of each of these snapshots (rows a, b, c) from its rprimd
+	//lines, else from its acell (orthogonal cell), else NaN.
 	//Returns the number of snapshots stored ; -1 if the file cannot be opened ; -2-k if an atom line of the k-th stored snapshot has too few numbers
-	FILE *f = fopen(filename,"r");
+	FILE *f = fopen(filename,"rb");
 	size_t size = 65536;
 	char *buf;
 	const char *line;
@@ -91,6 +104,7 @@ long umd_read(const char *filename, long natom, long first, long last, long samp
 	long isnap = 0, nstored = 0, len, iatom;
 	int k, j, row;
 	if(f==NULL){return -1;}
+	if(offset>0 && SEEK64(f,offset)!=0){fclose(f); return -1;}
 	buf = malloc(size);
 	while(isnap<last && (len=read_line(f,&buf,&size))>=0){
 		line = first_word(buf);
@@ -143,6 +157,66 @@ long umd_read(const char *filename, long natom, long first, long last, long samp
 	free(buf);
 	fclose(f);
 	return nstored;
+}
+
+
+long umd_read(const char *filename, long natom, long first, long last, long sampling, int col0, int ncol, double *out, double *cells){
+	//umd_read_at from the beginning of the file
+	return umd_read_at(filename,0,natom,first,last,sampling,col0,ncol,out,cells);
+}
+
+
+long umd_index(const char *filename, long natom, long maxsnap, int64_t *offsets, double *cells){//In one pass : the byte offset where each complete
+	//snapshot begins for umd_read_at (the end of the former snapshot, 0 for the first one) and, if cells is not NULL, its lattice vectors (as
+	//umd_read) ; at most maxsnap snapshots stored. Returns the number of complete snapshots (all of them, also beyond maxsnap), -1 if the file
+	//cannot be opened
+	FILE *f = fopen(filename,"rb");
+	size_t size = 65536;
+	char *buf;
+	const char *line;
+	double rprimd[9], acell[3];
+	bool hasrprimd[3] = {false,false,false};
+	bool hasacell = false;
+	long isnap = 0, iatom;
+	int64_t start = 0;
+	int j, row;
+	if(f==NULL){return -1;}
+	buf = malloc(size);
+	while(read_line(f,&buf,&size)>=0){
+		line = first_word(buf);
+		if(starts_with(line,"timestep")){
+			hasrprimd[0] = hasrprimd[1] = hasrprimd[2] = false;
+			hasacell = false;
+		}
+		else if(starts_with(line,"rprimd_a") || starts_with(line,"rprimd_b") || starts_with(line,"rprimd_c")){
+			row = line[7]-'a';
+			hasrprimd[row] = read_numbers(line,3,rprimd+3*row)==3;
+		}
+		else if(starts_with(line,"acell")){
+			hasacell = read_numbers(line,3,acell)==3;
+		}
+		else if(starts_with(line,"atoms:")){
+			for(iatom=0 ; iatom<natom ; iatom++){
+				if(read_line(f,&buf,&size)<0){break;}
+			}
+			if(iatom<natom){break;}//incomplete last snapshot
+			if(isnap<maxsnap){
+				offsets[isnap] = start;
+				if(cells!=NULL){
+					for(j=0 ; j<9 ; j++){
+						if(hasrprimd[0] && hasrprimd[1] && hasrprimd[2]){cells[9*isnap+j] = rprimd[j];}
+						else if(hasacell){cells[9*isnap+j] = (j%4==0) ? acell[j/4] : 0.0;}
+						else{cells[9*isnap+j] = NAN;}
+					}
+				}
+			}
+			isnap++;
+			start = TELL64(f);
+		}
+	}
+	free(buf);
+	fclose(f);
+	return isnap;
 }
 
 

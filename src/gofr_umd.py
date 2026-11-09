@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ### Authors : Kevin Jiguet-Covex, Razvan Caracas
-### One method for all the cells : nearest image in reduced coordinates, cell of every snapshot (NPT), threads around the C library : Razvan Caracas
+### One method for all the cells : nearest image in reduced coordinates, cell of every snapshot (NPT), processes around the C library : Razvan Caracas
 ### Pair distribution functions g(r) and running coordination numbers of all the pairs of elements, or of central and adjacent elements (-c, -a)
 
 
@@ -10,7 +10,7 @@ import sys, getopt, os.path
 import time
 import platform
 import ctypes
-import concurrent.futures
+from functools import partial
 import numpy as np
 import umd_processes_fast as umdpf
 
@@ -35,11 +35,25 @@ def half_width(cells):#Half the smallest distance between opposite faces of each
     return 0.5*(volumes/areas).min(axis=0)
 
 
-def histograms(red,typat,ntypes,cells,weights,dr,nbins):#Pair counts, and counts weighted by the volume of their snapshot, from the C library
-    counts = np.zeros(ntypes*ntypes*nbins)
-    wcounts = np.zeros(ntypes*ntypes*nbins)
+def histograms(red,typat,ntypes,cells,weights,dr,nbins,counts=None,wcounts=None):#Pair counts, and counts weighted by the volume of their snapshot,
+    #from the C library ; added to counts and wcounts when given (flat arrays ntypes*ntypes*nbins)
+    if counts is None:
+        counts = np.zeros(ntypes*ntypes*nbins)
+        wcounts = np.zeros(ntypes*ntypes*nbins)
     gofr_lib.gofr_histogram(np.ascontiguousarray(red),len(red),red.shape[1],typat,ntypes,np.ascontiguousarray(cells),
                             np.ascontiguousarray(weights),dr,nbins,counts,wcounts)
+    return counts.reshape(ntypes,ntypes,nbins), wcounts.reshape(ntypes,ntypes,nbins)
+
+
+def block_histograms(block,umdfile,offsets,natom,Nsteps,keep,typat,ntypes,cells,invcells,volumes,dr,nbins,batch):#The histograms of a block of
+    #consecutive snapshots (indexes of the selection), read from the UMD file batch snapshots at a time and added in order : the memory holds one batch
+    counts = np.zeros(ntypes*ntypes*nbins)
+    wcounts = np.zeros(ntypes*ntypes*nbins)
+    for a in range(block[0],block[-1]+1,batch):
+        b = min(a+batch,block[-1]+1)
+        X = umdpf.read_atoms_at(umdfile,offsets[a],natom,b-a,Nsteps,3,3)[:,keep]
+        red = np.einsum('sni,sij->snj',X,invcells[a:b])#x = s M, with the lattice vectors as rows of M
+        histograms(red,typat,ntypes,cells[a:b],volumes[a:b],dr,nbins,counts,wcounts)
     return counts.reshape(ntypes,ntypes,nbins), wcounts.reshape(ntypes,ntypes,nbins)
 
 
@@ -118,21 +132,22 @@ def main(argv):
         gofrname += '.'+('all' if central == 'all' else ''.join(selected['central']))+'-'+('all' if adjacent == 'all' else ''.join(selected['adjacent']))
     gofrname += '.gofr.dat'
     umdpf.remove_former_outputs([gofrname])#the file of a former run with the same selection ; the gofr files of other selections are kept
-    MyCrystal,SnapshotsXCart,TimeStep,length = umdpf.read_values(umdfile,"xcart",Nsteps=Nsteps,firststep=InitialStep,nCores=nCores)
     natom = MyCrystal.natom
-    X = np.array(SnapshotsXCart,dtype=float).reshape(len(SnapshotsXCart),natom,3)
-    del SnapshotsXCart
+    offsets, cells = umdpf.index_snapshots(umdfile,natom)#byte offset and cell of each snapshot (NPT)
+    offsets, cells = offsets[InitialStep::Nsteps], cells[InitialStep::Nsteps]#the snapshots used : from InitialStep, every Nsteps
+    nsnap = len(offsets)
+    if nsnap == 0:
+        print('No snapshot after the snapshot',InitialStep)
+        sys.exit()
+    if np.isnan(cells).any():
+        print('ERROR : snapshots of',umdfile,'without rprimd or acell lines')
+        sys.exit()
     #Only the atoms of the central and adjacent elements are kept ; all the atoms of an element are, so the normalization is unchanged
     elements = MyCrystal.elements
     used = [i for i in range(MyCrystal.ntypat) if elements[i] in selected['central'] or elements[i] in selected['adjacent']]
     typat_all = np.array(MyCrystal.typat)
     keep = np.isin(typat_all,used)
-    X = X[:,keep]
-    nsnap = len(X)
-    cells = umdpf.read_cells(umdfile,nsnap,Nsteps,InitialStep)#the cell of each snapshot, as read by read_values : from InitialStep, every Nsteps
     volumes = np.abs(np.linalg.det(cells))
-    red = np.einsum('sni,sij->snj',X,np.linalg.inv(cells))#x = s M, with the lattice vectors as rows of M
-    del X
     rmax = half_width(cells).min()
     nbins = int(rmax/discrete)
     ntypes = len(used)
@@ -146,11 +161,15 @@ def main(argv):
     print(nsnap,' snapshots ; volume ','%.3f' % volumes.mean(),' A^3'+('' if np.ptp(volumes) < 1.0E-6*volumes.mean() else ' (from %.3f to %.3f)' % (volumes.min(),volumes.max()))
           +' ; g(r) up to ','%.4f' % (nbins*discrete),' A, half the smallest distance between opposite faces of the cell')
 
-    #The snapshots are cut into blocks computed in parallel threads : the C library releases the GIL
-    nthreads = max(1,min(nCores if nCores is not None else (os.cpu_count() or 1),nsnap))
-    blocks = np.array_split(np.arange(nsnap),nthreads)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=nthreads) as executor:
-        results = list(executor.map(lambda b: histograms(red[b],typat,ntypes,cells[b],volumes[b],discrete,nbins),blocks))
+    #The snapshots are cut into blocks computed in parallel processes, each reading its block from the UMD file in batches sized from the bytes
+    #of a snapshot (the memory holds one batch per process). Not threads : the C reader (strtod) then spends its time on a lock of the system
+    nworkers = max(1,min(nCores if nCores is not None else (os.cpu_count() or 1),nsnap))
+    blocks = [block for block in np.array_split(np.arange(nsnap),nworkers) if len(block)]
+    snapbytes = (os.path.getsize(umdfile)-offsets[0])/nsnap
+    batch = max(1,int(umdpf.BATCH_BYTES//max(1,snapbytes)))
+    worker = partial(block_histograms,umdfile=umdfile,offsets=offsets,natom=natom,Nsteps=Nsteps,keep=keep,typat=typat,ntypes=ntypes,cells=cells,
+                     invcells=np.linalg.inv(cells),volumes=volumes,dr=discrete,nbins=nbins,batch=batch)
+    results = list(umdpf.ordered_map(worker,blocks,nworkers))
     counts = sum(r[0] for r in results)
     wcounts = sum(r[1] for r in results)
 

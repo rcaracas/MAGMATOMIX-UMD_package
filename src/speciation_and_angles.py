@@ -13,7 +13,6 @@ import sys,getopt,os.path
 import umd_processes_fast as umdpf
 import time
 from functools import partial
-import concurrent.futures
 from os.path import join
 import ctypes
 import numpy as np
@@ -72,14 +71,11 @@ def bond_angles(X,cell,center,neighbour,size):#Angles (degrees) neighbour i - ce
     return np.degrees(np.arccos(np.clip(cos,-1.0,1.0))), I, J
 
 
-def bond_lives(Bonds,BondsIndexes,MyCrystal,CentIndexes,AdjIndexes):#Lifetimes, in snapshots, of the bonds central-adjacent, by pair of elements
-    #{pair of elements : array of the lifetimes}, the pairs in the order of the end of their first bond. Vectorized : every bond (atom*natom +
-    #neighbour) of every snapshot, sorted by bond then snapshot ; a run of consecutive snapshots is one life
-    natom = MyCrystal.natom
-    central = in_set(CentIndexes,natom)
-    adjacent = in_set(AdjIndexes,natom)
+def bond_codes_batch(task,natom,central,adjacent):#The bonds central-adjacent of a batch of snapshots, task = (first step, bonds, bond indexes) :
+    #arrays of their codes (atom*natom + neighbour), snapshots and places in their snapshot
+    first, Bonds, BondsIndexes = task
     codes, snaps, places = [], [], []
-    for step,(SnapBonds,SnapIndexes) in enumerate(zip(Bonds,BondsIndexes)):
+    for k,(SnapBonds,SnapIndexes) in enumerate(zip(Bonds,BondsIndexes)):
         offsets = np.asarray(SnapIndexes[:natom+1])
         at = np.repeat(np.arange(natom),np.diff(offsets))
         ne = np.asarray(SnapBonds[offsets[0]:offsets[-1]],dtype=np.int64)
@@ -87,8 +83,22 @@ def bond_lives(Bonds,BondsIndexes,MyCrystal,CentIndexes,AdjIndexes):#Lifetimes, 
         code = at[keep]*natom+ne[keep]
         code = code[np.sort(np.unique(code,return_index=True)[1])]#a bond repeated in a snapshot counts once, at its first place
         codes.append(code)
-        snaps.append(np.full(len(code),step))
+        snaps.append(np.full(len(code),first+k))
         places.append(np.arange(len(code)))
+    if not codes:
+        return np.empty(0,dtype=np.int64), np.empty(0,dtype=np.int64), np.empty(0,dtype=np.int64)
+    return np.concatenate(codes), np.concatenate(snaps), np.concatenate(places)
+
+
+def bond_lives(Bonds,BondsIndexes,MyCrystal,CentIndexes,AdjIndexes,nCores=None):#Lifetimes, in snapshots, of the bonds central-adjacent, by pair
+    #of elements : {pair of elements : array of the lifetimes}, the pairs in the order of the end of their first bond. Vectorized : every bond
+    #(atom*natom + neighbour) of every snapshot (bond_codes_batch, in batches of snapshots), sorted by bond then snapshot ; a run of consecutive
+    #snapshots is one life
+    natom = MyCrystal.natom
+    worker = partial(bond_codes_batch,natom=natom,central=in_set(CentIndexes,natom),adjacent=in_set(AdjIndexes,natom))
+    snapbytes = 8*(len(Bonds[0])+len(BondsIndexes[0])) if len(Bonds) else 1
+    tasks = ((a,Bonds[a:b],BondsIndexes[a:b]) for a,b in umdpf.batch_ranges(len(Bonds),snapbytes,nCores))
+    codes, snaps, places = map(list,zip(*umdpf.ordered_map(worker,tasks,nCores))) if len(Bonds) else ([],[],[])
     if not codes or not sum(len(c) for c in codes):
         return {}
     code, snap, place = np.concatenate(codes), np.concatenate(snaps), np.concatenate(places)
@@ -121,53 +131,65 @@ def write_bond_lives(FileName,lives,TimeStep,BondFile,Centrals,Adjacents):
     print("Bonds lifetimes written in file ",FileName)
 
 
-def write_angles(FileName,header,Bonds,BondsIndexes,Snapshots,cells,MyCrystal,CentIndexes,AdjIndexes,TimeStep,Nsteps):#All the angles adjacent - central - adjacent of every snapshot
+def angles_batch(task,natom,central,adjacent,TimeStep,Nsteps):#The text of the angle file for a batch of snapshots, task = (first step, bonds,
+    #bond indexes, positions, cells), and the sum and number of the angles of each snapshot
+    first, Bonds, BondsIndexes, Snapshots, cells = task
+    parts = []
+    sums = []
+    for k,(SnapBonds,SnapIndexes) in enumerate(zip(Bonds,BondsIndexes)):
+        step = first+k
+        X = np.array(Snapshots[k],dtype=float).reshape(-1,3)
+        parts.append('\nstep : '+str(step*Nsteps)+'\ntime :'+str(step*TimeStep)+" fs \n"+'Angles : \n')
+        offsets = np.asarray(SnapIndexes[:natom+1])
+        at = np.repeat(np.arange(natom),np.diff(offsets))
+        ne = np.asarray(SnapBonds[offsets[0]:offsets[-1]],dtype=np.int64)
+        keep = central[at] & adjacent[ne]#the adjacent neighbours of the central atoms, atom after atom, in the order of the bonding file
+        at, ne = at[keep], ne[keep]
+        count = np.bincount(at,minlength=natom)
+        keep = count[at] > 1#the central atoms with at least two
+        at, ne = at[keep], ne[keep]
+        if len(at):
+            angles, I, J = bond_angles(X,cells[k],at,ne,count[np.unique(at)])
+            SnapshotAngles = angles.tolist()
+            parts += ['%.2f\t(%d-%d-%d) \n' % t for t in zip(SnapshotAngles,ne[I].tolist(),at[I].tolist(),ne[J].tolist())]#2 decimals (17 digits until 2.12)
+            parts.append("mean : "+str(float(np.mean(SnapshotAngles)))+"\tstdev : "+str(float(np.std(SnapshotAngles)))+"\n")
+            sums.append((float(np.cumsum(SnapshotAngles)[-1]),len(SnapshotAngles)))#sequential sum (Python's sum of floats is compensated)
+        parts.append("end of step\n")
+    return ''.join(parts), sums
+
+
+def write_angles(FileName,header,Bonds,BondsIndexes,Snapshots,cells,MyCrystal,CentIndexes,AdjIndexes,TimeStep,Nsteps,nCores=None):#All the angles
+    #adjacent - central - adjacent of every snapshot, in batches of snapshots computed by the workers and written in order (ordered_map)
     natom = MyCrystal.natom
-    adjacent = in_set(AdjIndexes,natom)
-    central = in_set(CentIndexes,natom)
+    worker = partial(angles_batch,natom=natom,central=in_set(CentIndexes,natom),adjacent=in_set(AdjIndexes,natom),TimeStep=TimeStep,Nsteps=Nsteps)
+    snapbytes = 8*(len(Bonds[0])+len(BondsIndexes[0])+len(Snapshots[0])) if len(Bonds) else 1
+    ranges = umdpf.batch_ranges(len(Bonds),snapbytes,nCores)
+    tasks = ((a,Bonds[a:b],BondsIndexes[a:b],Snapshots[a:b],cells[a:b]) for a,b in ranges)
     TotSum = 0.0
     TotN = 0
     with open(FileName,'w') as fa:
         fa.write(header)
-        for step in range(len(Bonds)) :
-            SnapBonds,SnapIndexes = Bonds[step],BondsIndexes[step]
-            X = np.array(Snapshots[step],dtype=float).reshape(-1,3)
-            fa.write('\nstep : '+str(step*Nsteps)+'\ntime :'+str(step*TimeStep)+" fs \n")
-            lines = ['Angles : \n']
-            offsets = np.asarray(SnapIndexes[:natom+1])
-            at = np.repeat(np.arange(natom),np.diff(offsets))
-            ne = np.asarray(SnapBonds[offsets[0]:offsets[-1]],dtype=np.int64)
-            keep = central[at] & adjacent[ne]#the adjacent neighbours of the central atoms, atom after atom, in the order of the bonding file
-            at, ne = at[keep], ne[keep]
-            count = np.bincount(at,minlength=natom)
-            keep = count[at] > 1#the central atoms with at least two
-            at, ne = at[keep], ne[keep]
-            SnapshotAngles = []
-            if len(at):
-                angles, I, J = bond_angles(X,cells[step],at,ne,count[np.unique(at)])
-                SnapshotAngles = angles.tolist()
-                lines += ['%.2f\t(%d-%d-%d) \n' % t for t in zip(SnapshotAngles,ne[I].tolist(),at[I].tolist(),ne[J].tolist())]#2 decimals (17 digits until 2.12)
-            fa.write(''.join(lines))
-            if SnapshotAngles :
-                fa.write("mean : "+str(float(np.mean(SnapshotAngles)))+"\tstdev : "+str(float(np.std(SnapshotAngles)))+"\n")
-                TotSum += float(np.cumsum(SnapshotAngles)[-1])#sequential sum (Python's sum of floats is compensated)
-                TotN += len(SnapshotAngles)
-            fa.write("end of step\n")
+        for text,sums in umdpf.ordered_map(worker,tasks,nCores):
+            fa.write(text)
+            for snapsum,n in sums:
+                TotSum += snapsum
+                TotN += n
         fa.write("\n\n Mean of all angles : "+str(TotSum/TotN if TotN else 0.0))
     print("Angles written in file ",FileName)
 
 
-def analysis_subtab(Clusters,Step):#Creates a dictionnary whose keys are the individual clusters, and the values are a list of list of their *consecutive* steps of existence.
+def analysis_subtab(Clusters,Step):#Creates a dictionnary whose keys are the individual clusters (their text, str of the sorted list of atoms),
+    #and the values are a list of list of their *consecutive* steps of existence.
     population={}
     for Snapshot in Clusters :
-        for cluster in Snapshot :
-            if str(cluster) in population.keys():
-                if population[str(cluster)][-1][-1]==Step-1:
-                    population[str(cluster)][-1].append(Step)
+        for key in Snapshot :
+            if key in population:
+                if population[key][-1][-1]==Step-1:
+                    population[key][-1].append(Step)
                 else :
-                    population[str(cluster)].append([Step])
+                    population[key].append([Step])
             else :
-                population[str(cluster)]=[[Step]]
+                population[key]=[[Step]]
         Step+=1
     return population
 
@@ -219,6 +241,27 @@ def clustering(SnapshotBonds,SnapshotBondIndexes,SnapshotXCart,cell,step,maxStep
                 Angles[str(sorted(cluster))] = angles[start:end]
 
     return [sorted(c) for c in Clusters],Angles
+
+
+def clustering_batch(task,clustering,typat,elements,Nsteps,TimeStep):#The clusters of a batch of snapshots, task = (first step, bonds, bond
+    #indexes, positions, cells) : for each snapshot the texts of its clusters (str of the sorted list of atoms) and their angles, and the text of
+    #the step file for the batch
+    first, Bonds, BondsIndexes, Positions, cells = task
+    keys, angles, parts = [], [], []
+    for k,(b,i,x,c) in enumerate(zip(Bonds,BondsIndexes,Positions,cells)):
+        step = first+k
+        Clusts, Angles = clustering(b,i,x,c,step)
+        texts = [str(clust) for clust in Clusts]
+        keys.append(texts)
+        angles.append(Angles)
+        parts.append("step\t"+str(step*Nsteps)+"\ntime\t"+str(step*TimeStep)+"\nClusters\tNumber of atoms\tComposition\n")
+        for clust,text in zip(Clusts,texts):
+            index = [0]*len(elements)
+            for at in clust:
+                index[typat[at]] += 1
+            name = ''.join(elements[elem]+'_'+str(n) for elem,n in enumerate(index) if n != 0)
+            parts.append(name+'\t'+str(len(clust))+'\t'+text+'\n')
+    return keys, angles, ''.join(parts)
 
 
 def main(argv):
@@ -340,7 +383,7 @@ def main(argv):
 
     if flagbondlife==1 :
         print("Calculating the lifetimes of the bonds...")
-        lives = bond_lives(Bonds,BondsIndexes,MyCrystal,CentIndexes,AdjIndexes)
+        lives = bond_lives(Bonds,BondsIndexes,MyCrystal,CentIndexes,AdjIndexes,nCores)
         write_bond_lives(BaseName+".bondslives.dat",lives,TimeStep,BondFile,Centrals,Adjacents)
 
     if flagangles==1 :#positions and cells of the UMD snapshots matching the bonding snapshots used
@@ -353,7 +396,7 @@ def main(argv):
             Bonds,BondsIndexes = Bonds[:nsnap],BondsIndexes[:nsnap]
         SnapshotsXCart = SnapshotsXCart[:nsnap]
         cells = umdpf.read_cells(UMDFile,nsnap,TimeRatio,MyCrystal.firstsnapshot)
-        write_angles(BaseName+".angles.dat",header+"\n",Bonds,BondsIndexes,SnapshotsXCart,cells,MyCrystal,CentIndexes,AdjIndexes,TimeStep,Nsteps)
+        write_angles(BaseName+".angles.dat",header+"\n",Bonds,BondsIndexes,SnapshotsXCart,cells,MyCrystal,CentIndexes,AdjIndexes,TimeStep,Nsteps,nCores)
     else :
         SnapshotsXCart = [[] for _ in range(len(Bonds))]#Blank lists which will not be used but are needed as arguments
         cells = [None for _ in range(len(Bonds))]
@@ -384,40 +427,28 @@ def main(argv):
 
     clusteringRed=partial(clustering,maxSteps=len(Bonds)-1,natom=MyCrystal.natom,nAts=nAts,CentIndexes=CentIndexes,OutIndexes=AdjIndexes,r=rings,AngleCalc=flagangles)
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers = nCores) as executor :
-        Data=list(executor.map(clusteringRed,Bonds,BondsIndexes,SnapshotsXCart,cells,[step for step in range(len(Bonds))])) #Computes the clusters of atoms for each snapshot separately
-
-    clusters,Angles = map(list,zip(*Data))
-
-    population=analysis_subtab(clusters,0)
     FileAll = BaseName +'.r' + str(rings) + '.popul.dat'
     FileStat = BaseName + '.r' + str(rings) + '.stat.dat'
     FileStep = BaseName + '.r' + str(rings) + '.step.dat'
     header+="\n"
 
+    #Computes the clusters of atoms for each snapshot separately, in batches of snapshots sized from their bonds and positions (ordered_map) ;
+    #the step file is written as the batches come
+    snapbytes = 8*(len(Bonds[0])+len(BondsIndexes[0])+len(SnapshotsXCart[0])) if len(Bonds) else 1
+    ranges = umdpf.batch_ranges(len(Bonds),snapbytes,nCores)
+    tasks = ((a,Bonds[a:b],BondsIndexes[a:b],SnapshotsXCart[a:b],cells[a:b]) for a,b in ranges)
+    worker = partial(clustering_batch,clustering=clusteringRed,typat=MyCrystal.typat,elements=MyCrystal.elements,Nsteps=Nsteps,TimeStep=TimeStep)
+    clusters, Angles = [], []
+    with open(FileStep,'w') as fs:
+        fs.write(header)
+        for keys,angles,text in umdpf.ordered_map(worker,tasks,nCores):
+            clusters += keys
+            Angles += angles
+            fs.write(text)
+
+    population=analysis_subtab(clusters,0)
+
     print("\nWriting...")#writing the clusters in a file
-
-    fs = open(FileStep,'w')
-    fs.write(header)
-    headstring = "Clusters\tNumber of atoms\tComposition\n"
-    for step in range(len(clusters)) :
-        st = "step\t"+str(step*Nsteps)+"\ntime\t"+str(step*TimeStep)+"\n"
-        fs.write(st)
-        fs.write(headstring)
-        Clusts = clusters[step]
-        for clust in Clusts :
-            index=[0 for _ in range(MyCrystal.ntypat)]
-            name=''
-            for at in clust:
-                index[MyCrystal.typat[at]]+=1
-
-            for elem in range(len(index)) :
-                if index[elem]!=0:
-                    name+=MyCrystal.elements[elem]+'_'+str(index[elem])
-            newstring = name +'\t'+ str(len(clust)) +'\t'+ str(clust)+'\n'
-            fs.write(newstring)
-
-    fs.close()
 
     dicoStats={}#Clusters by name (chemical species) ; values as sub-dictionaries whose keys are 'lifetime' (combined life time of the molecules of this specie) and '#atoms' (number of atoms of this specie)
     dicoTimes={}#Clusters (individual atoms) by step of appearance. values as list whose items are under the form : [individual atoms,name of the chemical specie,last step, life time]

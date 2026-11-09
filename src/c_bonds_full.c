@@ -125,3 +125,43 @@ int** compute_Bonds_full(const double *MySnapshot, const double *BondTable, cons
 
 	return Bonding;
 }
+
+
+static int compare_int(const void *a, const void *b){
+	int x = *(const int *)a, y = *(const int *)b;
+	return (x>y)-(x<y);
+}
+
+/* The lines of one snapshot of a bonding file, from compute_Bonds_full (same arguments) : one line per atom, the atom then its bound atoms in
+   increasing order, each followed by a tab. Returns the text (to free with free_text) and its length in *length ; NULL if out of memory. */
+char* bonds_text(const double *MySnapshot, const double *BondTable, const int *CrystalTypes, const int nAtoms, const int ntypat, const double *cell, const double *rvec, const int *nCells, const double *specifics, const int specification, long *length){
+	int **Bonding = compute_Bonds_full(MySnapshot,BondTable,CrystalTypes,nAtoms,ntypat,cell,rvec,nCells,specifics,specification);
+	size_t total = 0, pos = 0;
+	char *text;
+	for(int at=0 ; at<nAtoms ; at++){//at most 11 characters per number and its tab, and the newline
+		total += 12*(size_t)(Bonding[at][0]+1)+1;
+	}
+	text = malloc(total+1);
+	if(text!=NULL){
+		for(int at=0 ; at<nAtoms ; at++){
+			int n = Bonding[at][0];
+			qsort(Bonding[at]+1,n,sizeof(int),compare_int);
+			pos += sprintf(text+pos,"%d\t",at);
+			for(int k=1 ; k<=n ; k++){
+				pos += sprintf(text+pos,"%d\t",Bonding[at][k]);
+			}
+			text[pos++] = '\n';
+		}
+		text[pos] = '\0';
+	}
+	for(int at=0 ; at<nAtoms ; at++){
+		free(Bonding[at]);
+	}
+	free(Bonding);
+	*length = (long)pos;
+	return text;
+}
+
+void free_text(char *text){
+	free(text);
+}
