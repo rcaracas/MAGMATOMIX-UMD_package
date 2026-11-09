@@ -1,0 +1,47 @@
+{
+ "about": "synthetic stress (Ornstein-Uhlenbeck) : viscosity ; T and P as AR(1) series : averages and their errors",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py stress",
+   "code": 0,
+   "time": 2.43
+  },
+  {
+   "command": "viscosity_umd.py -f stress.umd.dat -e 250",
+   "code": 0,
+   "time": 2.1
+  },
+  {
+   "command": "viscosity_umd.py -f stress.umd.dat -e 250 -c offdiag",
+   "code": 0,
+   "time": 2.1
+  },
+  {
+   "command": "averages.py -f stress.umd.dat -l",
+   "code": 0,
+   "time": 1.07
+  }
+ ],
+ "numbers": {
+  "stress viscosity, all components (Pa.s)": 0.006443,
+  "stress viscosity, off-diagonal (Pa.s)": 0.006521,
+  "stress mean Temperature": 2001.2016830138252,
+  "stress error of the mean Temperature / exact": 1.0488760475800885,
+  "stress mean Pressure": 5.012077280528615,
+  "stress error of the mean Pressure / exact": 0.987713035882356
+ },
+ "files": {
+  "stress.stress.scf.dat": "eee97c2bbaf68e791d8beec0216b365ed96b1cc9b14934952dd6ebb0ce887b64",
+  "stress.truth.json": "adb96f839d2633e0c2c03b0cdce39ace4a6ab8ea79c4bd7c66d1f48080decd4f",
+  "stress.umd.dat": "0904cded9ecd01315734c9a2c018d31a0310bd4295dc00f2f59e835fc2a76cce",
+  "stress.visc.dat": "cc164fcc1c7513c8d4713f9b6d308a855bb54f2430bbda03c8ca2a695eb74407"
+ }
+}

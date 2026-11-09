@@ -102,6 +102,11 @@ vibrations_umd.py               velocity autocorrelation functions, vibrational 
 vdos_thermo.py                  harmonic and 2PT thermodynamics, quantum corrections
 thermo_integration_umd.py       free energy and entropy by thermodynamic integration
 
+    validation folder:
+run_validation.py               runs the scripts on reference runs (data/, not distributed) and on synthetic files with exact answers,
+                                and compares the results with the committed references (see validation/README)
+cases.py, probes.py, synthetic.py   the cases, the readers of the outputs, the synthetic files ; reference/ one file per case
+
     gui folder (set aside, not maintained, does not run):
 UMD_GUI.py, averages_forGUI.py, val_extract_umd.py
 
@@ -203,4 +208,9 @@ v 2.10, November 2026 - ABINIT parser; a void in build_umd.py; LAMMPS NPT runs u
 v 2.11, November 2026 - the graphical interface set aside:
 - The graphical interface (UMD_GUI.py, averages_forGUI.py, val_extract_umd.py) is set aside in the gui folder: it no longer ran (it imported scripts replaced during the cleanup) and is not maintained
 
-Since v 2.11 (not yet released):
+v 2.12, November 2026 - a validation suite; two corrections found by it:
+- validation/ (new): a validation suite. run_validation.py runs every script, with its main options, on the reference runs of data/ (VASP, ABINIT and LAMMPS outputs parsed; the workflow on glycine, pyrolite, ZnS, corundum, hydrous andesite and on small odd files; builds, conversions, speciation, transport and thermodynamics options) and on synthetic files with exact answers (ideal gas, fcc in two cells, rigid water, random walks with a D tensor, Ornstein-Uhlenbeck velocities, harmonic oscillators, Ornstein-Uhlenbeck stresses, harmonic wells for thermodynamic integration, injected faults). It compares key numbers and checksums of every output with the references of validation/reference/, and the synthetic results with their exact values
+- averages.py -a: a UMD file without Pressure, Temperature or InternalEnergy (positions only) is skipped with a message; it stopped the run (a traceback, or no fullthermo.dat for the other files)
+- vdos_thermo.py: the warning on negative parts of the vDOS advises smoothing or a longer window when the Hann taper was already used
+
+Since v 2.12 (not yet released):

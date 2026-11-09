@@ -1,0 +1,42 @@
+{
+ "about": "synthetic random walk, clean and with a duplicated snapshot and a missed crossing : check_umd",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py faults",
+   "code": 0,
+   "time": 0.35
+  },
+  {
+   "command": "check_umd.py -f faults_clean.umd.dat",
+   "code": 0,
+   "time": 0.52
+  },
+  {
+   "command": "check_umd.py -f faults_bad.umd.dat",
+   "code": 0,
+   "time": 0.48
+  }
+ ],
+ "numbers": {
+  "faults_clean check 1": "OK",
+  "faults_clean check 2": "OK",
+  "faults_clean check 3": "OK",
+  "faults_bad check 1": "WARNING",
+  "faults_bad check 3": "WARNING"
+ },
+ "files": {
+  "faults_bad.umd.dat": "b8fee70c15cdd19b16b82275cb64c54c04939886b89446633a3e25070b9ea7b8",
+  "faults_clean.umd.dat": "94f63ba5fa7b8faadf85629feb7de27def4c0e712baaee867b7d40fb173ba2be",
+  "faults.truth.json": "d1ece2e34c95f4e42cf1f2f9fbe4ea303d3204c54cda63ae1afed3b6604aedcf",
+  "faults_clean.check.dat": "0f40cdc185e783a4adf2b2e2b4432c6a9a57343ac5ac8ef196e0b7e952f308d4",
+  "faults_bad.check.dat": "78f36daffc3d7cf5084a4865173add71c76568a2ee9084f96d643d6bc61a85e9"
+ }
+}

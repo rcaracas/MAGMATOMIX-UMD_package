@@ -1,0 +1,86 @@
+{
+ "about": "the old corundum file (missed crossings, zero velocities) checked, repaired, checked",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "check_umd.py -f al2o3.umd.dat",
+   "code": 0,
+   "time": 5.41
+  },
+  {
+   "command": "repair_umd.py -f al2o3.umd.dat",
+   "code": 0,
+   "time": 24.76
+  },
+  {
+   "command": "check_umd.py -f al2o3.repaired.umd.dat",
+   "code": 0,
+   "time": 5.43
+  }
+ ],
+ "numbers": {
+  "al2o3.check.dat check 1": "OK",
+  "al2o3.check.dat check 2": "OK",
+  "al2o3.check.dat check 3": "WARNING",
+  "al2o3.check.dat check 4": "WARNING",
+  "al2o3.check.dat check 5": "OK",
+  "al2o3.check.dat check 6": "WARNING",
+  "al2o3.check.dat check 7": "OK",
+  "al2o3.check.dat check 8": "OK",
+  "al2o3.check.dat check 9": "WARNING",
+  "al2o3.check.dat check 10": "skipped",
+  "al2o3.check.dat check 11": "OK",
+  "al2o3.check.dat check 12": "skipped",
+  "al2o3.check.dat check 13": "OK",
+  "al2o3.check.dat check 14": "OK",
+  "al2o3.repaired.check.dat check 1": "OK",
+  "al2o3.repaired.check.dat check 2": "OK",
+  "al2o3.repaired.check.dat check 3": "OK",
+  "al2o3.repaired.check.dat check 4": "WARNING",
+  "al2o3.repaired.check.dat check 5": "OK",
+  "al2o3.repaired.check.dat check 6": "OK",
+  "al2o3.repaired.check.dat check 7": "OK",
+  "al2o3.repaired.check.dat check 8": "OK",
+  "al2o3.repaired.check.dat check 9": "OK",
+  "al2o3.repaired.check.dat check 10": "skipped",
+  "al2o3.repaired.check.dat check 11": "OK",
+  "al2o3.repaired.check.dat check 12": "skipped",
+  "al2o3.repaired.check.dat check 13": "OK",
+  "al2o3.repaired.check.dat check 14": "OK",
+  "natom": 241,
+  "snapshots": 10000,
+  "last_time": 10000.0,
+  "mean_InternalEnergy": -1698.8348102811049,
+  "mean_TotalElectronicEnergy": 0.0,
+  "mean_ElectronicEntropy": 2.1000000000000006e-09,
+  "mean_KineticEnergyIons": 46.53205211560002,
+  "mean_EnergyWithDrift": -1720.4050285358985,
+  "mean_Enthalpy": 0.0,
+  "mean_Temperature": 1499.9408400000023,
+  "mean_Pressure": 9.965139230000032,
+  "mean_Density": 3.870999999999375,
+  "mean_stress_xx": 9.989702200000023,
+  "mean_stress_yy": 10.030454640000032,
+  "mean_stress_zz": 9.875259640000023,
+  "mean_stress_xy": -0.030577020000000097,
+  "mean_stress_yz": -0.001198680000000011,
+  "mean_stress_zx": 0.024674950000000074,
+  "mean_volume": 2101.403129452162,
+  "msd_first_last": 0.05550983550373443,
+  "rms_velocity_last": 0.013916473387150559,
+  "rms_force_last": 2.626517418575893,
+  "mean_xcart_last": 6.534626058091286
+ },
+ "files": {
+  "al2o3.repaired.check.dat": "91cd2f933b5dc206d341378bb04c7a9b53484ff39dd6a7596572e75ae0c9e792",
+  "al2o3.check.dat": "da81d0a6c4c8c91455bbbec195209dbb9001d8c324a0b931b40cdfdfb2806d5e",
+  "al2o3.repaired.umd.dat": "2e5679da5b6b4dcaf6f15c33d37a7723595007ab09fed2afc5ebc67974cd137a"
+ }
+}

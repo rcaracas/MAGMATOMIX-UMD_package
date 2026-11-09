@@ -1,0 +1,60 @@
+{
+ "about": "synthetic random walks, isotropic and anisotropic : D, D tensor, principal values and directions",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py randomwalk",
+   "code": 0,
+   "time": 2.64
+  },
+  {
+   "command": "msd_umd.py -f randomwalk.umd.dat -a tensor",
+   "code": 0,
+   "time": 1.03
+  }
+ ],
+ "numbers": {
+  "randomwalk D Ar (m2/s)": 1.0106655445020152e-08,
+  "randomwalk D Kr (m2/s)": 2.0140735088069412e-09,
+  "randomwalk D Xe (m2/s)": 1.2208115138116058e-09,
+  "randomwalk D Xe_xx (m2/s)": 1.610429022336147e-09,
+  "randomwalk D Ar_xx (m2/s)": 1.0295666513739837e-08,
+  "randomwalk D Kr_xx (m2/s)": 1.967073474975344e-09,
+  "randomwalk D Xe_yy (m2/s)": 6.377894953962201e-10,
+  "randomwalk D Ar_yy (m2/s)": 9.76217510042866e-09,
+  "randomwalk D Kr_yy (m2/s)": 2.002028271927621e-09,
+  "randomwalk D Xe_zz (m2/s)": 1.4142160237024515e-09,
+  "randomwalk D Ar_zz (m2/s)": 1.026212472089197e-08,
+  "randomwalk D Kr_zz (m2/s)": 2.073118779517865e-09,
+  "randomwalk D Xe_xy (m2/s)": 5.665573247094942e-11,
+  "randomwalk D Ar_xy (m2/s)": -3.1896925844407864e-10,
+  "randomwalk D Kr_xy (m2/s)": 2.925103356587578e-11,
+  "randomwalk D Xe_yz (m2/s)": 2.8506197348384727e-10,
+  "randomwalk D Ar_yz (m2/s)": -4.1430854462416115e-10,
+  "randomwalk D Kr_yz (m2/s)": -2.7164025360662277e-12,
+  "randomwalk D Xe_zx (m2/s)": 7.180232866700381e-10,
+  "randomwalk D Ar_zx (m2/s)": 2.3289948030658974e-10,
+  "randomwalk D Kr_zx (m2/s)": 7.385604072670397e-12,
+  "randomwalk Xe principal D1 (m2/s)": 2.2698905555744716e-09,
+  "randomwalk Xe principal direction 1 |cos| with the exact one": 0.9994729916868442,
+  "randomwalk Xe principal D2 (m2/s)": 8.941694530585696e-10,
+  "randomwalk Xe principal direction 2 |cos| with the exact one": 0.9997091342269584,
+  "randomwalk Xe principal D3 (m2/s)": 4.983745328017773e-10,
+  "randomwalk Xe principal direction 3 |cos| with the exact one": 0.9995834744438509
+ },
+ "files": {
+  "randomwalk.truth.json": "96f4ea71b9ed3acd50f140e18c1139cb3125ece903737f392113c096c0709d8c",
+  "randomwalk.msd.dat": "b673c406f7a3f78a2ccf05eec3a1f6893ad87cb792c51d877428463a42ff4daf",
+  "randomwalk.msd.blocks.dat": "e0809a057ceb6820a832c3e253eeb990026964ebece65663262c3f7860425388",
+  "randomwalk.umd.dat": "c164adb09aeb1562cda353ef8e7d65af205fd9e5ed13bed651fe44e2f1bd52f0",
+  "randomwalk.diffusion.dat": "2d8144ce0a1c189a1b1c3854e317af896e2f2f0b265b7a03cffb2b203dcb8754",
+  "randomwalk.diffusion.tensor.dat": "76d19e8b7f4a0b4f015084f8f6732be983209cee272e420b4320546192a40786"
+ }
+}

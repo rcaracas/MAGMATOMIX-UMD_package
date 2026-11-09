@@ -93,7 +93,8 @@ def kinetic_included(IE,K,TEE,ES=None):#Whether InternalEnergy contains KineticE
     return bool(ratio > 0.5), 'cov(InternalEnergy,KineticEnergyIons)/var(KineticEnergyIons) = ' + '%.2f' % ratio
 
 
-def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kinetic energy included) and Cv (eV/K per cell) of one UMD file : statistics, and notes
+def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kinetic energy included) and Cv (eV/K per cell) of one UMD file : statistics, and notes ;
+    #nsteps None (and the notes) when the file has no Pressure, Temperature or InternalEnergy (a file of positions only)
     MyCrystal,TimeStep = umdpf.Crystallization(FileName)
     natom = MyCrystal.natom
     mass = sum(cr.Elements2rest(el)[3]*n for el,n in zip(MyCrystal.elements,MyCrystal.types))/NA      #g per cell
@@ -101,6 +102,9 @@ def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kin
     for name in ('Density','Pressure','Temperature','InternalEnergy','KineticEnergyIons','TotalElectronicEnergy','ElectronicEntropy','rprimd_a','acell'):
         data, unit = grep_pattern(FileName,name,SkipSteps,required=False)
         fields[name] = data
+    missing = [name for name in ('Pressure','Temperature','InternalEnergy') if fields[name] is None]
+    if missing:
+        return None, natom, mass, {}, ['no '+', '.join(missing)+' in the file (positions only ?), or no snapshot after -i : skipped']
     notes = []
     results = {}
     if fields['Density'] is not None:
@@ -111,9 +115,6 @@ def thermodynamics(FileName,SkipSteps):#Density, P, T, E (eV per cell, ionic kin
         notes.append('no Density in the file : computed from the cell')
     results['rho'] = statistics(rho)
     for name,key in (('Pressure','P'),('Temperature','T')):
-        if fields[name] is None:
-            print('Parameter ',name,' not found in ',FileName)
-            sys.exit()
         results[key] = statistics(fields[name][0])
     IE = fields['InternalEnergy'][0]
     if fields['KineticEnergyIons'] is not None:
@@ -167,6 +168,8 @@ def write_thermo(files,SkipSteps,units):#Thermodynamics of the UMD files, in ful
         nsteps, natom, mass, results, notes = thermodynamics(FileName,SkipSteps)
         for note in notes:
             print('   ',note)
+        if nsteps is None:
+            continue
         for key,name in (('rho','Density'),('P','Pressure'),('T','Temperature'),('E','Energy'),('Cv','Cv')):
             drift = results[key][-1]
             if drift > 4.0:

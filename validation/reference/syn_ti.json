@@ -1,0 +1,54 @@
+{
+ "about": "synthetic harmonic wells at the Gauss-Legendre lambdas : <U>, ideal gas, F, S exact",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py ti",
+   "code": 0,
+   "time": 2.66
+  },
+  {
+   "command": "thermo_integration_umd.py -t 1500",
+   "code": 0,
+   "time": 7.6
+  }
+ ],
+ "numbers": {
+  "ti <U> at lambda 3.780153e-10 (eV)": 98.316892,
+  "ti <U> at lambda 1.397975e-06 (eV)": 97.449716,
+  "ti <U> at lambda 1.058285e-04 (eV)": 98.2029,
+  "ti <U> at lambda 1.824948e-03 (eV)": 92.992005,
+  "ti <U> at lambda 1.395785e-02 (eV)": 68.273118,
+  "ti <U> at lambda 6.254789e-02 (eV)": 24.701975,
+  "ti <U> at lambda 1.890950e-01 (eV)": 8.176145,
+  "ti <U> at lambda 4.174776e-01 (eV)": 3.696759,
+  "ti <U> at lambda 7.052092e-01 (eV)": 2.210757,
+  "ti <U> at lambda 9.364464e-01 (eV)": 1.679035,
+  "ti <U> at lambda 1.000000e+00 (eV)": 1.550656,
+  "ti ideal gas free energy (eV)": -12.877211,
+  "ti free energy F (eV per cell)": -5.447134,
+  "ti entropy S (kB/atom)": 8.0869
+ },
+ "files": {
+  "thermo_integration.dat": "5e740121be47a9661382636aa5432b7190a85bd3734c95856f05a5e39563ba07",
+  "ti_3.780153e-10.umd.dat": "62782afe93ce0909df95dbd06ed5436a0c17714b82ceab4614aff730168402a4",
+  "ti_6.254789e-02.umd.dat": "40c0fc59457293062e2763fd2c9b68f1d5ddff4cbcffebaf768b53ca65a0affc",
+  "ti_1.058285e-04.umd.dat": "a5a98dcc27db5fcc3405d4243dd2fb3b9cc4fb55c592dfa65a6a9a25dcbacd71",
+  "ti_1.397975e-06.umd.dat": "526901d3014baa4f11b5d56c010438c30d7f5ba260799e4f630d01fba531032b",
+  "ti_1.000000e+00.umd.dat": "734cba50ec6c5cf8dd5cc2862a487b09dbdd63e3997bfe33f4d39dc050f8c571",
+  "ti_1.824948e-03.umd.dat": "b7de6929d3ef2344933085e9c55f34b3bdc7422160022717d561a2ef9ca66fe0",
+  "ti_4.174776e-01.umd.dat": "f736012f1fcee74d3c2dd2a21828cbd8b96fa05967c65a0bebaf193666d47269",
+  "ti_1.395785e-02.umd.dat": "e5a9403fe72fe94d103f65ef8416aa6838b4b7cfa38aa2224e583ee50ede51be",
+  "ti_9.364464e-01.umd.dat": "6e81a8f1c21c81ae334cf96696cfda7a2b57ab60f0337a91f72af0e940f2efd8",
+  "ti.truth.json": "c57ef46b72289e3640418e3ef537959fbb0bfd59473e60523810415fe6f8e458",
+  "ti_1.890950e-01.umd.dat": "40f87e9c2bc37b86fd75329479cccc1c144e5368d692b5fa15cfb1c4003e1cfa",
+  "ti_7.052092e-01.umd.dat": "965c969106fd292cb173ce12d226b737ccdf32604ddd81a76d3e38d4f57c3077"
+ }
+}

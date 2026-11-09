@@ -1,0 +1,52 @@
+{
+ "about": "synthetic harmonic oscillators : vDOS peaks, Einstein ZPE, E, F, S, Cv",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py oscillators",
+   "code": 0,
+   "time": 2.76
+  },
+  {
+   "command": "vibrations_umd.py -f oscillators.umd.dat",
+   "code": 0,
+   "time": 0.74
+  },
+  {
+   "command": "vdos_thermo.py -f oscillators.umd.dat",
+   "code": 0,
+   "time": 0.48
+  }
+ ],
+ "numbers": {
+  "oscillators vDOS peak of Si (cm-1)": 500.47126061515377,
+  "oscillators vDOS peak of O (cm-1)": 1101.0367733533383,
+  "oscillators Einstein ZPE of Si": 92.93685390566158,
+  "oscillators Einstein E of Si": 111.58696668578749,
+  "oscillators Einstein F of Si": 85.48445721648754,
+  "oscillators Einstein S of Si": 1.0096901471984245,
+  "oscillators Einstein Cv of Si": 1.8977955956879622,
+  "oscillators Einstein ZPE of O": 204.56466500347832,
+  "oscillators Einstein E of O": 206.67723302017876,
+  "oscillators Einstein F of O": 204.16412267596638,
+  "oscillators Einstein S of O": 0.0972114484378652,
+  "oscillators Einstein Cv of O": 0.4324554091774259
+ },
+ "files": {
+  "oscillators.truth.json": "22897c5e6cb5adbbb4d396cf4532344a089d59ceb2ac8da2e70e05733e5edac8",
+  "oscillators.vels.scf.dat": "8f1e1d5a0cdcade7aca2f086d8ad9c421f60cf3a270e73dc071c59d9973c1533",
+  "oscillators.umd.dat": "79ddc3e940d2ea534f5ecba97f9d4c490cdd3bf616e18138195b99bd942763d6",
+  "oscillators.vibr.dat": "ce4333246372d8816dfd13bda6bc6f072167c9466fc57884ed9e2c5ec6eca189",
+  "oscillators.vdos.thermo.dat": "f726e212129e60e4f0cea5f09ef0dcc08344a7809784ca6a57368a7f129efe87",
+  "oscillators.vibr.err.dat": "788777ba399f7f763cc93658b1251303fe2ebcee11c05e896f3c4d0998edd6bf",
+  "oscillators.vacf.diffusion.dat": "ae4585aabca52fef7c8fd930a79cb8171de6fbc31ee2160958aa7cb6768fcc22",
+  "oscillators.2pt.dat": "dc3c8c833539fa317803337f874e2bafd15903baea3443a472ecd72643bb89e8"
+ }
+}

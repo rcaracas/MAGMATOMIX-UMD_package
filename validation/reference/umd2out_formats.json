@@ -1,0 +1,63 @@
+{
+ "about": "umd2out : all the formats, unwrapped, every 1000 ; one snapshot of the hexagonal cell (LAMMPS tilts)",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "umd2out.py -f glycine.umd.dat -s 1000 -r xyz,poscar,lammps,deepmd,lammpstrj -u",
+   "code": 0,
+   "time": 0.97
+  },
+  {
+   "command": "umd2out.py -f al2o3.new.umd.dat -k 10 -r 1,2,3 -o corundum",
+   "code": 0,
+   "time": 0.8
+  }
+ ],
+ "numbers": {
+  "files .*POSCAR.*": 11,
+  "files .*\\.lammps\\.data": 11,
+  "files .*\\.xyz": 2,
+  "files .*\\.lammpstrj": 1
+ },
+ "files": {
+  "glycine._5000_.POSCAR.vasp": "09cf0ce0c90b506c5202832ca5b15c2dfdb97f3d6695aa45ec8d0b227c98779b",
+  "glycine._4000_.lammps.data": "0a7586460e1b5ae463103aa3c3bc751bfab454105cb1f5ddd84bc436d3e4b671",
+  "corundum._10_.POSCAR.vasp": "7a06893b6533e9ba5a34433f02491b9a9a9b0de7d58e3e9500be2b28d920bc78",
+  "glycine._3000_.lammps.data": "895f558eb92e1a69aba89b207b9cbad11c07399b082f969012ae5f7fb3557383",
+  "glycine._0_.POSCAR.vasp": "bf8626fd599e8af42d17c11ae0c703ad0c692c94049b5628e21f4b84103885a0",
+  "glycine._2000_.POSCAR.vasp": "3936b0bc770e3e8b9244571a0fe9e8711cb6718cef8d55201db708e6294ec004",
+  "glycine._0_.lammps.data": "40cb1c23dd46419f679c18c52a6e9e0836f906b829e854f9f9a2598fe4373b6a",
+  "glycine.xyz": "a3dd9a5eb85f2d6fdef33ffe116a7e4b62c4c8260c58b14bab612c78c2c94896",
+  "glycine._2000_.lammps.data": "5cdc7faf6ddd4c83b4ac1559d9246944f76edcd021f19c31f4eb82e046e1e65e",
+  "glycine._3000_.POSCAR.vasp": "2e7d6d0cd6c02c1c17c44d2350196b3fac735dc7a39d0836be569ccdda174360",
+  "corundum._10_.lammps.data": "79587ad041dd43e90bf73cda6a78140497fbc6401ed053b05315728cab9e5feb",
+  "glycine._4000_.POSCAR.vasp": "b3ee49a1dfbebc4218c4ec530f85b26b30e62cc6138edc356f487943e6a0d43e",
+  "glycine._5000_.lammps.data": "da511c36f965e1617e91210e8064e0ba19631f87ba8a379deca82bb084d27a0d",
+  "glycine._1000_.POSCAR.vasp": "6f3704e75353e4b67812ad11d0c555b6c3e6fb9ed201db8b994d8686ae33396d",
+  "glycine._8000_.lammps.data": "4835b121fa31f95dab54f95f5c0c158cd440dbfcfd91262477c837629541ff0c",
+  "glycine.lammpstrj": "2cf5c35dd777e4ec1a1c575c90c6f3581f02107215e3f59c499a7cb4a8992c43",
+  "glycine._6000_.POSCAR.vasp": "fdfdf15260fc08cd138f1f20c12e561195476699848c175c725232aad6e74b15",
+  "glycine._9000_.POSCAR.vasp": "d5c682e8c856ab4e9f54c960dc213366e24ad2b6611982feaca5dc2ee4fe8a7b",
+  "glycine._7000_.lammps.data": "3b94fe14435819c9bd14007799e77bcf09912f213b7d2b7a23d97e7db3786fa2",
+  "glycine._9000_.lammps.data": "5f0d8899ac9b7142df81361f2e584441e3b4ce8bf6679d67b84027664da3f674",
+  "glycine._7000_.POSCAR.vasp": "b9f25d4097f5456b8bd176a34d4170955a16eb782e741250c8dd6409755cfd7b",
+  "glycine._8000_.POSCAR.vasp": "dc1bae81492fe1b1a1f12049f0ffb476af0f4be687767876620ec42b7d31087a",
+  "corundum.10.xyz": "bd8252343a98fdb2602c55e8310c8d0b3c4ddd4da3f3d0e3f6b2eab1fedfd31b",
+  "glycine._6000_.lammps.data": "8eb4df66d502de46c09d3ed57c202bce153f5224184f67c896d4226d2c3989f2",
+  "glycine._1000_.lammps.data": "c313347afc8e3ab0b7278f4d6e4bf87df585f6a5ed2445a9a9be666b8c34b113",
+  "glycine.deepmd/type_map.raw": "cdb9a5665481bf56a0f6f46f260db21b73d4d9ed5ecd1c731bace11ede63e88d",
+  "glycine.deepmd/type.raw": "e16ebdd6a6e6fcfa88ebb66165f4941a91551976ed4ba2995536bbd9207e4df0",
+  "glycine.deepmd/set.000/box.npy": "8fb70103873ac3f2d8a84777fba7fc62a2ea86bca7a81efab775c86ad9386fa4",
+  "glycine.deepmd/set.000/force.npy": "4ee3f0be5144eaf5cebebfda7c7731a51f016476a38b03294d55c045e6d9dd03",
+  "glycine.deepmd/set.000/energy.npy": "a163d76b6617c2e738859b8ace731457e7f22a3804d159307fc36f375d0c2035",
+  "glycine.deepmd/set.000/coord.npy": "3d0f016ca70b66c90bd21565d05f6ca4ea3eb508f44f5494403a0bd795dca876",
+  "glycine.deepmd/set.000/virial.npy": "0b1baf8110bc29878a843b52500f757589485da076680f55521c3cc4bc99629b"
+ }
+}

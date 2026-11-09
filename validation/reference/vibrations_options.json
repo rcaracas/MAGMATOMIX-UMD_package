@@ -1,0 +1,70 @@
+{
+ "about": "vibrations along a, b, c of a hexagonal cell, no taper, smoothing ; vdos_thermo at two temperatures",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "vibrations_umd.py -f al2o3.new.umd.dat -a cryst -p none -g 10 -n 3 -i 200",
+   "code": 0,
+   "time": 3.7
+  },
+  {
+   "command": "vdos_thermo.py -f al2o3.new.umd.dat -t 300,1500",
+   "code": 0,
+   "time": 0.75
+  }
+ ],
+ "numbers": {
+  "al2o3.new.vacf.diffusion.dat Al D_(m2/s)": -1.1118295160305149e-10,
+  "al2o3.new.vacf.diffusion.dat Al D_error_(m2/s)": 2.4456585157935215e-11,
+  "al2o3.new.vacf.diffusion.dat Al D_at_half_(m2/s)": -2.646739131920911e-10,
+  "al2o3.new.vacf.diffusion.dat Al_a D_(m2/s)": -1.6695591689023154e-11,
+  "al2o3.new.vacf.diffusion.dat Al_a D_error_(m2/s)": 6.217236068421136e-11,
+  "al2o3.new.vacf.diffusion.dat Al_a D_at_half_(m2/s)": -4.792014986774964e-10,
+  "al2o3.new.vacf.diffusion.dat Al_b D_(m2/s)": -1.141774142052022e-10,
+  "al2o3.new.vacf.diffusion.dat Al_b D_error_(m2/s)": 1.4168677116495166e-10,
+  "al2o3.new.vacf.diffusion.dat Al_b D_at_half_(m2/s)": -5.330671017022816e-10,
+  "al2o3.new.vacf.diffusion.dat Al_c D_(m2/s)": -1.0982522288119294e-10,
+  "al2o3.new.vacf.diffusion.dat Al_c D_error_(m2/s)": 1.5542005657157214e-11,
+  "al2o3.new.vacf.diffusion.dat Al_c D_at_half_(m2/s)": 2.1657815103800012e-10,
+  "al2o3.new.vacf.diffusion.dat O D_(m2/s)": -7.4646329729164e-11,
+  "al2o3.new.vacf.diffusion.dat O D_error_(m2/s)": 2.8013652479969376e-11,
+  "al2o3.new.vacf.diffusion.dat O D_at_half_(m2/s)": -2.500571081936132e-10,
+  "al2o3.new.vacf.diffusion.dat O_a D_(m2/s)": 6.965317378949973e-12,
+  "al2o3.new.vacf.diffusion.dat O_a D_error_(m2/s)": 7.629852774777732e-11,
+  "al2o3.new.vacf.diffusion.dat O_a D_at_half_(m2/s)": -3.705122138951492e-10,
+  "al2o3.new.vacf.diffusion.dat O_b D_(m2/s)": -7.629118325383722e-11,
+  "al2o3.new.vacf.diffusion.dat O_b D_error_(m2/s)": 1.3161520028714347e-10,
+  "al2o3.new.vacf.diffusion.dat O_b D_at_half_(m2/s)": -5.198227934592045e-10,
+  "al2o3.new.vacf.diffusion.dat O_c D_(m2/s)": -9.182600370692822e-11,
+  "al2o3.new.vacf.diffusion.dat O_c D_error_(m2/s)": 6.943198999608689e-11,
+  "al2o3.new.vacf.diffusion.dat O_c D_at_half_(m2/s)": 1.8769162695786444e-10,
+  "al2o3.new.vacf.diffusion.dat He D_(m2/s)": -1.6998765015475845e-09,
+  "al2o3.new.vacf.diffusion.dat He D_error_(m2/s)": 2.6468039469054996e-09,
+  "al2o3.new.vacf.diffusion.dat He D_at_half_(m2/s)": -1.066882447432759e-09,
+  "al2o3.new.vacf.diffusion.dat He_a D_(m2/s)": -2.328945918202626e-10,
+  "al2o3.new.vacf.diffusion.dat He_a D_error_(m2/s)": 4.4771583397927436e-10,
+  "al2o3.new.vacf.diffusion.dat He_a D_at_half_(m2/s)": 6.578097050973937e-10,
+  "al2o3.new.vacf.diffusion.dat He_b D_(m2/s)": -2.1096749594869396e-09,
+  "al2o3.new.vacf.diffusion.dat He_b D_error_(m2/s)": 5.077076249951183e-09,
+  "al2o3.new.vacf.diffusion.dat He_b D_at_half_(m2/s)": 1.9944362179508055e-10,
+  "al2o3.new.vacf.diffusion.dat He_c D_(m2/s)": -1.0574716943447279e-09,
+  "al2o3.new.vacf.diffusion.dat He_c D_error_(m2/s)": 3.1088381286777075e-09,
+  "al2o3.new.vacf.diffusion.dat He_c D_at_half_(m2/s)": -1.6320992677116998e-09
+ },
+ "files": {
+  "al2o3.new.vacf.diffusion.dat": "d06d65dafb3265ed08525f52ed8e99da285967f2555607cef4df0ccd1408b1c1",
+  "al2o3.new.vibr.dat": "5025dced6df51e78bf35f84cd17de69cb1a9a7605f345ef51968dcaefec0bd5b",
+  "al2o3.new.vibr.err.dat": "0c741de8e6342132887abeb19bacfc0aa84632ee222197d45936c1d8e0d67425",
+  "al2o3.new.vibr.axes.dat": "25c0972328ffc3cb5f13752ed450d404361f2b5f30186e300c06a48e93a96c95",
+  "al2o3.new.vdos.thermo.dat": "83c311e31b887611c07e7c77087d72d7680007bebad971f26e03aac9e4f4870e",
+  "al2o3.new.2pt.dat": "9dc08e550b6dc9655a62b22e1ebce95416c4c41c2d3553389f5710f11e4c97fe",
+  "al2o3.new.vels.scf.dat": "1ec23779bd1abb007821002556205bb3052d757fabb401afea143889f5cc0792"
+ }
+}

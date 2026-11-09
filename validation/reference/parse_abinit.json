@@ -1,0 +1,46 @@
+{
+ "about": "ABINIT 6.4.1 Langevin MD, Mg7Si8O24Fe, non-orthogonal cell",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "AbinitParser.py -f abinit.exMD.output",
+   "code": 0,
+   "time": 0.71
+  }
+ ],
+ "numbers": {
+  "natom": 40,
+  "snapshots": 251,
+  "last_time": 250.0,
+  "mean_InternalEnergy": -26831.026225039845,
+  "mean_TotalElectronicEnergy": -26873.817633131483,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 42.79140806374502,
+  "mean_EnergyWithDrift": -26831.026225039845,
+  "mean_Enthalpy": -26707.506878095617,
+  "mean_Temperature": 8276.226294820717,
+  "mean_Pressure": 61.44373625498003,
+  "mean_Density": 4.303000000000004,
+  "mean_stress_xx": 61.05734023904383,
+  "mean_stress_yy": 58.88680278884461,
+  "mean_stress_zz": 64.38706494023901,
+  "mean_stress_xy": -2.0291920318725105,
+  "mean_stress_yz": 0.49988326693227075,
+  "mean_stress_zx": 1.1008844621513953,
+  "mean_volume": 322.0829732324726,
+  "msd_first_last": 1.0307283635275,
+  "rms_velocity_last": 0.03447750190341522,
+  "rms_force_last": 7.709821764878064,
+  "mean_xcart_last": 2.8892436666666668
+ },
+ "files": {
+  "abinit.exMD.output.umd.dat": "54ffda50fee61ae85e0362888e224621fc9b3a30977f8cdcb700cf61244b800c"
+ }
+}

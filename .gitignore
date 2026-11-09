@@ -2,6 +2,7 @@
 # Local test/run outputs and legacy scripts (not for GitHub)
 data/
 obsolete files/
+validation/runs/
 .DS_Store
 .idea/
 

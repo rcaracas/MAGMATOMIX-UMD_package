@@ -1,0 +1,90 @@
+{
+ "about": "synthetic fcc Cu in its cubic and its 60 deg primitive cell : 12 neighbours, distances, bonds",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py fcc",
+   "code": 0,
+   "time": 0.16
+  },
+  {
+   "command": "gofr_umd.py -f fcc_cubic.umd.dat",
+   "code": 0,
+   "time": 0.1
+  },
+  {
+   "command": "analyze_gofr.py -f fcc_cubic.gofr.dat",
+   "code": 0,
+   "time": 0.71
+  },
+  {
+   "command": "bonding_umd.py -f fcc_cubic.umd.dat -l 3.0856",
+   "code": 0,
+   "time": 0.33
+  },
+  {
+   "command": "speciation_and_angles.py -f fcc_cubic.umd.dat -b fcc_cubic.bonding.dat -c all -a all -r 0",
+   "code": 0,
+   "time": 0.57
+  },
+  {
+   "command": "gofr_umd.py -f fcc_prim.umd.dat",
+   "code": 0,
+   "time": 0.1
+  },
+  {
+   "command": "analyze_gofr.py -f fcc_prim.gofr.dat",
+   "code": 0,
+   "time": 0.7
+  },
+  {
+   "command": "bonding_umd.py -f fcc_prim.umd.dat -l 3.0856",
+   "code": 0,
+   "time": 0.3
+  },
+  {
+   "command": "speciation_and_angles.py -f fcc_prim.umd.dat -b fcc_prim.bonding.dat -c all -a all -r 0",
+   "code": 0,
+   "time": 0.47
+  }
+ ],
+ "numbers": {
+  "fcc_cubic coordination Cu-Cu": 12.0,
+  "fcc_cubic first maximum (A)": 2.5542,
+  "fcc_cubic atoms with 12 bonds (fraction)": 1.0,
+  "fcc_cubic r0 : one cluster of all the atoms (fraction)": 1.0,
+  "fcc_prim coordination Cu-Cu": 12.0,
+  "fcc_prim first maximum (A)": 2.5599,
+  "fcc_prim atoms with 12 bonds (fraction)": 1.0,
+  "fcc_prim r0 : one cluster of all the atoms (fraction)": 1.0
+ },
+ "files": {
+  "fcc_cubic.r0.popul.dat": "981b1bac787815e22d105cadc73e88f3e3e0980834f1b7aa9b4eda598ee846e9",
+  "fcc_prim.r0.stat.dat": "eefb41abcbba3ba18e12d892579eb0e8e86438bb4458359a30379786a7f91c1d",
+  "fcc_prim.maximum_bonds.inp": "2d4c932a0aa76098ace47089aab2d2b7fd2c73c1fcea5dff1f6da6897c238c3b",
+  "fcc_prim.average_bonds.inp": "08a19187c18ca6da81278afc9ca6887f770ce3eeec6ea08f0a4711913d54a3a4",
+  "fcc_prim.umd.dat": "b4b42c5314e8382dbf7b6363534539253c63ffd693d32c1c9287f3b8f6a32a76",
+  "fcc.truth.json": "a0b61ceca93998cebe405960d2f465ef95af61183adfb5876170c3882edaad6e",
+  "fcc_prim.bonding.dat": "2e85eef9ef8759e0551e6553817cbb105bd6a2fc5071340a62325ff31747b051",
+  "fcc_cubic.coordinations.inp": "5a492b3b5166318f3b05a992245ab6bf82d7786117fd0f09cb00a8647a73c1bc",
+  "fcc_cubic.r0.step.dat": "8a7fb74dd95e6c390314efe755d1bc0705df2fbfdf4cbfd03f9e1a91b1fd2f28",
+  "fcc_cubic.gofr.dat": "2dd1d143630559b1eb1fe1567da74ebf9b74c0193c8852b7728348e44670b786",
+  "fcc_prim.coordinations.inp": "5a492b3b5166318f3b05a992245ab6bf82d7786117fd0f09cb00a8647a73c1bc",
+  "gofrs_summary.txt": "3731c12715a8664580e7a614825691eff1c8478e7b84a89eb6208709d8dbf984",
+  "fcc_cubic.bonding.dat": "3ff468ebbc9ec5ff11d46a611119ea2fc7d95951314ebd4fc5b221077652788b",
+  "fcc_prim.r0.step.dat": "927d38b31d8ab28dc92f7144c56ddc1020928cbe4729bae9ea791932336e34ee",
+  "fcc_cubic.r0.stat.dat": "4231e1de0a53e234e72239524d1cc2e48053f0c22ed688089e237d7d9f7f00d2",
+  "fcc_cubic.average_bonds.inp": "658cd54d88b9d9b72422d3702aaeb27fcc95678336905167bc07fc2b92f1b93c",
+  "fcc_cubic.maximum_bonds.inp": "e11200fa0da3206aeafe1ae2a38fc77a412caae28218a102da6bb1d66a1c189f",
+  "fcc_cubic.umd.dat": "5b5b7b61454701902a0231e5c79845d93e0a44b0fdfe7bd477376a304e2843c7",
+  "fcc_prim.gofr.dat": "15cd1bf6dfde36045699bde78e8a42d6854acdeeae12200c722e8c9c722deeeb",
+  "fcc_prim.r0.popul.dat": "55e77fe904560e36cfc5e1d996e96aa424b54b4215a138fabd97a332e5ce6ec2"
+ }
+}

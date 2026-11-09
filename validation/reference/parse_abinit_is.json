@@ -1,0 +1,46 @@
+{
+ "about": "ABINIT parser with -i 10 -s 3",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "AbinitParser.py -f abinit.exMD.output -i 10 -s 3",
+   "code": 0,
+   "time": 0.58
+  }
+ ],
+ "numbers": {
+  "natom": 40,
+  "snapshots": 81,
+  "last_time": 240.0,
+  "mean_InternalEnergy": -26828.867852901236,
+  "mean_TotalElectronicEnergy": -26872.281032802468,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 43.41317986419754,
+  "mean_EnergyWithDrift": -26828.867852901236,
+  "mean_Enthalpy": -26701.746258629624,
+  "mean_Temperature": 8396.481481481482,
+  "mean_Pressure": 63.235648148148165,
+  "mean_Density": 4.302999999999998,
+  "mean_stress_xx": 62.77850123456789,
+  "mean_stress_yy": 60.53936913580248,
+  "mean_stress_zz": 66.38906172839503,
+  "mean_stress_xy": -2.1450432098765435,
+  "mean_stress_yz": 0.5240913580246915,
+  "mean_stress_zx": 1.1196506172839507,
+  "mean_volume": 322.08297323247183,
+  "msd_first_last": 1.05450018161,
+  "rms_velocity_last": 0.03447750190341522,
+  "rms_force_last": 7.709821764878064,
+  "mean_xcart_last": 2.8892436666666668
+ },
+ "files": {
+  "abinit.exMD.output.umd.dat": "ef461f3c1f3a739c0b1f78deb4952bd3d3289bfeb7657faea25c141bbf212cbe"
+ }
+}

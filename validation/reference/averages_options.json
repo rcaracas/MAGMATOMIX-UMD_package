@@ -1,0 +1,62 @@
+{
+ "about": "averages : default line, a field with -l, all the thermodynamics with units -u 1 and -i",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "averages.py -f pyrolite.a13.T3000K.outcar.umd.dat,glycine.umd.dat",
+   "code": 0,
+   "time": 2.53
+  },
+  {
+   "command": "averages.py -f pyrolite.a13.T3000K.outcar.umd.dat -p StressTensor -l",
+   "code": 0,
+   "time": 0.67
+  },
+  {
+   "command": "averages.py -f pyrolite.a13.T3000K.outcar.umd.dat -a -u 1 -i 100",
+   "code": 0,
+   "time": 2.21
+  }
+ ],
+ "numbers": {
+  "pyrolite P T E 0": 3000.0,
+  "pyrolite P T E 1": 1.3535478333333333,
+  "pyrolite P T E 2": 1.3802539868306747,
+  "pyrolite P T E 3": 3000.2253333333333,
+  "pyrolite P T E 4": 212.33095178256252,
+  "pyrolite P T E 5": -925.0981823966667,
+  "pyrolite P T E 6": 6.380837189702328,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat nsteps": 2900.0,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Density(g/cm3)": 2.445,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat stdev_rho": 0.0,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat err_rho": 0.0,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Pressure(GPa)": 1.3483,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat stdev_P": 1.4,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat err_P": 0.16,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Temperature(K)": 2999.5,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat stdev_T": 0.018,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat err_T": 0.0012,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Temperature(eV)": 0.25848,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat InternEnergy(eV/atm)": -6.04658,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat stdev_E": 190.0,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat err_E": 19.0,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat InternEnergy(eV/unitcell)": -925.1268,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat InternEnergy(J/g)": -27595.4,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Cvm(Nkb)": 3.792,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat stdev_Cvm": 0.095,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Cvm(J/K/mol)": 31.53,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Cvm(J/K/g)": 1.491,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat Cv(J/K/unitcell)": 8.011e-21,
+  "fullthermo.dat pyrolite.a13.T3000K.outcar.umd.dat stdev_Cv": 5.1e-22
+ },
+ "files": {
+  "fullthermo.dat": "57f36e5988e1a83c63065fe5503ebf88190414f43a66772ba5faa4c4c957d5f8"
+ }
+}

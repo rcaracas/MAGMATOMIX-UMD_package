@@ -209,7 +209,11 @@ def main(argv):
     nu, g, gerr, comments = read_vdos(vibrfile,elements)
     Tvdos = None
     fwhm = None
+    taper = None
     for comment in comments:
+        found = re.search(r'taper (\w+)',comment)
+        if found:
+            taper = found.group(1)
         found = re.search(r'T = ([0-9.]+) K',comment)
         if found:
             Tvdos = float(found.group(1))
@@ -233,7 +237,11 @@ def main(argv):
     print('Normalized to 3 N_El modes : '+', '.join(el+' x'+'%.4f' % scale[ii] for ii,el in enumerate(elements)))
     negative = -(np.minimum(g,0.0).sum(axis=-1))*dnu/(3.0*counts)
     if negative.max() > 0.01:
-        print('WARNING : the vDOS has negative parts (up to ','%.1f' % (100*negative.max()),'% of the modes) : use the Hann taper in vibrations_umd.py.')
+        if taper == 'hann':#Hann already : side lobes of sharp (undamped) lines, or noise
+            print('WARNING : the vDOS has negative parts (up to ','%.1f' % (100*negative.max()),'% of the modes), with the Hann taper : very sharp lines'
+                  ' (vibrations that do not decay within the window) or noise ; smooth the vDOS (-g of vibrations_umd.py) or use a longer window (-w).')
+        else:
+            print('WARNING : the vDOS has negative parts (up to ','%.1f' % (100*negative.max()),'% of the modes) : use the Hann taper in vibrations_umd.py.')
     g0 = g[:,0]/(3.0*counts)
     peak = g.max(axis=-1)/(3.0*counts)
     diffusive = [el for ii,el in enumerate(elements) if g0[ii] > 0.02*peak[ii]]

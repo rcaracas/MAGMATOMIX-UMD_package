@@ -1,0 +1,57 @@
+{
+ "about": "check_umd with charges -q, -i, -s ; overlap level -l",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "check_umd.py -f glycine.umd.dat -q C:1 -i 100 -s 5",
+   "code": 0,
+   "time": 1.22
+  },
+  {
+   "command": "check_umd.py -f pyrolite.a13.T3000K.outcar.umd.dat -l 5",
+   "code": 0,
+   "time": 1.53
+  }
+ ],
+ "numbers": {
+  "glycine.check.dat check 1": "OK",
+  "glycine.check.dat check 2": "OK",
+  "glycine.check.dat check 3": "OK",
+  "glycine.check.dat check 4": "WARNING",
+  "glycine.check.dat check 5": "OK",
+  "glycine.check.dat check 6": "OK",
+  "glycine.check.dat check 7": "OK",
+  "glycine.check.dat check 8": "WARNING",
+  "glycine.check.dat check 9": "OK",
+  "glycine.check.dat check 10": "skipped",
+  "glycine.check.dat check 11": "WARNING",
+  "glycine.check.dat check 12": "skipped",
+  "glycine.check.dat check 13": "OK",
+  "glycine.check.dat check 14": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 1": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 2": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 3": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 4": "WARNING",
+  "pyrolite.a13.T3000K.outcar.check.dat check 5": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 6": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 7": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 8": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 9": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 10": "skipped",
+  "pyrolite.a13.T3000K.outcar.check.dat check 11": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 12": "skipped",
+  "pyrolite.a13.T3000K.outcar.check.dat check 13": "OK",
+  "pyrolite.a13.T3000K.outcar.check.dat check 14": "OK"
+ },
+ "files": {
+  "glycine.check.dat": "338c48a5d127608c2d2a84c66852187b637fadbbad79e8cb44c76c6733021787",
+  "pyrolite.a13.T3000K.outcar.check.dat": "2cd78533def1cc4eba728e165c9914d39569d28f1cab7a86df3504c64bf0948e"
+ }
+}

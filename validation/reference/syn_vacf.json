@@ -1,0 +1,48 @@
+{
+ "about": "synthetic Ornstein-Uhlenbeck velocities : D from the VACF and the MSD, kinetic T, vDOS normalization",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py ou",
+   "code": 0,
+   "time": 2.99
+  },
+  {
+   "command": "vibrations_umd.py -f ou.umd.dat",
+   "code": 0,
+   "time": 0.79
+  },
+  {
+   "command": "msd_umd.py -f ou.umd.dat",
+   "code": 0,
+   "time": 0.86
+  }
+ ],
+ "numbers": {
+  "ou D Ar from the VACF (m2/s)": 8.046916187237593e-09,
+  "ou D Ne from the VACF (m2/s)": 5.805088084570746e-09,
+  "ou D Ar from the MSD (m2/s)": 8.713551238257329e-09,
+  "ou D Ne from the MSD (m2/s)": 5.814915438171826e-09,
+  "ou kinetic temperature (K)": 1000.2,
+  "ou integral of the vDOS of Ar": 72.0,
+  "ou integral of the vDOS of Ne": 72.1
+ },
+ "files": {
+  "ou.diffusion.dat": "3ab8bc7e3a2ef02c6e3e74e6867dc5dd83e5aae6d8b5e8edeeb8a8533dd56d25",
+  "ou.vibr.err.dat": "c425996b2de589347ea3260ea82c0bde41ebd4fa2d38ee538b9ecdd67ef11acb",
+  "ou.vacf.diffusion.dat": "ae28fd60e733091a7d638f05a99d6a8c7bd867e9922fe4657c28f6921280a28e",
+  "ou.msd.blocks.dat": "b1166bbea882fc17dc39ef86b5e0c9a3d4f2ad5ae4d9fc46735d4aeb11e7631f",
+  "ou.umd.dat": "5344c193dcc69d8d4004f36a47ea63e8b382fbf587dab990f5da32abc8a07975",
+  "ou.vels.scf.dat": "0a430cbe85972088afe082c26084768b986fd1be759a325eda136f2c166eabff",
+  "ou.msd.dat": "79025034539efbee7629f726352e13e75dab0c7a137134c4481119f5c13bbed1",
+  "ou.truth.json": "1a669db9143c8b5f9c38865abf9c3a708cf1c44d952088a490632c8dac4eaed4",
+  "ou.vibr.dat": "2c30aa23432db2199c3f98937121cd8acbce97cf4cc38b85f918cc2dcba6cfae"
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "about": "synthetic ideal gas in a triclinic cell deformed at every snapshot : g(r) = 1, running coordination exact",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py idealgas",
+   "code": 0,
+   "time": 0.36
+  },
+  {
+   "command": "gofr_umd.py -f idealgas.umd.dat",
+   "code": 0,
+   "time": 0.11
+  }
+ ],
+ "numbers": {
+  "idealgas mean g Ar-Ar beyond 2 A": 0.9948079731244667,
+  "idealgas Int(Ar-Ar) at 6.80 A / exact": 0.998604921442624,
+  "idealgas mean g Ar-Ne beyond 2 A": 1.001899153599354,
+  "idealgas Int(Ar-Ne) at 6.80 A / exact": 1.0020094021191044,
+  "idealgas mean g Ne-Ar beyond 2 A": 1.001899153599354,
+  "idealgas Int(Ne-Ar) at 6.80 A / exact": 1.0020094021191046,
+  "idealgas mean g Ne-Ne beyond 2 A": 0.9953038510549879,
+  "idealgas Int(Ne-Ne) at 6.80 A / exact": 0.9954150566213685
+ },
+ "files": {
+  "idealgas.truth.json": "534495b9f6ed5fe61ad7614e4a73600b915e3fdf5366e1acf5782d0ea9b30658",
+  "idealgas.umd.dat": "1f72fe431739cf509f46d64886b71b68d44626e6542ef5e71397ec26246739a8",
+  "idealgas.gofr.dat": "db6579c6f09b9e1b1a5a929700d807376ea0ce7e71dbadf2b1dff8e58e572c5d"
+ }
+}

@@ -1,0 +1,46 @@
+{
+ "about": "LAMMPS MACE melt NPT, dump without id, stress file",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "LAMMPSParser2umd.py -f dump.lammpstrj -l log.lammps -a Pxy_vs_time.dat",
+   "code": 0,
+   "time": 1.16
+  }
+ ],
+ "numbers": {
+  "natom": 2448,
+  "snapshots": 21,
+  "last_time": 1000.0,
+  "mean_InternalEnergy": -14693.653476190477,
+  "mean_TotalElectronicEnergy": -15449.326476190476,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 755.6730447619049,
+  "mean_EnergyWithDrift": -12497.755714285715,
+  "mean_Enthalpy": -14406.000095238098,
+  "mean_Temperature": 2389.0952380952385,
+  "mean_Pressure": 1.359376190476191,
+  "mean_Density": 2.406952380952381,
+  "mean_stress_xx": 1.086,
+  "mean_stress_yy": 1.4657619047619046,
+  "mean_stress_zz": 1.5263571428571427,
+  "mean_stress_xy": 0.12270952380952378,
+  "mean_stress_yz": -0.03262857142857142,
+  "mean_stress_zx": 0.07318571428571433,
+  "mean_volume": 35744.53595031474,
+  "msd_first_last": 5.900087966635213,
+  "rms_velocity_last": 0.01369374718955711,
+  "rms_force_last": 2.5556767099211144,
+  "mean_xcart_last": 16.277773058278868
+ },
+ "files": {
+  "dump.lammpstrj.umd.dat": "faefbeb4440ec006c197476327087eb60f9100d230d2d9fb1c743a902b1ca164"
+ }
+}

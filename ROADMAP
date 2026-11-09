@@ -1,6 +1,6 @@
 UMD program for the post-processing of (ab initio) molecular-dynamics runs
 
-Stable production version v2.11 (November 2026)
+Stable production version v2.12 (November 2026)
 
 Naming conventions:
 vX.0 => stable production versions
@@ -16,7 +16,7 @@ bubble: estimation of the gas/liquid volume and density
 MAJOR AIMS for the v3.0 version:
 CPU-parallelization
 removal of the graphical interface (UMD_GUI.py) : set aside in the gui folder, November 2026
-validation of all the scripts on reference test data
+validation of all the scripts on reference test data : the validation suite (validation/), November 2026
 
 MAJOR AIMS for THE v4.0 version:
 GPU-parallelization

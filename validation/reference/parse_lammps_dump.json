@@ -1,0 +1,46 @@
+{
+ "about": "LAMMPS DeePMD water 600 K, velocities, forces, xu",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "LAMMPSParser2umd.py -f test.dump -l log.lammps",
+   "code": 0,
+   "time": 2.47
+  }
+ ],
+ "numbers": {
+  "natom": 384,
+  "snapshots": 401,
+  "last_time": 1000.0,
+  "mean_InternalEnergy": -2007.3533927680803,
+  "mean_TotalElectronicEnergy": -2037.1331000000016,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 29.779707231920188,
+  "mean_EnergyWithDrift": -2007.3533927680803,
+  "mean_Enthalpy": -1867.9308326683301,
+  "mean_Temperature": 601.5266832917705,
+  "mean_Pressure": 9.961328428927681,
+  "mean_Density": 1.7056982543640884,
+  "mean_stress_xx": 9.675164588528679,
+  "mean_stress_yy": 10.227203990024936,
+  "mean_stress_zz": 9.981621197007488,
+  "mean_stress_xy": -0.1547261845386534,
+  "mean_stress_yz": 0.13934887780548635,
+  "mean_stress_zx": 0.11252618453865336,
+  "mean_volume": 2243.1581210337663,
+  "msd_first_last": 2.2270261721604165,
+  "rms_velocity_last": 0.030646872015312045,
+  "rms_force_last": 1.8186595172665692,
+  "mean_xcart_last": 6.664930078125
+ },
+ "files": {
+  "test.dump.umd.dat": "4355fab80895e00386eba920125a9f4c1dec2b8217de2523f9af2634cea50c76"
+ }
+}

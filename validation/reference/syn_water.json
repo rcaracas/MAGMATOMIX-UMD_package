@@ -1,0 +1,51 @@
+{
+ "about": "synthetic rigid H2O across the faces of a triclinic cell : species and angle exact",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py water",
+   "code": 0,
+   "time": 0.12
+  },
+  {
+   "command": "bonding_umd.py -f water.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.3
+  },
+  {
+   "command": "speciation_and_angles.py -f water.umd.dat -b water.bonding.dat -c O -a H -r 1 -t 1",
+   "code": 0,
+   "time": 0.52
+  },
+  {
+   "command": "speciation_and_angles.py -f water.umd.dat -b water.bonding.dat -c all -a all -r 0",
+   "code": 0,
+   "time": 0.47
+  }
+ ],
+ "numbers": {
+  "water r1 fraction of O_1H_2": 1.0,
+  "water r0 fraction of O_1H_2": 1.0,
+  "water mean angle H-O-H in the r1 species": 104.51999999946304,
+  "water mean of all angles": 104.5199999994631
+ },
+ "files": {
+  "water.r0.stat.dat": "2689b9d8602a1a06ff181a28edaf6a1c60d376a897302a239e5a67c0fb41cbe9",
+  "water.r1.stat.dat": "87125ceb3cbd57e2d96d132ea8b95ba94473307ad3720a799e1e240ac935b329",
+  "water.r0.popul.dat": "2c8786b1afa6491cf07fb8ad0dfe9cd7b059c8149441baeccaed619f0aa26da9",
+  "water.r1.popul.dat": "1fb1832eccacaede8ad83113df3fa64964991300fea7c80262eb836064abafc8",
+  "water.bonding.dat": "77e97c2a1e5cf22fa4efbde163fc8cadf4f67da4b6dadfc96329e75610fa8bca",
+  "water.angles.dat": "3dd2a14116160276ef4519fc3340c5f22b60e5a06f0422d63b40a76ea6fa643e",
+  "water.r1.step.dat": "4980565232eb39f6215ba7de8cd5af3ce84770ed3716e818be897ab99aa33483",
+  "water.r0.step.dat": "9532a9e7fecb704d4afe6ed59fc1fd9009daec1640ae46c3e1bfb8f6e833f627",
+  "water.truth.json": "5f6b29a3f717959a232361da6d0a488d375adb8b64b7cb4b0ebae00c37ed6ae3",
+  "water.umd.dat": "c3f7961e65b66e6e850caeb79eac4ebe7f066ba14cae8f6c91449c273aa1ce10"
+ }
+}

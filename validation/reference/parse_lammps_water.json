@@ -1,0 +1,46 @@
+{
+ "about": "LAMMPS DeePMD water + NaCl, NPT 500 K 10 GPa, no forces (ice VII)",
+ "environment": {
+  "commit": "2.11-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "LAMMPSParser2umd.py -f water.dump -l log.lammps",
+   "code": 0,
+   "time": 34.76
+  }
+ ],
+ "numbers": {
+  "natom": 158,
+  "snapshots": 20001,
+  "last_time": 50000.0,
+  "mean_InternalEnergy": -819.2869013249372,
+  "mean_TotalElectronicEnergy": -829.4352722378917,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 10.148370912954421,
+  "mean_EnergyWithDrift": -819.2869013249372,
+  "mean_Enthalpy": -766.335471224937,
+  "mean_Temperature": 500.07151642417995,
+  "mean_Pressure": 10.0001366231688,
+  "mean_Density": 1.9431950402479947,
+  "mean_stress_xx": 0.0,
+  "mean_stress_yy": 0.0,
+  "mean_stress_zz": 0.0,
+  "mean_stress_xy": 0.0,
+  "mean_stress_yz": 0.0,
+  "mean_stress_zx": 0.0,
+  "mean_volume": 849.0587830454613,
+  "msd_first_last": 0.11513274945063291,
+  "rms_velocity_last": 0.03149470529140422,
+  "rms_force_last": 0.0,
+  "mean_xcart_last": 4.7659602531645575
+ },
+ "files": {
+  "water.dump.umd.dat": "04d0931d341fc36c0527448dd8eff13442045dbfdc0d6ee61b38581e272f59bd"
+ }
+}

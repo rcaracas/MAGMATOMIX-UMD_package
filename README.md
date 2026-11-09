@@ -1,7 +1,7 @@
 # UMD_package
 Post-processing package that performs analysis of structural, transport, and thermodynamic properties from ab initio and classical molecular dynamics simulations.
 
-UMD stores the atomic trajectories and the thermodynamic information of a run in one ASCII format, the `.umd.dat` file. Parsers write it from VASP, QBox and LAMMPS outputs; the analysis scripts read it.
+UMD stores the atomic trajectories and the thermodynamic information of a run in one ASCII format, the `.umd.dat` file. Parsers write it from VASP, ABINIT, QBox and LAMMPS outputs; the analysis scripts read it.
 
 ## Quick start
 Python 3 with numpy, scipy and matplotlib, and a C compiler. Compile the C libraries in `src/` (macOS; Linux and Windows in `README.txt`):
@@ -22,6 +22,8 @@ python3 averages.py -a -f OUTCAR.umd.dat   # thermodynamics with errors
 python3 umd_workflow.py -f OUTCAR.umd.dat  # or all the analyses at once (-g structural, -t transport, -d thermodynamics), summary in umd_workflow.summary.dat
 ```
 Every script prints its options with `-h`. The list of the scripts and the changelog are in `README`.
+
+`validation/run_validation.py` runs every script on reference runs and on synthetic files with exact answers, and compares the results with committed references (see `validation/README`; the reference runs themselves are not distributed).
 
 ## Citation
 Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations with the UMD Package. J. Vis. Exp. (175), e61534, doi:10.3791/61534 (2021)
