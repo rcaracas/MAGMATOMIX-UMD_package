@@ -1,7 +1,7 @@
 {
  "about": "build_umd : every operation, from a UMD file, a POSCAR and an empty box ; hexagonal cell ; extraction",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,32 +12,32 @@
   {
    "command": "gofr_umd.py -f glycine.umd.dat",
    "code": 0,
-   "time": 0.5
+   "time": 0.47
   },
   {
    "command": "analyze_gofr.py -f glycine.gofr.dat",
    "code": 0,
-   "time": 0.74
+   "time": 0.72
   },
   {
    "command": "build_umd.py -f glycine.umd.dat --supercell 2,1,1 --name sc",
    "code": 0,
-   "time": 0.78
+   "time": 0.76
   },
   {
    "command": "build_umd.py -f glycine.umd.dat -i 0 --shuffle 2 --seed 1 --name sh",
    "code": 0,
-   "time": 0.66
+   "time": 0.65
   },
   {
    "command": "build_umd.py -f glycine.umd.dat -i 0 --scale 1.5 --insert molecules.dat -r 1.5 --seed 2 --name ins",
    "code": 0,
-   "time": 0.61
+   "time": 0.62
   },
   {
    "command": "build_umd.py -f glycine.umd.dat -i 0 --scale 1.05 --density 1.2 --name sd",
    "code": 0,
-   "time": 0.61
+   "time": 0.62
   },
   {
    "command": "build_umd.py -f glycine.umd.dat -i 0 --vacuum x:10,y:5 --name vac",
@@ -52,17 +52,17 @@
   {
    "command": "build_umd.py -f glycine.umd.dat -i 0 --remove C2H5NO2:2 -b glycine.maximum_bonds.inp --seed 4 --name rem",
    "code": 0,
-   "time": 0.62
+   "time": 0.61
   },
   {
    "command": "build_umd.py -f glycine.umd.dat --extract 0-9,N -s 100 --name ext",
    "code": 0,
-   "time": 0.78
+   "time": 0.76
   },
   {
    "command": "build_umd.py -f test.poscar.vasp --supercell 2,2,2 -t 1000 --seed 5 --name pos",
    "code": 0,
-   "time": 0.45
+   "time": 0.46
   },
   {
    "command": "build_umd.py -a 10 --insert molecules.dat -t 300 --seed 6 --name box -o umd,poscar,xyz",

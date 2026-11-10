@@ -1,7 +1,7 @@
 {
  "about": "vibrations along a, b, c of a hexagonal cell, no taper, smoothing ; vdos_thermo at two temperatures",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "vibrations_umd.py -f al2o3.new.umd.dat -a cryst -p none -g 10 -n 3 -i 200",
    "code": 0,
-   "time": 3.7
+   "time": 3.68
   },
   {
    "command": "vdos_thermo.py -f al2o3.new.umd.dat -t 300,1500",

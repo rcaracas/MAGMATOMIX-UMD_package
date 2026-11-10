@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, ZnS 1000 K, on-the-fly ML",
  "environment": {
-  "commit": "2.11-1-ga3d0b76-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f zns.T1000K.prod.outcar.umd.dat",
    "code": 0,
-   "time": 44.21
+   "time": 27.5
   }
  ],
  "numbers": {

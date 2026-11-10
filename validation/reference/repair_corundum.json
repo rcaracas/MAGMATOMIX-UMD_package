@@ -1,7 +1,7 @@
 {
  "about": "the old corundum file (missed crossings, zero velocities) checked, repaired, checked",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "check_umd.py -f al2o3.umd.dat",
    "code": 0,
-   "time": 5.41
+   "time": 4.0
   },
   {
    "command": "repair_umd.py -f al2o3.umd.dat",
    "code": 0,
-   "time": 24.76
+   "time": 24.72
   },
   {
    "command": "check_umd.py -f al2o3.repaired.umd.dat",
    "code": 0,
-   "time": 5.43
+   "time": 3.93
   }
  ],
  "numbers": {

@@ -1,7 +1,7 @@
 {
  "about": "averages : default line, a field with -l, all the thermodynamics with units -u 1 and -i",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "averages.py -f pyrolite.a13.T3000K.outcar.umd.dat,glycine.umd.dat",
    "code": 0,
-   "time": 2.53
+   "time": 1.32
   },
   {
    "command": "averages.py -f pyrolite.a13.T3000K.outcar.umd.dat -p StressTensor -l",
    "code": 0,
-   "time": 0.67
+   "time": 0.5
   },
   {
    "command": "averages.py -f pyrolite.a13.T3000K.outcar.umd.dat -a -u 1 -i 100",
    "code": 0,
-   "time": 2.21
+   "time": 0.76
   }
  ],
  "numbers": {

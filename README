@@ -225,4 +225,11 @@ v 2.14, November 2026 - snapshots in batches sized from their bytes, read by the
 - speciation_and_angles.py: the clusters, angles, the step file and the bond lifetimes are computed by batches in the workers: ZnS -r 1 -t 1 -l 1 16 s to 6.8 s, hydrous andesite -r 0 5.3 s to 2.4 s; outputs identical
 - gofr_umd.py: processes instead of threads (the C reader spent its time on a system lock in threads), each reading its block from the file: hydrous andesite 1.65 s to 1.0 s, memory 307 MB to 65 MB; output identical for the same -k
 
-Since v 2.14 (not yet released):
+v 3.0, November 2026 - stable production version: the package cleaned, corrected and checked script by script (2.7 to 2.14), the graphical interface set aside, a validation suite, parallel processing on CPUs:
+- every script rewritten or checked for any cell shape and for NPT runs, with errors on the statistical results (see 2.7 to 2.14)
+- the graphical interface is set aside in the gui folder (2.11)
+- validation/: every script checked on reference runs and on synthetic runs with exact answers (2.12)
+- parallel processing on CPUs: snapshots given to worker processes in batches sized from their bytes, read by the workers from the file (2.14)
+- ROADMAP: the plan of the v3.Y versions, towards systems of up to 1 billion atoms
+
+Since v 3.0 (not yet released):

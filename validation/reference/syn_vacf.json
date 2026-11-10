@@ -1,7 +1,7 @@
 {
  "about": "synthetic Ornstein-Uhlenbeck velocities : D from the VACF and the MSD, kinetic T, vDOS normalization",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "@synthetic.py ou",
    "code": 0,
-   "time": 2.99
+   "time": 3.02
   },
   {
    "command": "vibrations_umd.py -f ou.umd.dat",
    "code": 0,
-   "time": 0.79
+   "time": 0.8
   },
   {
    "command": "msd_umd.py -f ou.umd.dat",
    "code": 0,
-   "time": 0.86
+   "time": 0.89
   }
  ],
  "numbers": {

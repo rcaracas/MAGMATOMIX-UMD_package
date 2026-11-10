@@ -1,7 +1,7 @@
 {
  "about": "synthetic ideal gas in a triclinic cell deformed at every snapshot : g(r) = 1, running coordination exact",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "@synthetic.py idealgas",
    "code": 0,
-   "time": 0.36
+   "time": 0.37
   },
   {
    "command": "gofr_umd.py -f idealgas.umd.dat",
    "code": 0,
-   "time": 0.11
+   "time": 0.32
   }
  ],
  "numbers": {

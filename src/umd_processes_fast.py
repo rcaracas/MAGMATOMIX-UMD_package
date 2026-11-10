@@ -413,7 +413,7 @@ def headerumd():#once per run, also when a script runs on several files (-f all)
         return
     _headerdone = True
     print ('\n * * * * * ')
-    print ('    UMD package for analyzing Molecular Dynamics simulations, version 2.14')
+    print ('    UMD package for analyzing Molecular Dynamics simulations, version 3.0')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
     print ('https://github.com/rcaracas/MAGMATOMIX-UMD_package')
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')

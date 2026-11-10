@@ -1,7 +1,7 @@
 {
  "about": "check_umd with charges -q, -i, -s ; overlap level -l",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "check_umd.py -f glycine.umd.dat -q C:1 -i 100 -s 5",
    "code": 0,
-   "time": 1.22
+   "time": 1.1
   },
   {
    "command": "check_umd.py -f pyrolite.a13.T3000K.outcar.umd.dat -l 5",
    "code": 0,
-   "time": 1.53
+   "time": 1.24
   }
  ],
  "numbers": {

@@ -1,7 +1,7 @@
 {
  "about": "LAMMPS MACE melt NPT, dump without id, stress file",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "LAMMPSParser2umd.py -f dump.lammpstrj -l log.lammps -a Pxy_vs_time.dat",
    "code": 0,
-   "time": 1.16
+   "time": 1.08
   }
  ],
  "numbers": {

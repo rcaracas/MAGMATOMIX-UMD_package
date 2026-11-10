@@ -1,7 +1,7 @@
 {
  "about": "synthetic harmonic wells at the Gauss-Legendre lambdas : <U>, ideal gas, F, S exact",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "@synthetic.py ti",
    "code": 0,
-   "time": 2.66
+   "time": 2.68
   },
   {
    "command": "thermo_integration_umd.py -t 1500",
    "code": 0,
-   "time": 7.6
+   "time": 0.87
   }
  ],
  "numbers": {

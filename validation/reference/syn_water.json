@@ -1,7 +1,7 @@
 {
  "about": "synthetic rigid H2O across the faces of a triclinic cell : species and angle exact",
  "environment": {
-  "commit": "2.11-1-ga3d0b76-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,22 +12,22 @@
   {
    "command": "@synthetic.py water",
    "code": 0,
-   "time": 0.13
+   "time": 0.12
   },
   {
    "command": "bonding_umd.py -f water.umd.dat -l 1.2",
    "code": 0,
-   "time": 0.34
+   "time": 0.3
   },
   {
    "command": "speciation_and_angles.py -f water.umd.dat -b water.bonding.dat -c O -a H -r 1 -t 1",
    "code": 0,
-   "time": 0.63
+   "time": 0.67
   },
   {
    "command": "speciation_and_angles.py -f water.umd.dat -b water.bonding.dat -c all -a all -r 0",
    "code": 0,
-   "time": 0.55
+   "time": 0.48
   }
  ],
  "numbers": {

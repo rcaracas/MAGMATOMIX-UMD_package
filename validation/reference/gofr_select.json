@@ -1,7 +1,7 @@
 {
  "about": "gofr -c/-a, analyze_gofr on it, bonding with -i -s ; all the pairs analyzed with -c O -g",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,27 +12,27 @@
   {
    "command": "gofr_umd.py -f pyrolite.a13.T3000K.outcar.umd.dat -c Si,Mg -a O",
    "code": 0,
-   "time": 0.29
+   "time": 0.39
   },
   {
    "command": "analyze_gofr.py -f pyrolite.a13.T3000K.outcar.SiMg-O.gofr.dat",
    "code": 0,
-   "time": 0.71
+   "time": 0.73
   },
   {
    "command": "bonding_umd.py -f pyrolite.a13.T3000K.outcar.umd.dat -c pyrolite.a13.T3000K.outcar.SiMg-O.maximum_bonds.inp -i 100 -s 2",
    "code": 0,
-   "time": 0.82
+   "time": 0.36
   },
   {
    "command": "gofr_umd.py -f pyrolite.a13.T3000K.outcar.umd.dat",
    "code": 0,
-   "time": 0.38
+   "time": 0.4
   },
   {
    "command": "analyze_gofr.py -f pyrolite.a13.T3000K.outcar.gofr.dat -c O -g 0.05",
    "code": 0,
-   "time": 0.72
+   "time": 0.74
   }
  ],
  "numbers": {

@@ -1,7 +1,7 @@
 {
  "about": "msd tensor and a plane, per atom along a, b, c with -i -s -n, analyze_msd automatic and with a window",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,22 +12,22 @@
   {
    "command": "msd_umd.py -f pyrolite.a13.T3000K.outcar.umd.dat -a tensor -p [1,0,0,0,1,0]",
    "code": 0,
-   "time": 1.23
+   "time": 1.26
   },
   {
    "command": "msd_umd.py -f glycine.umd.dat -m atoms -a cryst -i 1000 -s 2 -n 4",
    "code": 0,
-   "time": 1.54
+   "time": 1.53
   },
   {
    "command": "analyze_msd.py",
    "code": 0,
-   "time": 1.15
+   "time": 1.17
   },
   {
    "command": "analyze_msd.py -s 100 -e 400",
    "code": 0,
-   "time": 1.08
+   "time": 1.09
   }
  ],
  "numbers": {

@@ -1,7 +1,7 @@
 {
  "about": "synthetic random walk, clean and with a duplicated snapshot and a missed crossing : check_umd",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "@synthetic.py faults",
    "code": 0,
-   "time": 0.35
+   "time": 0.33
   },
   {
    "command": "check_umd.py -f faults_clean.umd.dat",
    "code": 0,
-   "time": 0.52
+   "time": 0.47
   },
   {
    "command": "check_umd.py -f faults_bad.umd.dat",
    "code": 0,
-   "time": 0.48
+   "time": 0.47
   }
  ],
  "numbers": {

@@ -1,7 +1,7 @@
 {
  "about": "synthetic harmonic oscillators : vDOS peaks, Einstein ZPE, E, F, S, Cv",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "@synthetic.py oscillators",
    "code": 0,
-   "time": 2.76
+   "time": 2.75
   },
   {
    "command": "vibrations_umd.py -f oscillators.umd.dat",
    "code": 0,
-   "time": 0.74
+   "time": 0.75
   },
   {
    "command": "vdos_thermo.py -f oscillators.umd.dat",
    "code": 0,
-   "time": 0.48
+   "time": 0.49
   }
  ],
  "numbers": {

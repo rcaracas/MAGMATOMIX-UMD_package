@@ -1,7 +1,7 @@
 {
  "about": "bonds of one length from snapshot 1000 ; r0, r1 with -s -m, r2 ; liquid/vapor, lifetimes -l, stat-concentrate, cluster MSDs",
  "environment": {
-  "commit": "2.11-1-ga3d0b76-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,27 +12,27 @@
   {
    "command": "bonding_umd.py -f glycine.umd.dat -l 1.6 -i 1000",
    "code": 0,
-   "time": 2.05
+   "time": 0.49
   },
   {
    "command": "speciation_and_angles.py -f glycine.umd.dat -b glycine.bonding.dat -c all -a all -r 0",
    "code": 0,
-   "time": 2.58
+   "time": 0.7
   },
   {
    "command": "speciation_and_angles.py -f glycine.umd.dat -b glycine.bonding.dat -c C,N -a H,O -r 1 -t 1 -l 1 -s 2 -m 5",
    "code": 0,
-   "time": 2.94
+   "time": 1.51
   },
   {
    "command": "speciation_and_angles.py -f glycine.umd.dat -b glycine.bonding.dat -c C -a all -r 2",
    "code": 0,
-   "time": 2.97
+   "time": 0.72
   },
   {
    "command": "liquid_and_vapor_speciation.py -s glycine.r0.step.dat -p glycine.r1.popul.dat -l 12",
    "code": 0,
-   "time": 0.28
+   "time": 0.27
   },
   {
    "command": "lifetimes.py -f glycine.r1.popul.dat -l 12",
@@ -42,17 +42,17 @@
   {
    "command": "stat-concentrate.py -l 12 -c C,H",
    "code": 0,
-   "time": 0.1
+   "time": 0.09
   },
   {
    "command": "msd_clusters_umd.py -f glycine.umd.dat -p glycine.r1.popul.dat",
    "code": 0,
-   "time": 1.33
+   "time": 1.32
   },
   {
    "command": "analyze_msd_clusters.py",
    "code": 0,
-   "time": 0.85
+   "time": 0.84
   }
  ],
  "numbers": {

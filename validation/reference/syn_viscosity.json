@@ -1,7 +1,7 @@
 {
  "about": "synthetic stress (Ornstein-Uhlenbeck) : viscosity ; T and P as AR(1) series : averages and their errors",
  "environment": {
-  "commit": "2.11-dirty",
+  "commit": "2.14-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,22 +12,22 @@
   {
    "command": "@synthetic.py stress",
    "code": 0,
-   "time": 2.43
+   "time": 2.39
   },
   {
    "command": "viscosity_umd.py -f stress.umd.dat -e 250",
    "code": 0,
-   "time": 2.1
+   "time": 2.15
   },
   {
    "command": "viscosity_umd.py -f stress.umd.dat -e 250 -c offdiag",
    "code": 0,
-   "time": 2.1
+   "time": 2.17
   },
   {
    "command": "averages.py -f stress.umd.dat -l",
    "code": 0,
-   "time": 1.07
+   "time": 0.9
   }
  ],
  "numbers": {
