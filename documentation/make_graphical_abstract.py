@@ -74,7 +74,7 @@ def main(folder,svgfile):
     # inputs
     rect(80,250,300,370,BLACK,'white',3)
     text(230,307,['ab initio and','machine-learning','molecular dynamics'],27,BLACK,'middle',weight='bold',spacing=1.2)
-    text(230,450,['VASP','ABINIT','LAMMPS','QBox'],29,PURPLE,'middle',spacing=1.3)
+    text(230,440,['VASP','ABINIT','CP2K','LAMMPS','QBox'],29,PURPLE,'middle',spacing=1.25)
     arrow(380,435,462,435)
 
     # the UMD file (a page with a folded corner) and the checks
@@ -97,7 +97,7 @@ def main(folder,svgfile):
     out.append('<path d="M %g %g L %g %g L %g %g L %g %g" fill="none" stroke="%s" stroke-width="2.5"/>' % (px,py-22,px,py-38,x1,py-38,x1,py-22,PURPLE))
     out.append('<rect x="%g" y="%g" width="460" height="40" fill="white"/>' % ((px+x1)/2-230,py-58))
     text((px+x1)/2,py-30,'one command : umd_workflow.py',25,PURPLE,'middle',mono=True)
-    panels = [('STRUCTURE',['g(r), bonds, coordination','speciation, angles','lifetimes of species','liquid / vapor']),
+    panels = [('STRUCTURE',['g(r), bonds, coordination','speciation, angles','lifetimes of species','liquid / vapor','rotations of molecules']),
               ('TRANSPORT',['diffusion and its tensor','diffusion of species','viscosity','velocity autocorrelation']),
               ('THERMODYNAMICS',['averages, heat capacity','vibrational spectra','2PT entropy','free energy (integration)'])]
     boxes = []
@@ -105,7 +105,7 @@ def main(folder,svgfile):
         x = px+i*(pw+gap)
         rect(x,py,pw,ph,BLACK,'white',3,dash='12 9')
         text(x+pw/2,py+50,title,28,BLACK,'middle',weight='bold')
-        text(x+28,py+290,items,22,MAGENTA,spacing=1.35)
+        text(x+28,py+282,items,22,MAGENTA,spacing=1.3)
         boxes.append((x+40,py+80,pw-80,140))
     # g(r) of Si-O, Mg-O, O-O
     names, g = table(p('.gofr.dat'))
@@ -127,7 +127,7 @@ def main(folder,svgfile):
     # what is new in 3.0
     new = [('any cell','NVT and NPT runs,','non-orthogonal cells'),
            ('± errors','on every statistical','quantity, calibrated'),
-           ('validated','34 cases, synthetic runs','with exact answers'),
+           ('validated','38 cases, synthetic runs','with exact answers'),
            ('6× faster','parallel workers,','memory bounded')]
     bw, bgap, by0 = (W-160-3*30)/4, 30, 700
     for i,(big,l1,l2) in enumerate(new):
