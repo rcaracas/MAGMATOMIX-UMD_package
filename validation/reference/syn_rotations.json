@@ -1,0 +1,162 @@
+{
+ "about": "synthetic rotors : pair correlations of dipoles and of tetrahedra, time correlations of rotational diffusion and of jumps, map entropy, gaps",
+ "environment": {
+  "commit": "3.0-1-g9dafa18-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py rotors",
+   "code": 0,
+   "time": 7.06
+  },
+  {
+   "command": "bonding_umd.py -f rotors.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.43
+  },
+  {
+   "command": "bonding_umd.py -f methane.umd.dat -l 1.3",
+   "code": 0,
+   "time": 0.36
+  },
+  {
+   "command": "bonding_umd.py -f sixstate.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.36
+  },
+  {
+   "command": "bonding_umd.py -f gaps.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.32
+  },
+  {
+   "command": "rotations_umd.py -f rotors.umd.dat -c O -a H -r 4.0",
+   "code": 0,
+   "time": 3.46
+  },
+  {
+   "command": "rotations_umd.py -f methane.umd.dat -c C -a H -r 5.0",
+   "code": 0,
+   "time": 3.61
+  },
+  {
+   "command": "rotations_umd.py -f sixstate.umd.dat -c O -a H -r 5.5",
+   "code": 0,
+   "time": 4.66
+  },
+  {
+   "command": "rotations_umd.py -f gaps.umd.dat -c O -a H -r 7 -g 50",
+   "code": 0,
+   "time": 1.93
+  },
+  {
+   "command": "rotations_umd.py -f gaps.umd.dat -c O -a H -r 7 -g 5",
+   "code": 0,
+   "time": 9.99
+  },
+  {
+   "command": "rotations_umd.py -f gaps.umd.dat -c O -a H -r 7 -g 200",
+   "code": 0,
+   "time": 3.18
+  },
+  {
+   "command": "rotations_umd.py -f gaps.umd.dat -c O -a H -r 7 -g 5 -m 150",
+   "code": 0,
+   "time": 2.03
+  }
+ ],
+ "numbers": {
+  "rotors neighbours": 1.0,
+  "rotors cos_first_shell": 0.25,
+  "rotors P2_first_shell": 1.0,
+  "rotors links_per_unit": 0.625,
+  "rotors cos_linked": 1.0,
+  "rotors cos of the pairs at 3.0 A (worst bin of 2)": 1.0,
+  "rotors cos of the pairs at 3.6 A (worst bin of 2)": -1.0,
+  "rotors P2 of the pairs at 3.0 A (worst bin of 2)": 1.0,
+  "rotors P2 of the pairs at 3.6 A (worst bin of 2)": 1.0,
+  "rotors dipolar of the pairs at 3.0 A (worst bin of 2)": 2.0,
+  "rotors dipolar of the pairs at 3.6 A (worst bin of 2)": 1.0,
+  "rotors Kirkwood factor within 3.3 A": 1.625,
+  "rotors Kirkwood factor within 3.9 A": 1.25,
+  "rotors C1 at 5 fs": 0.9063443485526294,
+  "rotors C1 at 20 fs": 0.6702343770497686,
+  "rotors C1 at 50 fs": 0.3706209692669821,
+  "rotors C2 at 5 fs": 0.7443959493080635,
+  "rotors C2 at 20 fs": 0.30006215041988393,
+  "rotors C2 at 50 fs": 0.054000190316256885,
+  "rotors bond_C1 at 5 fs": 0.9067606569935089,
+  "rotors bond_C1 at 20 fs": 0.6740031584340404,
+  "rotors bond_C1 at 50 fs": 0.37091991904142235,
+  "rotors bond_C2 at 5 fs": 0.745624761188967,
+  "rotors bond_C2 at 20 fs": 0.30640538276491475,
+  "rotors bond_C2 at 50 fs": 0.05180363563494324,
+  "methane K3 of the pairs at 4.0 A (worst bin of 2)": 1.0000000000000004,
+  "methane K3 of the pairs at 4.6 A (worst bin of 2)": -0.9999999999999942,
+  "methane K4 of the pairs at 4.0 A (worst bin of 2)": 0.9999999999999989,
+  "methane K4 of the pairs at 4.6 A (worst bin of 2)": 0.9999999999999951,
+  "methane mean of P3 between the bonds of a unit": 0.556,
+  "methane mean of P4 between the bonds of a unit": 0.259,
+  "methane C3 at 5 fs": 0.8632799219120166,
+  "methane C3 at 20 fs": 0.5591611503163898,
+  "methane C3 at 50 fs": 0.23094290993541566,
+  "methane C4 at 5 fs": 0.7826504285515034,
+  "methane C4 at 20 fs": 0.38052599664899833,
+  "methane C4 at 50 fs": 0.08822163863318279,
+  "methane bond_C1 at 5 fs": 0.9758052101521301,
+  "methane bond_C1 at 20 fs": 0.9079580761067099,
+  "methane bond_C1 at 50 fs": 0.7863574516215508,
+  "methane bond_C2 at 5 fs": 0.9291466534225732,
+  "methane bond_C2 at 20 fs": 0.7483011134097526,
+  "methane bond_C2 at 50 fs": 0.4846517820561127,
+  "sixstate C1 at 5 fs": 0.8851573377881264,
+  "sixstate C1 at 20 fs": 0.6113355780002082,
+  "sixstate C1 at 50 fs": 0.30203703703733215,
+  "sixstate C2 at 5 fs": 0.8832915622389307,
+  "sixstate C2 at 20 fs": 0.6102272727272727,
+  "sixstate C2 at 50 fs": 0.2989957264957265,
+  "sixstate entropy of the map + ln(1800 bins)": 1.7913350072493222,
+  "sixstate cos between first neighbours (independent)": -0.01091203704091894,
+  "gaps -g 50 : lives": 9.0,
+  "gaps -g 50 : snapshots of units left out": 10.0,
+  "gaps -g 5 : lives": 10.0,
+  "gaps -g 5 : snapshots of units left out": 0.0,
+  "gaps -g 200 : lives": 8.0,
+  "gaps -g 200 : snapshots of units left out": 110.0,
+  "gaps -g 5 -m 150 : lives": 8.0
+ },
+ "files": {
+  "rotors.OH2.rot.map.dat": "af5083e0d77a25f182b666c36792094eef27ecdfbf5f1e675c17a6494ccdc45d",
+  "rotors.umd.dat": "3f452f505c3f980bcfeb83deeeb757341696dde31c128c8cb791cdf05c9a80e1",
+  "sixstate.bonding.dat": "6d2219d21c59bce1ec1c2449d2abc2d0084ac7cfa1081da1b6aa2037c3da1a6b",
+  "sixstate.OH2.rot.map.dat": "2e8892b903e5a0da8e7064099df7f60d472b5676d39f4e16dfbd03a9ab4bb9b2",
+  "gaps.bonding.dat": "4304c8732e9ac3c1fd1d81f6e2c9cc30f2743ed38c627805891e0c630c6dd5b1",
+  "gaps.OH2.rot.pair.dat": "846165f30e519d8aa4e43e80edd044c10ba9fe37570f1c27accad45e4f7bde54",
+  "gaps.umd.dat": "377398aa244f03ff7a9fa1feb05904c21bf100c58351e77f3531b5b09615ba7d",
+  "sixstate.OH2.rot.time.dat": "5aa6a1be0aa1fd3083d97ac1320363c1427214129f52f814d8fd6c48a3cbf324",
+  "methane.CH4.rot.map.dat": "b26d96102fa02527a052d93b68a066e3d43bcf8717b08e31de74ed88eff0cd9e",
+  "sixstate.OH2.rot.pair.dat": "d212f934a025ab0212051a3ad51300fb216c190ecc33161eec33802db17e40b5",
+  "gaps.OH2.rot.time.dat": "703691b32d7914d5271916369b817f3623c39661f112dfdd67a1818790e1fb49",
+  "rotors.bonding.dat": "fbeccacf6d812f2063b06f74781067f41d5d2683d4c97bd05ec695a9d7ee9f1d",
+  "rotors.truth.json": "eb68c74a76dfee7b0ad265787a571b44dc220fd4454a89afdedecd430a7d7a8c",
+  "rotors.OH2.rot.time.dat": "a3dfb21d5aaa72d74398f59620e97a5b2ca4ffe104496eee4398a1072bfe43f8",
+  "sixstate.OH2.rot.shell.dat": "d6536f0f087ee47a13f26da3ce4df7c2880ef731357021d86b764890d622773b",
+  "methane.bonding.dat": "32ec7ffc6223b3c0ded2b2bfeb155d22aa86dfdeae50ca5309e187a679427f92",
+  "methane.CH4.rot.pair.dat": "9e849f03a66d71b922f58eb58443a7b6ef19fad5e632b4b5f4f6553a9dd799b1",
+  "gaps.OH2.rot.map.dat": "2ef32f1f0d9dfb54ea57f4bda75a609724a9533f17f726b28836069bdad723ac",
+  "methane.CH4.rot.time.dat": "a5303b8bfef008eec64cf49b19f0b691d6d07dba5ae0d16c6fe100bf09258b09",
+  "methane.umd.dat": "f4053b56eeb707365cee80ffb8e30483d434f7da9e7594b2914369b8f4239585",
+  "sixstate.umd.dat": "7f9bc4a13407389072e40a045b04b449dfcad87e354c6c041aae1373f3edb6b4",
+  "rotors.OH2.rot.pair.dat": "ed7fc0dc2173e71cf90ee7ad04ff7e69de3c41e186644b6e8b7f216c72d362f8",
+  "sixstate.OH2.rot.dat": "cb1660c97e497f2c29bbbcfeaad612ca9783fca09bffb07b30ff8dac2bf87414",
+  "gaps.OH2.rot.dat": "8f468302399054c650196459a32573b1e847e49f5248f966579ca8e3859a3c6b",
+  "rotors.OH2.rot.shell.dat": "0386129e7d56d453c25d0e94fc59d6cc85787f188bbc6fbe8c9d2d10e5eb86ec",
+  "methane.CH4.rot.dat": "1c47a1335e1357f43f4266e69389935d4069be96889eac1323cd60fe5baffbb8",
+  "rotors.OH2.rot.dat": "e426b806b90fc8dc1d5be43131f236682ab9ff9a066450c5fa506d4bf9f8a6a9"
+ }
+}

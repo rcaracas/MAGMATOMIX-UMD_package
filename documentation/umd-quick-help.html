@@ -75,6 +75,10 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">speciation_and_angles.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c Si,Mg -a O -r 1 -t 1 -l 1 -m 1</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1.popul.dat</code>, <code>.r1.stat.dat</code>, <code>.r1.step.dat</code>, <code>.angles.dat</code>, <code>.bondslives.dat</code></span></div>
 
+<div class="card"><span class="name">rotations_umd.py</span> <span class="what">&mdash; orientations of molecular units (H<sub>2</sub>O, NH<sub>3</sub>, CH<sub>4</sub>, OH&hellip;): correlations between units and in time, Kirkwood factor, orientation map; entropy of translation, rotation and internal motions (2PT), unit volume from Bader <code>ACF.dat</code> files.</span>
+<span class="cmd">rotations_umd.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c O -a H -x 2 -u dipole|bonds -g 50 -r shell -V bader/|O:16.5,H:4.2|25.3 -t T -y 2</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.OH2.rot.pair.dat</code>, <code>.rot.shell.dat</code>, <code>.rot.time.dat</code>, <code>.rot.map.dat</code>, <code>.rot.2pt.dat</code>, <code>.rot.dat</code></span></div>
+
 <div class="card"><span class="name">lifetimes.py</span> <span class="what">&mdash; plot of the lifetime of every species (columns: central elements; rows: coordination).</span>
 <span class="cmd">lifetimes.py -f &lt;base&gt;.r1.popul.dat -t min_life -x 3,9 -l 12 -m -v</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1.lifetimes.pdf</code> (with <code>-l</code>: liquid and vapor figures)</span></div>

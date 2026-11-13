@@ -22,13 +22,22 @@
 #               <U>_lambda and the free energy exact
 #   faults      a clean random walk (faults_clean) and the same with a duplicated snapshot and a missed crossing of a cell face
 #               (faults_bad) : check_umd.py
+#   rotors      rigid molecules turning by rotational Brownian motion (independent Gaussian rotation vectors at every step : the mean of
+#               P_l(u(0).u(t)) is f_l^t with f_l known) : rotors (H2O in pairs, parallel head to tail at 3.0 A or antiparallel at 3.6 A, in a
+#               triclinic cell changing at every snapshot), methane (CH4 in pairs, same orientation at 4.0 A or inverted at 4.6 A),
+#               sixstate (H2O with the dipole jumping between 6 directions), gaps (one H2O losing an H for 10 and for 100 snapshots)
+#   rotors2pt   rigid molecules on a lattice, the velocity of their centre of mass and their angular velocity in the body frame (each component
+#               weighted by its moment of inertia) as Ornstein-Uhlenbeck processes : the correlations of translation and rotation are 3 kT
+#               exp(-t/tau) (2 kT for a linear molecule, its angular velocity in the frame of the cell, as rotations_umd.py takes it) ; the truth is
+#               the 2PT entropy of the correlations the run really has, written here independently (and of exp(-t/tau), within the noise). The centres stay on the lattice (only the velocities are used). H2O (asymmetric top, symmetry
+#               number 2, with ACF.dat files of the Bader program in bohr, atoms shuffled and the origin shifted), CH4 (spherical top, 12), OH (linear, 1)
 
 import sys, json, math
 import numpy as np
 
 KB = 8.617333262e-5                 #eV/K
 AMU_A2FS2 = 103.642696562           #amu A^2/fs^2 in eV (1.66053906660e-27 kg * 1e-10 m^2 / 1e-30 s^2 / 1.602176634e-19 J)
-MASS = {'H':1.008,'O':15.999,'Si':28.085,'Cu':63.546,'Ar':39.948,'Ne':20.180,'Kr':83.798,'Xe':131.293}
+MASS = {'H':1.008,'C':12.011,'O':15.999,'Si':28.085,'Cu':63.546,'Ar':39.948,'Ne':20.180,'Kr':83.798,'Xe':131.293}
 NAVOGADRO = 6.02214076e23
 EV = 1.602176634e-19
 HPLANCK = 6.62607015e-34
@@ -388,8 +397,257 @@ def faults(rng):
     write_truth('faults',{'clean':'no warning for 1, 2, 3','bad':'warnings for 1 (duplicated time), 2 or 3 (missed crossing)'})
 
 
+def rotation_of(v):#rotation matrix of the rotation vector v (Rodrigues)
+    th = np.linalg.norm(v)
+    if th < 1e-14:
+        return np.eye(3)
+    k = v/th
+    K = np.array([[0,-k[2],k[1]],[k[2],0,-k[0]],[-k[1],k[0],0]])
+    return np.eye(3)+math.sin(th)*K+(1-math.cos(th))*(K @ K)
+
+
+def rotor_factor(l,sigma):#Mean of P_l(u.Ru) for the rotations R of Gaussian rotation vectors (sigma per component) : the character of the rotation by the
+    #angle w, sin((l+1/2)w)/sin(w/2)/(2l+1), over the Maxwell distribution of w. After t independent steps : this factor to the power t
+    w = np.linspace(1e-9,14*sigma,400001)
+    y = np.sqrt(2/np.pi)*w**2*np.exp(-w**2/(2*sigma**2))/sigma**3*np.sin((l+0.5)*w)/np.sin(0.5*w)/(2*l+1)
+    return float(np.sum(0.5*(y[1:]+y[:-1])*np.diff(w)))
+
+
+def rotors(rng):
+    roh, th = 0.9572, math.radians(104.52/2)
+    h2o = np.array([[0,0,0],[roh*math.sin(th),roh*math.cos(th),0],[-roh*math.sin(th),roh*math.cos(th),0]])   #dipole axis along y, H-H along x
+    flip = np.diag([-1.0,-1.0,1.0])                                     #half turn about z : dipole along -y
+    truth = {}
+
+    #rotors : 15 pairs A (the two dipoles along the line from the first to the second molecule, 3.0 A apart : cos 1, dipolar 2, both H of the first
+    #point to the second) and 9 pairs B (dipoles antiparallel, perpendicular to the line, molecular planes perpendicular to it, 3.6 A apart : cos -1,
+    #dipolar 1, no H pointing to the other). Each pair turns as a rigid body ; the cell changes at every snapshot, the pairs drift across its faces
+    nA, nB, nsnap, sigma = 15, 9, 2000, 0.14
+    npair = nA+nB
+    grid = np.array([[(i+0.5)/4,(j+0.5)/3,(k+0.5)/2] for i in range(4) for j in range(3) for k in range(2)])
+    R = [random_rotation(rng) for _ in range(npair)]
+    umd = UMD('rotors.umd.dat',['O','H'],[2*npair,4*npair])
+    for s in range(nsnap):
+        cell = cell_from(40.0,33.0,30.0,84.0,97.0,101.0)*(1+0.01*math.sin(s/40.0))
+        drift = s*np.array([0.011,-0.017,0.013])
+        O, H = [], []
+        for p in range(npair):
+            if s:
+                R[p] = rotation_of(rng.normal(0,sigma,3)) @ R[p]
+            centre = grid[p] @ cell + drift
+            if p < nA:
+                mols = [h2o+np.array([0,-1.5,0]), h2o+np.array([0,1.5,0])]
+            else:
+                mols = [h2o+np.array([0,0,-1.8]), h2o @ flip.T+np.array([0,0,1.8])]
+            for m in mols:
+                x = centre + m @ R[p].T
+                O.append(x[0])
+                H += [x[1],x[2]]
+        x = np.array(O+H)
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros_like(x))
+    umd.close()
+    n = 2*npair
+    truth['rotors'] = {'factors':{str(l):rotor_factor(l,sigma) for l in (1,2)},'molecules':n,'cos_3.0':1.0,'P2_3.0':1.0,'dipolar_3.0':2.0,
+                       'cos_3.6':-1.0,'P2_3.6':1.0,'dipolar_3.6':1.0,'neighbours':1.0,'cos_shell':(2*nA-2*nB)/n,'links_per_unit':2*nA/n,
+                       'cos_linked':1.0,'kirkwood_3.3':1+2*nA/n,'kirkwood_3.9':1+(2*nA-2*nB)/n,'shell_radius':4.0}
+
+    #methane : 10 pairs with the same orientation, 4.0 A apart (K3 = K4 = 1), 6 pairs with the second molecule inverted, 4.6 A apart (K3 = -1, K4 = 1)
+    t = np.array([[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]])/math.sqrt(3)*1.09
+    nsame, ninv, sigma = 10, 6, 0.07
+    npair = nsame+ninv
+    grid = np.array([[(i+0.5)/4,(j+0.5)/2,(k+0.5)/2] for i in range(4) for j in range(2) for k in range(2)])
+    cell = cell_from(40.0,22.0,21.0,90.0,90.0,90.0)
+    R = [random_rotation(rng) for _ in range(npair)]
+    umd = UMD('methane.umd.dat',['C','H'],[2*npair,8*npair])
+    for s in range(nsnap):
+        C, H = [], []
+        for p in range(npair):
+            if s:
+                R[p] = rotation_of(rng.normal(0,sigma,3)) @ R[p]
+            d = 2.0 if p < nsame else 2.3
+            for sign, shape in ((-1,t),(1,t if p < nsame else -t)):
+                c = grid[p] @ cell + np.array([0,0,sign*d]) @ R[p].T
+                C.append(c)
+                H += list(c + shape @ R[p].T)
+        x = np.array(C+H)
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros_like(x))
+    umd.close()
+    truth['methane'] = {'factors':{str(l):rotor_factor(l,sigma) for l in (1,2,3,4)},'self':{'1':0.0,'2':0.0,'3':5.0/9.0,'4':7.0/27.0},
+                        'K3_4.0':1.0,'K4_4.0':1.0,'K3_4.6':-1.0,'K4_4.6':1.0}
+
+    #sixstate : 36 H2O on a lattice, the dipole along one of 6 directions (+-x, +-y, +-z of a tilted frame) ; at every step, with probability p, a jump to
+    #one of the 5 other directions : C1 = C2 = (1 - 6p/5)^t ; the map has 6 bins : entropy ln 6 - ln(number of bins) ; independent molecules
+    prob = 0.02
+    frame = random_rotation(rng)
+    states = []
+    for axis in range(3):
+        for sign in (1,-1):
+            y = sign*frame[:,axis]
+            xdir = frame[:,(axis+1) % 3]
+            states.append(np.column_stack([xdir,y,np.cross(xdir,y)]))  #body x, y (dipole), z -> these columns
+    sites = np.array([[5.0*i+2.5,5.0*j+2.5,5.0*k+2.5] for i in range(4) for j in range(3) for k in range(3)])
+    cell = np.diag([20.0,15.0,15.0])
+    state = rng.integers(0,6,len(sites))
+    umd = UMD('sixstate.umd.dat',['O','H'],[len(sites),2*len(sites)])
+    for s in range(nsnap):
+        if s:
+            jump = rng.random(len(sites)) < prob
+            state = np.where(jump,(state+rng.integers(1,6,len(sites))) % 6,state)
+        O, H = [], []
+        for c, k in zip(sites,state):
+            x = c + h2o @ states[k].T
+            O.append(x[0])
+            H += [x[1],x[2]]
+        x = np.array(O+H)
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros_like(x))
+    umd.close()
+    truth['sixstate'] = {'factor':1-6*prob/5,'entropy_plus_ln_bins':math.log(6.0),'molecules':len(sites)}
+
+    #gaps : 8 H2O turning ; the first loses an H (moved 3 A away along its bond) during the snapshots 100-109 and 300-399
+    sites = np.array([[6.0*i+3,6.0*j+3,6.0*k+3] for i in range(2) for j in range(2) for k in range(2)])
+    cell = np.diag([12.0,12.0,12.0])
+    R = [random_rotation(rng) for _ in sites]
+    umd = UMD('gaps.umd.dat',['O','H'],[len(sites),2*len(sites)])
+    for s in range(500):
+        O, H = [], []
+        for m, c in enumerate(sites):
+            if s:
+                R[m] = rotation_of(rng.normal(0,0.05,3)) @ R[m]
+            x = c + h2o @ R[m].T
+            if m == 0 and (100 <= s < 110 or 300 <= s < 400):
+                x[1] = x[0]+(x[1]-x[0])*(1+3.0/roh)
+            O.append(x[0])
+            H += [x[1],x[2]]
+        x = np.array(O+H)
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros_like(x))
+    umd.close()
+    truth['gaps'] = {'lives':{'-g 50':9,'-g 5':10,'-g 200':8,'-g 5 -m 150':8},'left_out':{'-g 50':10,'-g 5':0,'-g 200':110}}   #-m 150 : the lives 0-99 and 400-499 dropped
+    write_truth('rotors',truth)
+
+
+
+CM1 = 33356.40952                   #cm^-1 per fs^-1
+BOHR = 0.529177210903
+
+def entropy_2pt(corr,dof,T,mass,volume,dt,SR=None):#2PT entropy (kB per molecule) of a motion of correlation corr (eV, lags 0 .. window-1) (Lin et al.
+    #2003, 2010) : spectrum of the correlation with a one-sided Hann taper over the window, fluidicity, gas-like Lorentzian (hard spheres for the
+    #translation, rigid rotor of entropy SR for the rotation), solid-like quantum oscillators. Returns f and S
+    from scipy.optimize import brentq
+    kT = KB*T
+    window = len(corr)
+    t = np.arange(window)*dt
+    c = corr*0.5*(1+np.cos(np.pi*np.arange(window)/(window-1)))
+    nu = np.linspace(0.0,CM1/(2*dt),20001)                                            #cm^-1
+    S = dt*(c[0]+2*np.cos(2*np.pi*np.outer(nu/CM1,t[1:])) @ c[1:])                       #eV fs : int over -tmax .. tmax
+    g = 2*S/kT/CM1*3.0/dof                                                              #states per cm^-1, normalized to 3
+    s0 = g[0]/CLIGHT                                                                    #per Hz
+    m = mass*1.66053906660e-27
+    kTJ = kT*EV
+    delta = 2*s0/9*math.sqrt(math.pi*kTJ/m)*(1/(volume*1e-30))**(1/3)*(6/math.pi)**(2/3)
+    f = brentq(lambda f: 2*delta**-4.5*f**7.5-6*delta**-3*f**5-delta**-1.5*f**3.5+6*delta**-1.5*f**2.5+2*f-2,1e-12,1.0)
+    gas = g[0]/(1+(math.pi*g[0]*nu/(6*f))**2)
+    x = HPLANCK*CLIGHT*np.maximum(nu,1e-9)/kTJ
+    ws = x/np.expm1(x)-np.log(-np.expm1(-x))
+    if SR is None:
+        y = f**2.5/delta**1.5
+        z = (1+y+y*y-y**3)/(1-y)**3
+        SR = 2.5+math.log((2*math.pi*m*kTJ/HPLANCK**2)**1.5*volume*1e-30/f*z)+y*(3*y-4)/(1-y)**2
+        wgas = SR/3
+    else:
+        wgas = SR/dof
+    dn = nu[1]-nu[0]
+    integ = lambda h: float(np.sum(0.5*(h[1:]+h[:-1]))*dn)
+    solid = (g-gas)*dof/3.0
+    #the first interval, where ln(x) diverges : the mean of the weight over (0, nu1)
+    x1 = x[1]
+    ws0 = 2.0-math.log(x1)+x1**2/72.0
+    first = 0.5*(solid[0]+solid[1])*ws0*dn
+    rest = integ(solid[1:]*ws[1:])
+    return f, integ(gas*dof/3.0)*wgas+first+rest
+
+
+def rotors2pt(rng):
+    T, dt, nsnap, window, spacing = 300.0, 1.0, 2000, 300, 12.0
+    taut, taur = 30.0, 20.0
+    roh, th = 0.9572, math.radians(104.52/2)
+    tet = np.array([[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]])/math.sqrt(3)*1.09
+    shapes = {'h2o':(['O','H'],np.array([[0,0,0],[roh*math.sin(th),roh*math.cos(th),0],[-roh*math.sin(th),roh*math.cos(th),0]]),2,34.0),
+              'ch4':(['C','H'],np.vstack([[0,0,0],tet]),12,40.0),
+              'oh':(['O','H'],np.array([[0,0,0],[0,0,0.97]]),1,25.0)}
+    lattice = np.array([[i,j,k] for i in range(3) for j in range(3) for k in range(3)])*spacing+spacing/2
+    cell = np.eye(3)*3*spacing
+    truth = {}
+    for name,(elements,shape,sigma,volume) in shapes.items():
+        nm = len(lattice)
+        masses = np.array([MASS[elements[0]]]+[MASS[elements[1]]]*(len(shape)-1))
+        M = masses.sum()
+        ref = shape-(masses[:,None]*shape).sum(axis=0)/M
+        I = (masses[:,None,None]*((ref**2).sum(axis=1)[:,None,None]*np.eye(3)-ref[:,:,None]*ref[:,None,:])).sum(axis=0)
+        mom, axes = np.linalg.eigh(I)
+        ref = ref @ axes                                                                    #principal frame
+        linear = mom[0] < 1e-8*mom[2]
+        kT = KB*T/AMU_A2FS2                                                                 #amu A^2/fs^2
+        at, ar = math.exp(-dt/taut), math.exp(-dt/taur)
+        V = rng.normal(0,math.sqrt(kT/M),(nm,3))
+        sd = np.sqrt(kT/np.where(mom > 1e-8*mom[2],mom,np.inf))                             #no rotation about the axis of a linear molecule
+        W = rng.normal(0,1,(nm,3))*sd
+        R = [random_rotation(rng) for _ in range(nm)]
+        counts = [nm,nm*(len(shape)-1)]
+        umd = UMD('rotors2pt_'+name+'.umd.dat',elements,counts)
+        snaps = {}
+        trn, rot = [], []                                                                    #sqrt(M) V and sqrt(I_k) w_k : their correlations
+        for s in range(nsnap):
+            if s:
+                V = at*V+math.sqrt(1-at*at)*rng.normal(0,math.sqrt(kT/M),(nm,3))
+                for q in range(nm):
+                    R[q] = R[q] @ rotation_of(W[q]*dt)                                      #body angular velocity : dR/dt = R [w]x
+                W = ar*W+math.sqrt(1-ar*ar)*rng.normal(0,1,(nm,3))*sd
+            trn.append(np.sqrt(M)*V)
+            rot.append(np.sqrt(mom[2])*np.array([R[q] @ W[q] for q in range(nm)]) if linear else np.sqrt(mom)*W)   #linear : in the frame of the cell
+            pos = np.array([lattice[q]+ref @ R[q].T for q in range(nm)])                   #(molecule, atom, 3)
+            vel = np.array([V[q]+np.cross(R[q] @ W[q],ref @ R[q].T) for q in range(nm)])
+            x = np.vstack([pos[:,0],pos[:,1:].reshape(-1,3)])
+            v = np.vstack([vel[:,0],vel[:,1:].reshape(-1,3)])
+            umd.snapshot(s*dt,dt,cell,x,x,v,fields={'Temperature':T})
+            if name == 'h2o' and s in (500,1500):
+                snaps[s] = x
+        umd.close()
+        dof = 2 if linear else 3
+        theta = HPLANCK**2/(8*math.pi**2*np.maximum(mom,1e-30)*1.66053906660e-47*KB*EV)
+        if linear:
+            SR = 1+math.log(T/(sigma*theta[2]))
+        else:
+            SR = math.log(math.sqrt(math.pi)*math.exp(1.5)/sigma*math.sqrt(T**3/np.prod(theta)))
+        def corr(x):#mean over the molecules and all the time origins of x(0).x(t), in eV : the correlations the run really has
+            x = np.array(x)
+            return np.array([(x[:nsnap-j]*x[j:]).sum(axis=2).mean() for j in range(window)])*AMU_A2FS2
+        ct, cr = corr(trn), corr(rot)
+        ft, St = entropy_2pt(ct,3,T,M,volume,dt)
+        fr, Sr = entropy_2pt(cr,dof,T,M,volume,dt,SR)
+        fte, Ste = entropy_2pt(3*KB*T*np.exp(-np.arange(window)*dt/taut),3,T,M,volume,dt)  #expected from exp(-t/tau) : within the noise of the run
+        fre, Sre = entropy_2pt(dof*KB*T*np.exp(-np.arange(window)*dt/taur),dof,T,M,volume,dt,SR)
+        truth[name] = {'symmetry_number':sigma,'linear':bool(linear),'moments':[float(x) for x in mom],'S_rigid_rotor':SR,'volume':volume,
+                       'f_trn':ft,'f_rot':fr,'S_trn':St,'S_rot':Sr,'T':T,'window':window,'T_trn':ct[0]/(3*KB),'T_rot':cr[0]/(dof*KB),
+                       'expected':{'f_trn':fte,'f_rot':fre,'S_trn':Ste,'S_rot':Sre}}
+        if name == 'h2o':#ACF.dat files : O 22, H 6 A^3 (a unit 34), the rest vacuum ; in bohr, atoms shuffled, origin shifted, wrapped
+            for s,x in snaps.items():
+                order = rng.permutation(len(x))
+                xs = (x+np.array([1.7,-2.3,0.9])) @ np.linalg.inv(cell)
+                xs = (xs-np.floor(xs)) @ cell/BOHR
+                vol = np.where(np.arange(len(x)) < nm,22.0,6.0)/BOHR**3
+                vacuum = abs(np.linalg.det(cell))/BOHR**3-vol.sum()
+                folder = 'bader2pt'
+                import os
+                os.makedirs(folder,exist_ok=True)
+                with open(os.path.join(folder,'h2o_%d.ACF.dat' % s),'w') as f:
+                    f.write('    #         X           Y           Z       CHARGE      MIN DIST   ATOMIC VOL\n '+'-'*80+'\n')
+                    for i,a in enumerate(order):
+                        f.write('%5d %11.4f %11.4f %11.4f %11.4f %11.4f %11.4f\n' % (i+1,*xs[a],8.0 if a < nm else 0.5,0.5,vol[a]))
+                    f.write(' '+'-'*80+'\n    VACUUM CHARGE:               0.0000\n    VACUUM VOLUME:          %11.4f\n    NUMBER OF ELECTRONS:     %.4f\n' % (vacuum,9.0*nm))
+    write_truth('rotors2pt',truth)
+
 KINDS = {'idealgas':idealgas,'fcc':fcc,'water':water,'randomwalk':randomwalk,'ou':ou,'oscillators':oscillators,'stress':stress,'ti':ti,
-         'faults':faults}
+         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt}
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] not in KINDS:

@@ -468,6 +468,7 @@ RUN_OUTPUTS = [r'\.check\.dat', r'\.overlap\.dat',                              
                SELECTION+r'\.(?:maximum_bonds|average_bonds|coordinations)\.inp', SELECTION+r'\.gofr\.[A-Z][a-z]?-[A-Z][a-z]?\.png',#analyze_gofr.py
                r'\.bonding\.dat',                                                                         #bonding_umd.py
                r'\.r\d+\.(?:popul|stat|step)\.dat', r'\.angles\.dat', r'\.bondslives\.dat',               #speciation_and_angles.py
+               r'\.[A-Z][A-Za-z0-9]*\.rot(?:\.(?:pair|shell|time|map|2pt))?\.dat',                             #rotations_umd.py : <base>.<unit>
                r'\.r\d+\.(?:liquid|vapor)\.(?:popul|stat)\.dat',                                           #liquid_and_vapor_speciation.py
                r'\.r\d+(?:\.(?:liquid|vapor))?(?:\.(?:liquid|vapor))?\.lifetimes\.pdf',                    #lifetimes.py
                r'\.r\d+(?:\.(?:liquid|vapor))?__[A-Za-z0-9_]+\.msd\.dat',                                   #msd_clusters_umd.py

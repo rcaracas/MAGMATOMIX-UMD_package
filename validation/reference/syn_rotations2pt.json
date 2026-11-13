@@ -1,0 +1,126 @@
+{
+ "about": "synthetic rigid rotors (H2O, CH4, OH) with Ornstein-Uhlenbeck translation and rotation : 2PT entropies, fluidicities, symmetry numbers, Bader volumes",
+ "environment": {
+  "commit": "3.0.1-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py rotors2pt",
+   "code": 0,
+   "time": 9.82
+  },
+  {
+   "command": "bonding_umd.py -f rotors2pt_h2o.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.38
+  },
+  {
+   "command": "bonding_umd.py -f rotors2pt_ch4.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.37
+  },
+  {
+   "command": "bonding_umd.py -f rotors2pt_oh.umd.dat -l 1.2",
+   "code": 0,
+   "time": 0.36
+  },
+  {
+   "command": "rotations_umd.py -f rotors2pt_h2o.umd.dat -c O -a H -w 300 -t 300 -r 13 -V bader2pt",
+   "code": 0,
+   "time": 3.95
+  },
+  {
+   "command": "rotations_umd.py -f rotors2pt_ch4.umd.dat -c C -a H -w 300 -t 300 -r 13 -V C:20,H:5",
+   "code": 0,
+   "time": 4.26
+  },
+  {
+   "command": "rotations_umd.py -f rotors2pt_oh.umd.dat -c O -a H -w 300 -t 300 -r 13 -V 25",
+   "code": 0,
+   "time": 4.28
+  }
+ ],
+ "numbers": {
+  "h2o symmetry_number": 2.0,
+  "h2o volume_per_unit_(A3)": 34.000004028192045,
+  "h2o I_1_(amu.A2)": 0.6145678266078004,
+  "h2o I_2_(amu.A2)": 1.1551151766607657,
+  "h2o I_3_(amu.A2)": 1.7696830032685658,
+  "h2o S_rigid_rotor_(kB)": 5.266078701406881,
+  "h2o T_kin_translation_(K)": 300.2415131928467,
+  "h2o T_kin_rotation_(K)": 307.5700637940889,
+  "h2o fluidicity_translation": 0.289546670825136,
+  "h2o fluidicity_rotation": 0.24778279552169571,
+  "h2o S_translation_(kB)": 5.120763212137694,
+  "h2o S_rotation_(kB)": 3.0605684270094855,
+  "h2o fluidicity_translation against exp(-t/tau) : 5 block errors": 0.289546670825136,
+  "h2o fluidicity_rotation against exp(-t/tau) : 5 block errors": 0.24778279552169571,
+  "h2o S_translation_(kB) against exp(-t/tau) : 5 block errors": 5.120763212137694,
+  "h2o S_rotation_(kB) against exp(-t/tau) : 5 block errors": 3.0605684270094855,
+  "ch4 symmetry_number": 12.0,
+  "ch4 volume_per_unit_(A3)": 40.0,
+  "ch4 I_1_(amu.A2)": 3.1936127989083283,
+  "ch4 I_2_(amu.A2)": 3.1936127999907504,
+  "ch4 I_3_(amu.A2)": 3.1936128010720184,
+  "ch4 S_rigid_rotor_(kB)": 5.10196619676886,
+  "ch4 T_kin_translation_(K)": 289.3166863712087,
+  "ch4 T_kin_rotation_(K)": 295.04781084957364,
+  "ch4 fluidicity_translation": 0.270796432026037,
+  "ch4 fluidicity_rotation": 0.23978720769452025,
+  "ch4 S_translation_(kB)": 4.77266674659051,
+  "ch4 S_rotation_(kB)": 2.821583264439403,
+  "ch4 fluidicity_translation against exp(-t/tau) : 5 block errors": 0.270796432026037,
+  "ch4 fluidicity_rotation against exp(-t/tau) : 5 block errors": 0.23978720769452025,
+  "ch4 S_translation_(kB) against exp(-t/tau) : 5 block errors": 4.77266674659051,
+  "ch4 S_rotation_(kB) against exp(-t/tau) : 5 block errors": 2.821583264439403,
+  "oh symmetry_number": 1.0,
+  "oh volume_per_unit_(A3)": 25.0,
+  "oh I_1_(amu.A2)": -3.7299508166014984e-19,
+  "oh I_2_(amu.A2)": 0.8922141925521396,
+  "oh I_3_(amu.A2)": 0.8922141925521399,
+  "oh S_rigid_rotor_(kB)": 3.401136738233174,
+  "oh T_kin_translation_(K)": 304.3497508348306,
+  "oh T_kin_rotation_(K)": 295.77078607665476,
+  "oh fluidicity_translation": 0.3048749709879503,
+  "oh fluidicity_rotation": 0.24981396084904145,
+  "oh S_translation_(kB)": 5.148080845593038,
+  "oh S_rotation_(kB)": 1.8822179964613521,
+  "oh fluidicity_translation against exp(-t/tau) : 5 block errors": 0.3048749709879503,
+  "oh fluidicity_rotation against exp(-t/tau) : 5 block errors": 0.24981396084904145,
+  "oh S_translation_(kB) against exp(-t/tau) : 5 block errors": 5.148080845593038,
+  "oh S_rotation_(kB) against exp(-t/tau) : 5 block errors": 1.8822179964613521
+ },
+ "files": {
+  "rotors2pt_h2o.OH2.rot.pair.dat": "b00ee34e7e735e466aca7b0460f5ac36b44f8a149a38bb7eeff67ae9c0ebe05c",
+  "rotors2pt_oh.OH.rot.dat": "4fca2c7e9e2e562dcfbec841f891282dff66f1acb6e3df45284076cdd48b9aab",
+  "rotors2pt_oh.OH.rot.shell.dat": "1fbf6d0086ee4ce46b16819378a79aa8452be40d4064b11df14932108341065a",
+  "rotors2pt_ch4.umd.dat": "a283e24c13495f8ccfece1cc2c97b889f1d0771bd12627005be9fde5ad2f37c7",
+  "rotors2pt_oh.umd.dat": "e1d73b1e6d3bcdc07dccc2a086b10cd167c09ff8a8e232ce80a973665ddf1edd",
+  "rotors2pt_ch4.CH4.rot.map.dat": "ccc8a363748cb960fb01251e8c1757a009f20a292b07a8627d78caa28bcb69fd",
+  "rotors2pt_h2o.bonding.dat": "8ef1325c886b57f035986073ccbdc9e6778214166794e31081a40157229be3e5",
+  "rotors2pt_h2o.OH2.rot.time.dat": "0939e43fb7c7a1a3518403d1a8732796942def93a5bd2196b3564d207bb48017",
+  "rotors2pt_oh.OH.rot.map.dat": "8d78099db5eff9760dbd1471b756118ae1ed24df98abefb28119fb2220b6c327",
+  "rotors2pt_oh.OH.rot.time.dat": "0f0544e8d1b46124a0a6af47488536bb86be47d36fce5dc675aa3d3bf5e959bc",
+  "rotors2pt_h2o.OH2.rot.shell.dat": "acd9dafe63cfb85ca01415aa40d5bb1fbaf1d733f06c9c0c8c6ceaaa11d8d71a",
+  "rotors2pt_h2o.OH2.rot.2pt.dat": "118da3a77a63fe9744a5cbb293bbaee8783512ab155762eefe756f0fc50510bb",
+  "rotors2pt_oh.OH.rot.pair.dat": "e8fa10644899e77bb3b449a99e861d024173308a19c32414fda21d4c98fd1a11",
+  "rotors2pt.truth.json": "8def95bd078c4bffcc4b71d56ff8dbaf89898ba1e16a68ea34a167a6faa8a72c",
+  "rotors2pt_oh.bonding.dat": "9541ac5c43f60c443464d644cd055f604248286076e2414b84e9730668bf57ad",
+  "rotors2pt_oh.OH.rot.2pt.dat": "1dafa8eff135a1580a41649faeaaf7ab62cb5274a1ed28c96e0cdc818e93d7b2",
+  "rotors2pt_ch4.CH4.rot.2pt.dat": "d9f2342cf6481873a6d9640921bcaf826c2afca6fa1797285cf5be8a8fb6de26",
+  "rotors2pt_ch4.CH4.rot.dat": "f5fa14518260e94880697c5b97752319cae4611c6e05d899959782dd3aeb32a7",
+  "rotors2pt_h2o.umd.dat": "c11d03e18f6ca7120d9d649c9a43036ed7cc629b2197ca80f6af62698a52ccce",
+  "rotors2pt_h2o.OH2.rot.dat": "97e46c465bd6b0a38b4c97053261aa5c93bf27fc1a2c898c51ac3604ac59b090",
+  "rotors2pt_ch4.CH4.rot.time.dat": "daa0b4ac99591ffa37bf142802619c026b04d605c2b521445989323f66ba0a36",
+  "rotors2pt_ch4.bonding.dat": "7790bcd187398ef9fff9c019f09b8cf638023d0c93d62ab87a3476d913bfd895",
+  "rotors2pt_h2o.OH2.rot.map.dat": "9578041696279c51b299402b2dcc5589f4b062cf1ace0df1053317715d3ea48f",
+  "rotors2pt_ch4.CH4.rot.pair.dat": "203540236a869587761c33dbe27062b9cba07093029b3a84b2939d010819ea3d",
+  "bader2pt/h2o_500.ACF.dat": "e6c4183482597fd585b786a6b3f4470560ce604a683a38a3e27188fb73ca8842",
+  "bader2pt/h2o_1500.ACF.dat": "8b12e879469fe8f62c30d587471faa1000061683ed58fe32e8ceecc68cbcd7bb"
+ }
+}

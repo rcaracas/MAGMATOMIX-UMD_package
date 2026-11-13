@@ -199,6 +199,11 @@ CASES += [
 
 #Options not used by the workflow
 CASES += [
+    Case('rotations_ice',['lamps-test1/water.dump','lamps-test1/log.lammps'],
+         [('LAMMPSParser2umd.py',['-f','water.dump','-l','log.lammps']),('gofr_umd.py',['-f','water.dump.umd.dat']),
+          ('analyze_gofr.py',['-f','water.dump.gofr.dat']),('bonding_umd.py',['-f','water.dump.umd.dat','-c','water.dump.maximum_bonds.inp']),
+          ('rotations_umd.py',['-f','water.dump.umd.dat','-c','O','-a','H'])],
+         [tab(r'water\.dump\.OH2\.rot\.dat','quantity')],about='rotations_umd.py on ice VII (LAMMPS DeePMD water + NaCl, 500 K, 10 GPa) : H2O dipoles'),
     Case('gofr_select',[PYRO],[('gofr_umd.py',['-f',PYRO,'-c','Si,Mg','-a','O']),
                                ('analyze_gofr.py',['-f','pyrolite.a13.T3000K.outcar.SiMg-O.gofr.dat']),
                                ('bonding_umd.py',['-f',PYRO,'-c','pyrolite.a13.T3000K.outcar.SiMg-O.maximum_bonds.inp','-i','100','-s','2']),
@@ -337,6 +342,72 @@ def t_water(folder,outs):
     return out
 
 
+def t_rotors(folder,outs):#rotations_umd.py on the synthetic rotors : outputs 5 (rotors), 6 (methane), 7 (sixstate), 8 to 11 (gaps)
+    t = truth_of(folder,'rotors')
+    out = []
+    def col(name,column):
+        return P.column(os.path.join(folder,name),column,sep='\t')
+    def decay(name,label,pairs_):#time correlations against factor^lag ; 8 errors of 4 blocks, at least 0.01
+        time = col(name,'time_(fs)')
+        for column, factor in pairs_:
+            c, e = col(name,column), col(name,column+'_err')
+            for lag in (5,20,50):
+                out.append(('%s %s at %g fs' % (label,column,time[lag]),c[lag],factor**lag,max(8*e[lag],0.01)))
+    summary = P.table(os.path.join(folder,'rotors.OH2.rot.dat'),'quantity',sep='\t')
+    r = t['rotors']
+    for key, exact in (('neighbours',r['neighbours']),('cos_first_shell',r['cos_shell']),('P2_first_shell',1.0),('links_per_unit',r['links_per_unit']),
+                       ('cos_linked',r['cos_linked'])):
+        out.append(('rotors '+key,summary[key]['value'],exact,1e-9))
+    dist, pairs_ = col('rotors.OH2.rot.pair.dat','r_(A)'), col('rotors.OH2.rot.pair.dat','pairs_per_snapshot')
+    for column, near, far in (('cos',r['cos_3.0'],r['cos_3.6']),('P2',r['P2_3.0'],r['P2_3.6']),('dipolar',r['dipolar_3.0'],r['dipolar_3.6'])):
+        values = col('rotors.OH2.rot.pair.dat',column)
+        for lo, hi, exact in ((2.8,3.2,near),(3.4,3.8,far)):
+            found = [v for x,n,v in zip(dist,pairs_,values) if lo < x < hi and n > 0]
+            out.append(('rotors %s of the pairs at %.1f A (worst bin of %d)' % (column,0.5*(lo+hi),len(found)),max(found,key=lambda v: abs(v-exact)) if found else float('nan'),exact,1e-9))
+    kirk = col('rotors.OH2.rot.pair.dat','Kirkwood')
+    for x0, key in ((3.3,'kirkwood_3.3'),(3.9,'kirkwood_3.9')):
+        out.append(('rotors Kirkwood factor within %.1f A' % x0,min(zip(dist,kirk),key=lambda p: abs(p[0]-x0))[1],r[key],1e-9))
+    decay('rotors.OH2.rot.time.dat','rotors',[('C1',r['factors']['1']),('C2',r['factors']['2']),('bond_C1',r['factors']['1']),('bond_C2',r['factors']['2'])])
+    m = t['methane']
+    dist, pairs_ = col('methane.CH4.rot.pair.dat','r_(A)'), col('methane.CH4.rot.pair.dat','pairs_per_snapshot')
+    for column, near, far in (('K3',m['K3_4.0'],m['K3_4.6']),('K4',m['K4_4.0'],m['K4_4.6'])):
+        values = col('methane.CH4.rot.pair.dat',column)
+        for lo, hi, exact in ((3.8,4.2,near),(4.4,4.8,far)):
+            found = [v for x,n,v in zip(dist,pairs_,values) if lo < x < hi and n > 0]
+            out.append(('methane %s of the pairs at %.1f A (worst bin of %d)' % (column,0.5*(lo+hi),len(found)),max(found,key=lambda v: abs(v-exact)) if found else float('nan'),exact,1e-9))
+    found = re.search(r'l=3 ([0-9.]+), l=4 ([0-9.]+) ; orders used : 3, 4',outs[6])
+    out.append(('methane mean of P3 between the bonds of a unit',float(found.group(1)) if found else float('nan'),m['self']['3'],1e-3))
+    out.append(('methane mean of P4 between the bonds of a unit',float(found.group(2)) if found else float('nan'),m['self']['4'],1e-3))
+    decay('methane.CH4.rot.time.dat','methane',[('C3',m['factors']['3']),('C4',m['factors']['4']),('bond_C1',m['factors']['1']),('bond_C2',m['factors']['2'])])
+    six = t['sixstate']
+    decay('sixstate.OH2.rot.time.dat','sixstate',[('C1',six['factor']),('C2',six['factor'])])
+    summary = P.table(os.path.join(folder,'sixstate.OH2.rot.dat'),'quantity',sep='\t')
+    out.append(('sixstate entropy of the map + ln(1800 bins)',summary['map_entropy_(kB)']['value']+math.log(1800.0),six['entropy_plus_ln_bins'],0.01))
+    out.append(('sixstate cos between first neighbours (independent)',summary['cos_first_shell']['value'],0.0,max(8*summary['cos_first_shell']['error'],0.02)))
+    for index, key in ((8,'-g 50'),(9,'-g 5'),(10,'-g 200'),(11,'-g 5 -m 150')):
+        out.append(('gaps '+key+' : lives',P.find(outs[index],r'(\d+) lives of'),t['gaps']['lives'][key],0))
+        if key in t['gaps']['left_out']:
+            out.append(('gaps '+key+' : snapshots of units left out',P.find(outs[index],r': (\d+) snapshots of units left out'),t['gaps']['left_out'][key],0))
+    return out
+
+
+def t_rotors2pt(folder,outs):#rotations_umd.py, entropy (2PT) of the synthetic rigid rotors : the truth is computed from the correlations the run has
+    t = truth_of(folder,'rotors2pt')
+    out = []
+    for kind, unit in (('h2o','OH2'),('ch4','CH4'),('oh','OH')):
+        r = t[kind]
+        q = P.table(os.path.join(folder,'rotors2pt_%s.%s.rot.dat' % (kind,unit)),'quantity',sep='\t')
+        for key, exact, tol in (('symmetry_number',r['symmetry_number'],0),('volume_per_unit_(A3)',r['volume'],1e-5*r['volume']),
+                                ('I_1_(amu.A2)',r['moments'][0],1e-6),('I_2_(amu.A2)',r['moments'][1],1e-6),('I_3_(amu.A2)',r['moments'][2],1e-6),
+                                ('S_rigid_rotor_(kB)',r['S_rigid_rotor'],1e-5),('T_kin_translation_(K)',r['T_trn'],1e-4),('T_kin_rotation_(K)',r['T_rot'],1e-4),
+                                ('fluidicity_translation',r['f_trn'],1e-6),('fluidicity_rotation',r['f_rot'],1e-6),
+                                ('S_translation_(kB)',r['S_trn'],2e-3*r['S_trn']),('S_rotation_(kB)',r['S_rot'],2e-3*r['S_rot'])):
+            out.append(('%s %s' % (kind,key),q[key]['value'],exact,tol))
+        for key, name in (('f_trn','fluidicity_translation'),('f_rot','fluidicity_rotation'),('S_trn','S_translation_(kB)'),('S_rot','S_rotation_(kB)')):
+            out.append(('%s %s against exp(-t/tau) : 5 block errors' % (kind,name),q[name]['value'],r['expected'][key],5*q[name]['error']))
+    return out
+
+
 def diffusion(folder,name):#{column : (D, error)} of a diffusion.dat or vacf.diffusion.dat file
     return {k:(r['D_(m2/s)'],r['D_error_(m2/s)']) for k,r in P.table(os.path.join(folder,name),'column',sep='\t').items()}
 
@@ -467,6 +538,19 @@ CASES += [
                          ('speciation_and_angles.py',['-f','water.umd.dat','-b','water.bonding.dat','-c','O','-a','H','-r','1','-t','1']),
                          ('speciation_and_angles.py',['-f','water.umd.dat','-b','water.bonding.dat','-c','all','-a','all','-r','0'])],
          truth=[t_water],about='synthetic rigid H2O across the faces of a triclinic cell : species and angle exact'),
+    Case('syn_rotations',[],[('@synthetic.py',['rotors'])]+[('bonding_umd.py',['-f',f+'.umd.dat','-l',l]) for f,l in
+                             (('rotors','1.2'),('methane','1.3'),('sixstate','1.2'),('gaps','1.2'))]
+                            +[('rotations_umd.py',['-f','rotors.umd.dat','-c','O','-a','H','-r','4.0']),
+                              ('rotations_umd.py',['-f','methane.umd.dat','-c','C','-a','H','-r','5.0']),
+                              ('rotations_umd.py',['-f','sixstate.umd.dat','-c','O','-a','H','-r','5.5'])]
+                            +[('rotations_umd.py',['-f','gaps.umd.dat','-c','O','-a','H','-r','7']+o) for o in
+                              (['-g','50'],['-g','5'],['-g','200'],['-g','5','-m','150'])],truth=[t_rotors],
+         about='synthetic rotors : pair correlations of dipoles and of tetrahedra, time correlations of rotational diffusion and of jumps, map entropy, gaps'),
+    Case('syn_rotations2pt',[],[('@synthetic.py',['rotors2pt'])]+[('bonding_umd.py',['-f','rotors2pt_'+m+'.umd.dat','-l','1.2']) for m in ('h2o','ch4','oh')]
+                               +[('rotations_umd.py',['-f','rotors2pt_h2o.umd.dat','-c','O','-a','H','-w','300','-t','300','-r','13','-V','bader2pt']),
+                                 ('rotations_umd.py',['-f','rotors2pt_ch4.umd.dat','-c','C','-a','H','-w','300','-t','300','-r','13','-V','C:20,H:5']),
+                                 ('rotations_umd.py',['-f','rotors2pt_oh.umd.dat','-c','O','-a','H','-w','300','-t','300','-r','13','-V','25'])],
+         truth=[t_rotors2pt],about='synthetic rigid rotors (H2O, CH4, OH) with Ornstein-Uhlenbeck translation and rotation : 2PT entropies, fluidicities, symmetry numbers, Bader volumes'),
     Case('syn_msd',[],[('@synthetic.py',['randomwalk']),('msd_umd.py',['-f','randomwalk.umd.dat','-a','tensor'])],truth=[t_randomwalk],
          about='synthetic random walks, isotropic and anisotropic : D, D tensor, principal values and directions'),
     Case('syn_vacf',[],[('@synthetic.py',['ou']),('vibrations_umd.py',['-f','ou.umd.dat']),('msd_umd.py',['-f','ou.umd.dat'])],
