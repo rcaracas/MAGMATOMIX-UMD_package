@@ -1,7 +1,7 @@
 # UMD_package
 Post-processing package that performs analysis of structural, transport, and thermodynamic properties from ab initio and classical molecular dynamics simulations.
 
-UMD stores the atomic trajectories and the thermodynamic information of a run in one ASCII format, the `.umd.dat` file. Parsers write it from VASP, ABINIT, QBox and LAMMPS outputs; the analysis scripts read it.
+UMD stores the atomic trajectories and the thermodynamic information of a run in one ASCII format, the `.umd.dat` file. Parsers write it from VASP, ABINIT, CP2K, QBox and LAMMPS outputs; the analysis scripts read it.
 
 ## Quick start
 Python 3 with numpy, scipy and matplotlib, and a C compiler. Compile the C libraries in `src/` (macOS; Linux and Windows in `README.txt`):

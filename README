@@ -2,7 +2,7 @@ UMD = Universal python package for post-processing Molecular Dynamics runs.
 
 =====
 
-UMD is a universal Python package for post-processing molecular dynamics runs. UMD is based on a generalized ASCII free format, the .umd.dat files, which store the atomic trajectories and the relevant thermodynamic information of the simulations. Parsers convert the outputs of VASP, QBox and LAMMPS into this format; the analysis scripts read it.
+UMD is a universal Python package for post-processing molecular dynamics runs. UMD is based on a generalized ASCII free format, the .umd.dat files, which store the atomic trajectories and the relevant thermodynamic information of the simulations. Parsers convert the outputs of VASP, ABINIT, CP2K, QBox and LAMMPS into this format; the analysis scripts read it.
 UMD includes two core libraries, one for the file formats (umd_processes_fast.py, with its C reader) and one for crystallography (crystallography.py).
 UMD allows for computation of:
 - structural properties: pair distribution functions and coordination numbers, bonds, polymerization, chemical speciation, interatomic angles, species and bond lifetimes, liquid/vapor partitioning
@@ -70,6 +70,7 @@ umd_processes_fast.py           reading and writing of UMD files (C library c_UM
     parsers, conversion and building:
 VaspParser.py                   VASP OUTCAR -> UMD
 AbinitParser.py                 ABINIT molecular dynamics output -> UMD
+CP2KParser.py                   CP2K positions, velocities, forces, energies, stress and cell files -> UMD
 QBoxParser.py                   QBox output -> UMD (not yet updated to the current package)
 LAMMPSParser2umd.py             LAMMPS dump and log -> UMD
 repair_umd.py                   repairs UMD files written by older versions of VaspParser.py
@@ -232,4 +233,7 @@ v 3.0, November 2026 - stable production version: the package cleaned, corrected
 - parallel processing on CPUs: snapshots given to worker processes in batches sized from their bytes, read by the workers from the file (2.14)
 - ROADMAP: the plan of the v3.Y versions, towards systems of up to 1 billion atoms
 
-Since v 3.0 (not yet released):
+v 3.0.1, November 2026 - CP2K parser:
+- CP2KParser.py (new): CP2K molecular dynamics run -> UMD. CP2K writes a run in several files, matched here by their MD step: positions (<project>-pos-1.xyz, XMOL or extended XYZ), and when given velocities (-v), forces (-r), energies (-e, the .ener file), stress tensor (-a, the .stress file: total pressure tensor, kinetic part included, as the UMD StressTensor) and cell. The xyz files of CP2K have no cell: -c takes numbers, the .cell file (the cell of every step, NPT), an input or restart file (&CELL section, and the MASS of the &KIND sections), or the main output. With the standard names only -f is needed. Masses other than the standard ones (deuterium) with -m: the parser compares the kinetic energy of the velocities with that of the energy file and prints the masses that fit when they differ. A run restarted from an earlier step, appended to the same files: of the steps written several times the last ones are kept. Unwrapped positions in reduced coordinates for a changing cell, as LAMMPSParser2umd.py. Checked on one real run (100 H2O + 2 H2SO4, NVT, 1001 steps, CP2K 2023.2; cell from the MD_INI lines of its main output): every value of the UMD file equals the CP2K files to its rounding; the cell file, the input, output and extended XYZ layouts, and NPT were checked on files written for the tests, not yet on real ones
+
+Since v 3.0.1 (not yet released):

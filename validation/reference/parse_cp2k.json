@@ -1,0 +1,46 @@
+{
+ "about": "CP2K NVT, 100 H2O + 2 H2SO4, positions, velocities, forces, energies, stress",
+ "environment": {
+  "commit": "3.0-1-g9dafa18-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "CP2KParser.py -f position.xyz -v velocity.xyz -r force.xyz -e log.out -a stress.out -c main_2.out",
+   "code": 0,
+   "time": 4.48
+  }
+ ],
+ "numbers": {
+  "natom": 314,
+  "snapshots": 1001,
+  "last_time": 5000.5,
+  "mean_InternalEnergy": -50971.88407139461,
+  "mean_TotalElectronicEnergy": -50984.98761765534,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 13.103546267732263,
+  "mean_EnergyWithDrift": -50949.65741070729,
+  "mean_Enthalpy": -50974.45046007387,
+  "mean_Temperature": 323.877222777223,
+  "mean_Pressure": -0.13212127872127866,
+  "mean_Density": 1.0660000000000103,
+  "mean_stress_xx": -0.17140089910089898,
+  "mean_stress_yy": -0.16060909090909078,
+  "mean_stress_zz": -0.06435364635364636,
+  "mean_stress_xy": 0.007573826173826211,
+  "mean_stress_yz": 0.0021829170829170824,
+  "mean_stress_zx": 0.02486173826173825,
+  "mean_volume": 3112.1359999999695,
+  "msd_first_last": 1.0915681107777069,
+  "rms_velocity_last": 0.023574544480270014,
+  "rms_force_last": 1.3906082619734395,
+  "mean_xcart_last": 7.3369585138004245
+ },
+ "files": {
+  "position.xyz.umd.dat": "48c9f4ccbea0fc9755d56f1e4fdf1616515db04e0426deb6b11fd642d90a4bb9"
+ }
+}

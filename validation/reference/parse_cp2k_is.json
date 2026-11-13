@@ -1,0 +1,46 @@
+{
+ "about": "CP2K parser with -i 10 -s 3",
+ "environment": {
+  "commit": "3.0-1-g9dafa18-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "CP2KParser.py -f position.xyz -v velocity.xyz -r force.xyz -e log.out -a stress.out -c main_2.out -i 10 -s 3",
+   "code": 0,
+   "time": 2.57
+  }
+ ],
+ "numbers": {
+  "natom": 314,
+  "snapshots": 331,
+  "last_time": 5000.5,
+  "mean_InternalEnergy": -50971.879434296054,
+  "mean_TotalElectronicEnergy": -50984.98977344715,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 13.110339138972806,
+  "mean_EnergyWithDrift": -50949.657394235655,
+  "mean_Enthalpy": -50974.43521776135,
+  "mean_Temperature": 324.0447129909362,
+  "mean_Pressure": -0.1315749244712992,
+  "mean_Density": 1.0659999999999945,
+  "mean_stress_xx": -0.1711211480362537,
+  "mean_stress_yy": -0.1622045317220545,
+  "mean_stress_zz": -0.06139939577039274,
+  "mean_stress_xy": 0.008125377643504553,
+  "mean_stress_yz": 0.0008972809667673748,
+  "mean_stress_zx": 0.024175830815709974,
+  "mean_volume": 3112.1360000000273,
+  "msd_first_last": 1.0801451542544585,
+  "rms_velocity_last": 0.023574544480270014,
+  "rms_force_last": 1.3906082619734395,
+  "mean_xcart_last": 7.3369585138004245
+ },
+ "files": {
+  "position.xyz.umd.dat": "db300194e2f4c7fea37e58c8df504d62ba12b5d327ab9b5024060415bc4ac126"
+ }
+}

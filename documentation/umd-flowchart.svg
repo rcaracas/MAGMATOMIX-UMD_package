@@ -15,12 +15,12 @@
 <text x="964" y="1298" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="964" dy="0">umd_workflow.py -d : the whole panel</tspan></text>
 <rect x="6" y="6" width="236" height="140" fill="white" stroke="#231F20" stroke-width="4.5"/>
 <text x="124" y="52" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">ab initio /</tspan><tspan x="124" dy="35.2">classical MD</tspan></text>
-<text x="124" y="128" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">VASP, ABINIT, QBox, LAMMPS</tspan></text>
+<text x="124" y="116" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">VASP, ABINIT, CP2K,</tspan><tspan x="124" dy="17.25">QBox, LAMMPS</tspan></text>
 <rect x="500" y="140" width="180" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="590" y="180.4" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="590" dy="0">.umd.</tspan></text>
 <path d="M 242 112 L 498 164" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 498 164 L 483.614 154.445 L 486.24 161.611 L 481.026 167.185 Z" fill="#231F20"/>
-<text x="274" y="22" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="274" dy="0">VaspParser.py</tspan><tspan x="274" dy="19.55">AbinitParser.py</tspan><tspan x="274" dy="19.55">QBoxParser.py</tspan><tspan x="274" dy="19.55">LAMMPSParser2umd.py -f -i -s</tspan></text>
+<text x="274" y="22" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="274" dy="0">VaspParser.py, AbinitParser.py,</tspan><tspan x="274" dy="19.55">CP2KParser.py, QBoxParser.py,</tspan><tspan x="274" dy="19.55">LAMMPSParser2umd.py -f -i -s</tspan></text>
 <path d="M 522 140 L 522 116 L 598 116 L 598 138" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 598 138 L 604.5 122 L 598 126 L 591.5 122 Z" fill="#231F20"/>
 <text x="512" y="112" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#782F9A" text-anchor="end" font-weight="normal"><tspan x="512" dy="0">repair_umd.py -f</tspan></text>

@@ -139,6 +139,9 @@ def digests(name):#the UMD files matching a regular expression
 CASES = []
 
 #Parsers : raw outputs of the simulation codes -> UMD
+CP2K = ['cp2k/position.xyz','cp2k/velocity.xyz','cp2k/force.xyz','cp2k/log.out','cp2k/stress.out','cp2k/main_2.out']
+CP2K_ARGS = ['-f','position.xyz','-v','velocity.xyz','-r','force.xyz','-e','log.out','-a','stress.out','-c','main_2.out']  #the cell from the MD_INI| lines of
+#the main output of a later segment of the same NVT run (steps 75266-76266 ; the trajectory files are steps 9001-10001) : 14.6 A cubic
 CASES += [
     Case('parse_vasp_zns',['zns.T1000K.prod.outcar'],[('VaspParser.py',['-f','zns.T1000K.prod.outcar'])],
          [digest('zns.T1000K.prod.outcar.umd.dat')],about='VASP OUTCAR, ZnS 1000 K, on-the-fly ML (10000 steps, 57 DFT)'),
@@ -158,6 +161,10 @@ CASES += [
     Case('parse_lammps_frame',['Lammps_output.zip'],
          [('LAMMPSParser2umd.py',['-f','test.lammpstrj','-a','Pxy_vs_time.dat','-t','1'])],
          [digest('test.lammpstrj.umd.dat')],about='LAMMPS pyrolite melt, one frame without id, velocities or log'),
+    Case('parse_cp2k',CP2K,[('CP2KParser.py',CP2K_ARGS)],
+         [digest('position.xyz.umd.dat')],about='CP2K NVT, 100 H2O + 2 H2SO4, positions, velocities, forces, energies, stress'),
+    Case('parse_cp2k_is',CP2K,[('CP2KParser.py',CP2K_ARGS+['-i','10','-s','3'])],
+         [digest('position.xyz.umd.dat')],about='CP2K parser with -i 10 -s 3'),
 ]
 
 #The automated workflow (check, structure, transport, thermodynamics) on each reference UMD file
@@ -186,6 +193,8 @@ CASES += [
     Case('chain_lammps',['lammps-test-dump/test.dump','lammps-test-dump/log.lammps'],
          [('LAMMPSParser2umd.py',['-f','test.dump','-l','log.lammps']),('umd_workflow.py',['-f','test.dump.umd.dat'])],
          [workflow(1),checks(r'.*\.check\.dat'),inp(r'.*\.coordinations\.inp')],about='LAMMPS water parsed, then the workflow'),
+    Case('chain_cp2k',CP2K,[('CP2KParser.py',CP2K_ARGS),('umd_workflow.py',['-f','position.xyz.umd.dat'])],
+         [workflow(1),checks(r'.*\.check\.dat'),inp(r'.*\.coordinations\.inp')],about='CP2K run parsed, then the workflow'),
 ]
 
 #Options not used by the workflow

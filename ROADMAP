@@ -6,7 +6,7 @@ Naming conventions:
 vX.0 => stable production versions
 vX.Y => major bug-free improvements
 vX.Y.Z => minor improvements, debugging, experimental personal versions
-New parsers (CP2K, Quantum ESPRESSO, QBox, ...) can come at any time, as vX.Y.Z releases.
+New parsers (Quantum ESPRESSO, QBox, ...) can come at any time, as vX.Y.Z releases (CP2K: v3.0.1).
 
 MAJOR AIMS for the v2.0:
 speciation: chemical (pair) bonds
