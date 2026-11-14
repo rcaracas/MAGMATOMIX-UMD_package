@@ -1,7 +1,13 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>UMD quick help</title>
+<html><head><meta charset="utf-8"><title>MAGMATOMIX/UMD quick help</title>
 <style>
-@page { size: A4; margin: 12mm 12mm 11mm 12mm; }
+@page { size: A4; margin: 12mm 12mm 17mm 12mm;
+  @bottom-left { content: "github.com/rcaracas/MAGMATOMIX-UMD_package  \00B7  free software, GNU GPL 3 and CeCILL v2\A Please cite: Caracas, R. et al., Analyzing melts and fluids from ab initio molecular dynamics simulations with the UMD package,\A J. Vis. Exp. 175, e61534 (2021), doi:10.3791/61534";
+    white-space: pre-wrap; font-family: Helvetica, Arial, sans-serif; font-size: 7.4pt; line-height: 1.3; color: #5d5a5b;
+    vertical-align: top; padding-top: 2.5mm; border-top: 1px solid #d9d6d7; width: 100%; }
+  @bottom-right { content: counter(page) "/" counter(pages); font-family: Helvetica, Arial, sans-serif; font-size: 7.6pt; color: #5d5a5b;
+    vertical-align: top; padding-top: 2.5mm; border-top: 1px solid #d9d6d7; width: 8mm; text-align: right; }
+}
 :root { --purple:#782F9A; --magenta:#ED127B; --ink:#231F20; --muted:#5d5a5b; --rule:#d9d6d7; --code:#f4f1f5; }
 html,body { margin:0; background:#fff; color:var(--ink); font-family:Helvetica, Arial, sans-serif; font-size:9.6pt; line-height:1.36; }
 h1 { font-size:17pt; margin:0 0 1mm 0; letter-spacing:.2px; }
@@ -17,11 +23,11 @@ h2 { font-size:10.4pt; color:var(--magenta); text-transform:uppercase; letter-sp
 .io b { color:var(--ink); font-weight:600; }
 code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowrap; }
 .tok { white-space:nowrap; }
-.foot { margin-top:2mm; color:var(--muted); font-size:7.8pt; border-top:1px solid var(--rule); padding-top:1.5mm; column-span:all; }
+
 .wf { border:1.4px solid var(--purple); border-radius:1.5mm; padding:1.6mm 2.2mm; margin:0 0 3mm 0; }
 </style></head>
 <body>
-<h1>UMD package 3.1 &mdash; quick help</h1>
+<h1>MAGMATOMIX/UMD 3.1 &mdash; quick help</h1>
 <p class="sub">The scripts in the order of the workflow and of the panels of the flowchart (<code>documentation/umd-flowchart.pdf</code>).
 <code>&lt;base&gt;</code> = the UMD file without <code>.umd.dat</code>. All the options of a script: <code>-h</code>. <code>-f all</code>: every <code>*.umd.dat</code> of the folder, one after the other. Run them from <code>src/</code> after compiling the C libraries (<code>README.txt</code>).</p>
 
