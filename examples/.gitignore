@@ -1,0 +1,4 @@
+# the example runs and the outputs of the tutorial are not tracked: only this folder's README
+*
+!README.md
+!.gitignore

@@ -1,0 +1,99 @@
+<!-- MAGMATOMIX/UMD page of razvancaracas.info (umd-package). Paste into a Custom HTML block, or into the code editor of the page. -->
+
+<p><strong>MAGMATOMIX/UMD</strong> is a free, open-source package for the analysis of molecular dynamics simulations, ab initio and classical: structure, chemical speciation, transport and thermodynamics, with error bars on every statistical result. It is written in Python, with C for the heavy parts, and runs on a laptop.</p>
+
+<p><strong>Current version: 3.2 (November 2026).</strong> Source code, releases and documentation: <a href="https://github.com/rcaracas/MAGMATOMIX-UMD_package">github.com/rcaracas/MAGMATOMIX-UMD_package</a><br>
+License: GNU GPL v3 and CeCILL v2.</p>
+
+<p><strong>Please cite:</strong> R. Caracas, A. Kobsch, N. V. Solomatova, Z. Li, F. Soubiran, J.-A. Hernandez, <em>Analyzing melts and fluids from ab initio molecular dynamics simulations with the UMD package</em>, J. Vis. Exp. 175, e61534 (2021), <a href="https://doi.org/10.3791/61534">doi:10.3791/61534</a>. A paper on version 3 is in preparation.</p>
+
+<h2>What it does</h2>
+
+<p><a href="https://raw.githubusercontent.com/rcaracas/MAGMATOMIX-UMD_package/master/documentation/umd-flowchart.png"><img src="https://raw.githubusercontent.com/rcaracas/MAGMATOMIX-UMD_package/master/documentation/umd-flowchart.png" alt="Flowchart of the MAGMATOMIX/UMD package: parsers, structural, transport and thermodynamic analyses" style="max-width:100%;height:auto"></a></p>
+
+<ul>
+<li><strong>Input and output:</strong> parsers for VASP (also on-the-fly machine-learning runs), ABINIT, CP2K and LAMMPS write the UMD file; conversion of UMD files to extended XYZ, POSCAR, LAMMPS data and dump files, and DeepMD training sets; construction of new structures (supercells, insertion of molecules, vacuum slabs, substitutions).</li>
+<li><strong>Quality checks:</strong> 14 checks of a run before any analysis (times, unwrapping, energy drift, time step, momentum, equilibration, temperature, stress, core overlap, charge balance).</li>
+<li><strong>Structure:</strong> pair distribution functions and coordination numbers, bond lengths found automatically, bonds, chemical species and their lifetimes, polymerization, angles, liquid and vapor, orientations of molecules (water, ammonia, methane, sulfate…) and their correlations.</li>
+<li><strong>Transport:</strong> diffusion coefficients (also of molecules, and the anisotropic diffusion tensor), viscosity by Green–Kubo.</li>
+<li><strong>Thermodynamics:</strong> averages with errors, heat capacity, vibrational spectra, quantum corrections, entropy of liquids (two-phase thermodynamic model, also for the rotation of molecules), free energy by thermodynamic integration.</li>
+<li><strong>Workflow:</strong> one command runs all the analyses of a run and gathers the results in one table; run again, it redoes only what changed.</li>
+</ul>
+
+<p>Any cell shape, constant volume or constant pressure. Every script is checked by a validation suite on reference runs and on synthetic runs with exact answers.</p>
+
+<h2>The UMD file</h2>
+
+<p>All the scripts read one format, the UMD file (<code>&lt;name&gt;.umd.dat</code>): plain text, one line per quantity, a keyword followed by its value(s) and unit (<code>Temperature 2999.5 K</code>, <code>Pressure 1.29 GPa</code>, <code>StressTensor</code>, <code>acell</code>, <code>rprim</code>…), then one line per atom in each snapshot, with 17 columns:</p>
+
+<table>
+<thead><tr><th>Columns</th><th>Quantity</th><th>Unit</th></tr></thead>
+<tbody>
+<tr><td>1–3</td><td>reduced coordinates</td><td>–</td></tr>
+<tr><td>4–6</td><td>Cartesian coordinates</td><td>Å</td></tr>
+<tr><td>7–9</td><td>unwrapped Cartesian coordinates (followed across the faces of the cell, for diffusion)</td><td>Å</td></tr>
+<tr><td>10–12</td><td>velocities</td><td>Å/fs</td></tr>
+<tr><td>13–15</td><td>forces</td><td>eV/Å</td></tr>
+<tr><td>16</td><td>charge</td><td>e</td></tr>
+<tr><td>17</td><td>local magnetic moment</td><td>μ<sub>B</sub></td></tr>
+</tbody>
+</table>
+
+<p>A parser writes the UMD file once; the analyses never read the outputs of the simulation codes again.</p>
+
+<h2>Installation</h2>
+
+<p>You need Python 3 with numpy, scipy and matplotlib, and a C compiler for four small libraries.</p>
+
+<h3>macOS</h3>
+<pre><code>xcode-select --install                 # the C compiler and git, once
+python3 -m pip install --user numpy scipy matplotlib
+git clone https://github.com/rcaracas/MAGMATOMIX-UMD_package.git
+cd MAGMATOMIX-UMD_package/src
+gcc -O2 -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
+gcc -dynamiclib -o c_bonds_full.dylib c_bonds_full.c
+gcc -dynamiclib -o c_clusters.dylib c_clusters.c
+gcc -O2 -dynamiclib -o c_gofr.dylib c_gofr.c</code></pre>
+
+<h3>Linux</h3>
+<pre><code>sudo apt install git gcc python3-numpy python3-scipy python3-matplotlib   # Ubuntu, Debian; or your distribution's packages
+git clone https://github.com/rcaracas/MAGMATOMIX-UMD_package.git
+cd MAGMATOMIX-UMD_package/src
+for lib in c_UMDprocess c_bonds_full c_clusters c_gofr; do gcc -O2 -fPIC -shared -o $lib.so $lib.c; done</code></pre>
+
+<h3>Windows</h3>
+<p>A native Windows version is in preparation. Until then, use the Windows Subsystem for Linux (WSL, Windows 10 and 11): in a PowerShell opened as administrator, type <code>wsl --install</code>, restart, open <em>Ubuntu</em> from the Start menu, and follow the Linux instructions above. Your Windows files are under <code>/mnt/c/</code>.</p>
+
+<p>If pip refuses to install (<em>externally managed environment</em>, e.g. with the Python of Homebrew), install the packages in a virtual environment: <code>python3 -m venv ~/umd-env</code>, then <code>source ~/umd-env/bin/activate</code> (in every new terminal) and <code>python3 -m pip install numpy scipy matplotlib</code>.</p>
+
+<p>Without git, download the code as a zip file from the <a href="https://github.com/rcaracas/MAGMATOMIX-UMD_package/releases/latest">latest release</a>.</p>
+
+<h2>Tutorial</h2>
+
+<p>Download the example run, a pyrolite melt at 3000 K (153 atoms, 3 ps of ab initio molecular dynamics, 24 MB): <a href="https://github.com/rcaracas/MAGMATOMIX-UMD_package/releases/download/examples/pyrolite.a13.T3000K.umd.zip">pyrolite.a13.T3000K.umd.zip</a>. Unzip it in a folder <code>work</code> next to the package, and run the scripts from there; each takes a second or two.</p>
+
+<pre><code>cd work
+python3 ../MAGMATOMIX-UMD_package/src/check_umd.py -f pyrolite.a13.T3000K.umd.dat</code></pre>
+<p>Quality checks of the run. One warning here: the conserved energy jumps 22 times, at electronic steps that did not converge.</p>
+
+<pre><code>python3 ../MAGMATOMIX-UMD_package/src/averages.py -a -i 500 -f pyrolite.a13.T3000K.umd.dat</code></pre>
+<p>Density, pressure, temperature, energy and heat capacity, with their errors, skipping the first 500 snapshots: P = 1.29 ± 0.16 GPa, T = 2999.5 ± 16 K.</p>
+
+<pre><code>python3 ../MAGMATOMIX-UMD_package/src/gofr_umd.py -f pyrolite.a13.T3000K.umd.dat
+python3 ../MAGMATOMIX-UMD_package/src/analyze_gofr.py -f pyrolite.a13.T3000K.gofr.dat</code></pre>
+<p>Pair distribution functions, then for each pair of elements the bond length (first minimum) and the coordination number: Si–O 4.00, Al–O 4.09, Mg–O 4.93. The bond lengths are written to <code>pyrolite.a13.T3000K.maximum_bonds.inp</code>; add <code>-v</code> to check them in a plot and correct them by clicking.</p>
+
+<pre><code>python3 ../MAGMATOMIX-UMD_package/src/bonding_umd.py -f pyrolite.a13.T3000K.umd.dat -c pyrolite.a13.T3000K.maximum_bonds.inp
+python3 ../MAGMATOMIX-UMD_package/src/speciation_and_angles.py -f pyrolite.a13.T3000K.umd.dat -b pyrolite.a13.T3000K.bonding.dat -c Si,Al -a O -r 1 -t 1</code></pre>
+<p>The bonds of every snapshot, then the chemical species around Si and Al with their lifetimes and angles: SiO<sub>4</sub> tetrahedra 69 % of the time, then AlO<sub>4</sub>, SiO<sub>5</sub> and SiO<sub>3</sub> (file <code>pyrolite.a13.T3000K.r1.stat.dat</code>).</p>
+
+<pre><code>python3 ../MAGMATOMIX-UMD_package/src/msd_umd.py -f pyrolite.a13.T3000K.umd.dat</code></pre>
+<p>Mean square displacements and diffusion coefficients with errors: D(Si) = 6.3 ± 0.6 × 10<sup>−9</sup> m²/s, D(O) = 10.6 ± 0.9 × 10<sup>−9</sup> m²/s.</p>
+
+<pre><code>python3 ../MAGMATOMIX-UMD_package/src/umd2out.py -f pyrolite.a13.T3000K.umd.dat -r xyz -s 10</code></pre>
+<p>Every tenth snapshot as an extended XYZ trajectory, to watch the melt in <a href="https://www.ovito.org">OVITO</a> or <a href="https://www.ks.uiuc.edu/Research/vmd/">VMD</a>.</p>
+
+<pre><code>python3 ../MAGMATOMIX-UMD_package/src/umd_workflow.py -f pyrolite.a13.T3000K.umd.dat</code></pre>
+<p>Or everything at once: checks, structure, speciation, diffusion, viscosity, vibrations and thermodynamics in about 15 seconds, summarized in <code>umd_workflow.summary.dat</code>.</p>
+
+<p>Every script lists its options with <code>-h</code>. The <a href="https://github.com/rcaracas/MAGMATOMIX-UMD_package/raw/master/documentation/umd-quick-help.pdf">quick help</a> (two pages, PDF) has one card per script with a typical command and its outputs.</p>

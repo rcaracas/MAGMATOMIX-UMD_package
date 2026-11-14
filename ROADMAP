@@ -9,6 +9,7 @@ vX.Y.Z => minor improvements, debugging, experimental personal versions
 New parsers (Quantum ESPRESSO, QBox, ...) can come at any time, as vX.Y.Z releases (CP2K: v3.0.1).
 v3.1 (November 2026): rotations_umd.py, orientations of molecular units, their correlations, and their entropy of
 translation and rotation by 2PT, with the volume of a unit from Bader analyses.
+v3.2 (November 2026): an example run with its tutorial (examples/), averages.py without grep (towards Windows).
 
 MAJOR AIMS for the v2.0:
 speciation: chemical (pair) bonds
@@ -21,7 +22,7 @@ CPU-parallelization : snapshots given to worker processes in batches sized from 
 removal of the graphical interface (UMD_GUI.py) : set aside in the gui folder, v2.11
 validation of all the scripts on reference test data : the validation suite (validation/), v2.12
 
-MAJOR AIMS for the v3.Y versions (from v3.2): large systems, up to 1 billion atoms
+MAJOR AIMS for the v3.Y versions (from v3.3): large systems, up to 1 billion atoms
 Aim: UMD runs on systems of up to 10^9 atoms (large classical and machine-learning
 potential runs), on a workstation for 10^7-10^8 atoms and on a cluster node beyond.
 
@@ -43,22 +44,22 @@ What blocks it now (November 2026):
 - text formats with one line per atom (.umd.dat, .bonding.dat): unworkable beyond ~10^8 atoms
 
 Plan, one v3.Y release per step, each checked against the validation suite:
-v3.2 - measure and remove the hard limits (no change of format):
+v3.3 - measure and remove the hard limits (no change of format):
   - large synthetic runs in validation/synthetic.py (fcc, ideal gas; 10^5, 10^6, 10^7
     atoms) and a --large level of the validation suite
   - time and peak memory of every script against the number of atoms: where each breaks
   - 64-bit counts, indices and lengths in the C libraries
   - clusters by union-find (no recursion, nearly linear in the number of bonds)
-v3.3 - linear time per snapshot:
+v3.4 - linear time per snapshot:
   - g(r) with sub-cells (neighbour lists), as c_bonds_full for the bonds; the histograms
     are integer counts, so the results stay identical
   - g(r), bonding and clusters all linear in the number of atoms
-v3.4 - memory bounded by a budget, not by the length of the run:
+v3.5 - memory bounded by a budget, not by the length of the run:
   - speciation keeps only the species alive and writes each one when its life ends
   - MSD, vibrations and cluster MSDs by chunks of atoms, one pass over the file per chunk
     (read_atoms_at with a range of atoms)
   - optional MSD on a random sample of the atoms (enough for D)
-v3.5 - a binary format, as a new file type (e.g. <base>.umdb), never a change of .umd.dat:
+v3.6 - a binary format, as a new file type (e.g. <base>.umdb), never a change of .umd.dat:
   a .umd.dat without its atom lines would break the readers of former versions
   - text header and snapshot fields; the atoms in fixed-width binary columns; an index of
     the snapshot offsets; read by memory mapping (numpy memmap)
@@ -67,7 +68,7 @@ v3.5 - a binary format, as a new file type (e.g. <base>.umdb), never a change of
   - a binary bonding file (lists of bonds per snapshot)
   - binary is not much smaller than text (96 bytes per atom in double precision against
     ~130): the gains are no parsing, only the columns needed, and fast access by atom
-v3.6 - one snapshot split by regions (domain decomposition): workers take slabs of the cell
+v3.7 - one snapshot split by regions (domain decomposition): workers take slabs of the cell
   with a margin of r_max or of the bond cutoff; clusters crossing the slab borders joined by
   union-find; needs the binary format, to read a slab without parsing the whole snapshot
 
