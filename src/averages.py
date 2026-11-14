@@ -59,6 +59,8 @@ def grep_pattern(FileName, Pattern, SkipSteps, required=True, lines=None):
             greps=subprocess.check_output(['grep',Pattern,FileName],env=dict(os.environ,LC_ALL='C')).decode("utf-8").split('\n')#3x faster than in a UTF-8 locale
         except subprocess.CalledProcessError:
             greps = []
+        except OSError:                                                 #no grep (Windows) : the same lines read in Python
+            greps = grep_lines(FileName,[Pattern])[Pattern]
     else:
         greps = lines
     if not greps:
