@@ -7,7 +7,7 @@ Created on Fri Jun 16 12:22:44 2023
 """
 
 
-import sys, os.path, re, glob, collections, itertools
+import sys, os.path, re, glob, collections, itertools, gzip, json, shutil, tempfile, atexit, signal
 import crystallography as cr
 from functools import partial
 import concurrent.futures
@@ -30,6 +30,70 @@ read_lib.umd_read_at.argtypes = [ctypes.c_char_p,ctypes.c_int64,ctypes.c_long,ct
 read_lib.umd_read_at.restype = ctypes.c_long
 read_lib.umd_index.argtypes = [ctypes.c_char_p,ctypes.c_long,ctypes.c_long,ctypes.c_void_p,ctypes.c_void_p]
 read_lib.umd_index.restype = ctypes.c_long
+
+#Compressed UMD files (<base>.umd.dat.gz) : umd_input decompresses one into a temporary file (in the folder of the system for temporary files, or
+#TMPDIR : never next to the run, which may be in a synchronized folder), removed at the end of the run ; the script works under the name
+#<base>.umd.dat, so its outputs have their usual names, next to the .gz, which is never changed. The names and their temporary files are kept in
+#the environment variable UMD_GZ_INPUTS, inherited by the worker processes and by the scripts run by umd_workflow.py (decompressed once there).
+_GZ_ENV = 'UMD_GZ_INPUTS'
+_gz_created = []                #(name, temporary folder) decompressed by this process
+
+def _gz_inputs():
+    try:
+        return json.loads(os.environ.get(_GZ_ENV,'{}'))
+    except ValueError:
+        return {}
+
+def real_path(path):#The file to read for a UMD file name : the temporary decompressed copy when the run is <name>.gz, else the name itself
+    entry = _gz_inputs().get(os.path.abspath(path)) if path else None
+    return entry[0] if entry else path
+
+def source_path(path):#The file the data of a UMD file name come from : <name>.gz when decompressed (for its date), else the name itself
+    entry = _gz_inputs().get(os.path.abspath(path)) if path else None
+    return entry[1] if entry else path
+
+def umd_input(name):#The name under which a script works on its UMD file -f : <base>.umd.dat.gz is decompressed into a temporary file and its name
+    #<base>.umd.dat is returned (read through real_path) ; any other name is returned as it is
+    if not name or not name.endswith('.gz') or not os.path.isfile(name):
+        return name
+    logical = name[:-3]
+    key = os.path.abspath(logical)
+    inputs = _gz_inputs()
+    if key in inputs and os.path.isfile(inputs[key][0]):
+        return logical
+    start = time.time()
+    folder = tempfile.mkdtemp(prefix='umd_gz_')
+    temp = os.path.join(folder,os.path.basename(logical))
+    _gz_created.append((key,folder))
+    if len(_gz_created) == 1:
+        atexit.register(release_inputs)
+        if signal.getsignal(signal.SIGTERM) == signal.SIG_DFL:          #killed : the temporary files are removed too
+            signal.signal(signal.SIGTERM,lambda signum, frame: sys.exit(1))
+    try:
+        with gzip.open(name,'rb') as fi, open(temp,'wb') as fo:
+            shutil.copyfileobj(fi,fo,16*2**20)
+    except (OSError, EOFError) as error:
+        print('Cannot decompress',name,':',error,'(a damaged .gz file, or no space left in',os.path.dirname(folder),': set TMPDIR to another folder)')
+        release_inputs(key)
+        sys.exit(1)
+    inputs[key] = [temp,os.path.abspath(name)]
+    os.environ[_GZ_ENV] = json.dumps(inputs)
+    print('decompressed',name,'(%.0f MB) into a temporary file in %.1f s ; it is removed at the end' % (os.path.getsize(temp)/2**20,time.time()-start))
+    return logical
+
+def release_inputs(key=None):#Removes the temporary files decompressed by this process (key : only that of the absolute name key)
+    inputs = _gz_inputs()
+    for k, folder in list(_gz_created):
+        if key is None or k == key:
+            shutil.rmtree(folder,ignore_errors=True)
+            inputs.pop(k,None)
+            _gz_created.remove((k,folder))
+    os.environ[_GZ_ENV] = json.dumps(inputs)
+
+def umd_files(folder=''):#The UMD files of a folder (default the current one), sorted : *.umd.dat, and *.umd.dat.gz unless the same run is also there
+    plain = glob.glob(os.path.join(folder,'*.umd.dat'))                     #uncompressed
+    return sorted(plain+[f for f in glob.glob(os.path.join(folder,'*.umd.dat.gz')) if f[:-3] not in plain])
+
 
 COLUMNS = {'xred':(0,3), 'xcart':(3,3), 'absxcart':(6,3), 'velocity':(9,3), 'everything':(0,12)}   #first column and number of columns of the atom lines
 
@@ -55,6 +119,7 @@ def read_bonds_batch(octets,CentIndexes,AdjIndexes,File,natom):#The bonds of a b
 
 def Octets_from_File(File,key,nlines):#Byte offsets of the snapshots of a file : after each line beginning with key, and the end of the file (nlines
     OctIndexes = []                   #lines, the atoms, follow each key line)
+    File = real_path(File)
     print("Preparing the file ",File," to be read...")
     with open(File,"rb") as ff:
         key = key.encode()
@@ -74,7 +139,8 @@ def Crystallization(File):#The header of a UMD file (or of a bonding file) and t
     #elements, masses, zelec, typat, noelectrons, lambda_ThermoInt, origin, acell, rprim, rprimd) and the timestep (fs ; 0.0 when absent)
     MyCrystal = cr.Lattice()
     TimeStep = 0.0
-    with open(File,"r") as ff:
+    path = real_path(File)
+    with (gzip.open(path,"rt") if path.endswith('.gz') else open(path,"r")) as ff:     #the header of a .gz is read without decompressing it all
         for line in ff:
             entry = line.split()
             if len(entry) == 0:
@@ -120,7 +186,7 @@ def Crystallization(File):#The header of a UMD file (or of a bonding file) and t
 
 def count_snapshots(UMDfile,natom):#Number of complete snapshots of a UMD file (a last snapshot cut short, by a run still being written, is left out)
     total = ctypes.c_long(0)
-    nsnap = read_lib.umd_count(os.fsencode(UMDfile),natom,ctypes.byref(total))
+    nsnap = read_lib.umd_count(os.fsencode(real_path(UMDfile)),natom,ctypes.byref(total))
     if nsnap < 0:
         print('Cannot open',UMDfile)
         sys.exit()
@@ -134,7 +200,7 @@ def read_atoms(UMDfile,natom,first,last,sampling,col0,ncol,cells=False):#Columns
     nsel = max(0,-(-(last-first)//sampling))
     values = np.empty((nsel,natom,ncol))
     cellvalues = np.empty((nsel,3,3)) if cells else None
-    nread = read_lib.umd_read(os.fsencode(UMDfile),natom,first,last,sampling,col0,ncol,values.ctypes.data,cellvalues.ctypes.data if cells else None)
+    nread = read_lib.umd_read(os.fsencode(real_path(UMDfile)),natom,first,last,sampling,col0,ncol,values.ctypes.data,cellvalues.ctypes.data if cells else None)
     if nread == -1:
         print('Cannot open',UMDfile)
         sys.exit()
@@ -185,11 +251,11 @@ def read_cells(UMDfile,nsnap,Nsteps=1,firststep=0):#Lattice vectors (rows a, b, 
 
 def index_snapshots(UMDfile,natom):#In one pass in C : the byte offset of every complete snapshot (int64 array, for read_atoms_at) and its
     #lattice vectors (array snapshot x 3 x 3 : rprimd, else acell, else NaN)
-    guess = os.path.getsize(UMDfile)//(10*max(1,natom))+1           #an atom line has at least 10 characters : more than the snapshots
+    guess = os.path.getsize(real_path(UMDfile))//(10*max(1,natom))+1           #an atom line has at least 10 characters : more than the snapshots
     while True:
         offsets = np.empty(guess,dtype=np.int64)
         cells = np.empty((guess,3,3))
-        nsnap = read_lib.umd_index(os.fsencode(UMDfile),natom,guess,offsets.ctypes.data,cells.ctypes.data)
+        nsnap = read_lib.umd_index(os.fsencode(real_path(UMDfile)),natom,guess,offsets.ctypes.data,cells.ctypes.data)
         if nsnap < 0:
             print('Cannot open',UMDfile)
             sys.exit()
@@ -201,7 +267,7 @@ def read_atoms_at(UMDfile,offset,natom,nsnap,sampling,col0,ncol,cells=False):#As
     #snapshot at the byte offset (index_snapshots) : a worker reads its own snapshots, without reading the file from its beginning
     values = np.empty((nsnap,natom,ncol))
     cellvalues = np.empty((nsnap,3,3)) if cells else None
-    nread = read_lib.umd_read_at(os.fsencode(UMDfile),int(offset),natom,0,(nsnap-1)*sampling+1,sampling,col0,ncol,values.ctypes.data,cellvalues.ctypes.data if cells else None)
+    nread = read_lib.umd_read_at(os.fsencode(real_path(UMDfile)),int(offset),natom,0,(nsnap-1)*sampling+1,sampling,col0,ncol,values.ctypes.data,cellvalues.ctypes.data if cells else None)
     if nread == -1:
         print('Cannot open',UMDfile)
         sys.exit()
@@ -242,7 +308,7 @@ def ordered_map(func,tasks,nworkers=None,ahead=2):#func(task) of every task in w
 def read_snapshots(UMDfile,natom,first=0,sampling=1,fields=None,atoms=True):#Line by line, any file size : yields (snapshot, fields, atoms) for every
     #snapshot ; fields = {name : list of the numbers of its line} (the names of fields, default all), atoms = array natom x columns (reduced*3,
     #cartesian*3, unwrapped*3, velocity*3, force*3, charge, magnetization) of every sampling-th snapshot from first on, None for the others
-    with open(UMDfile,'r') as f:
+    with open(real_path(UMDfile),'r') as f:
         values = None
         isnap = -1
         for line in f:
@@ -413,7 +479,7 @@ def headerumd():#once per run, also when a script runs on several files (-f all)
         return
     _headerdone = True
     print ('\n * * * * * ')
-    print ('    UMD package for analyzing Molecular Dynamics simulations, version 3.2')
+    print ('    UMD package for analyzing Molecular Dynamics simulations, version 3.3')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
     print ('https://github.com/rcaracas/MAGMATOMIX-UMD_package')
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')
@@ -421,7 +487,7 @@ def headerumd():#once per run, also when a script runs on several files (-f all)
     print (' ')
 
 def missing_umd(name):#The message of the scripts when their UMD file -f is not given or does not exist
-    print(('no UMD file' if not name else 'the UMD file '+name+' does not exist')+' : give it with -f <file>, or -f all for every *.umd.dat file of the folder')
+    print(('no UMD file' if not name else 'the UMD file '+name+' does not exist')+' : give it with -f <file> (also <file>.gz), or -f all for every *.umd.dat (and .umd.dat.gz) file of the folder')
 
 def run_on_all(argv,main,paired={},single=()):#-f all : main is run once for each *.umd.dat file of the current folder, with -f <file>.
     #paired : options taken for each file from its base, e.g. {'-b':'.bonding.dat'} ; single : options that cannot be given then (one output
@@ -435,14 +501,14 @@ def run_on_all(argv,main,paired={},single=()):#-f all : main is run once for eac
         if opt in args:
             print('with -f all,',opt,'cannot be given'+(' : each file takes <base>'+paired[opt] if opt in paired else ' : it would be the same for all the files'))
             sys.exit(2)
-    files = sorted(glob.glob('*.umd.dat'))
+    files = umd_files()
     if not files:
-        print('no *.umd.dat file in the current folder')
+        print('no *.umd.dat (or .umd.dat.gz) file in the current folder')
         sys.exit()
     k = args.index('-f')
     stopped = []
     for i, f in enumerate(files):
-        base = f[:-8]
+        base = f[:-11] if f.endswith('.gz') else f[:-8]
         print('\n========== '+f+'  ('+str(i+1)+'/'+str(len(files))+')')
         try:
             main(args[:k+1]+[f]+args[k+2:]+[x for opt,suffix in paired.items() for x in (opt,base+suffix)])
@@ -453,6 +519,7 @@ def run_on_all(argv,main,paired={},single=()):#-f all : main is run once for eac
             print('\nERROR on',f,':',type(e).__name__,e)
             stopped.append(f)
         finish_outputs(f not in stopped)
+        release_inputs()                                                #the temporary file of a .gz, before the next file
     print('\n========== '+str(len(files))+' UMD files : '+', '.join(files)+((' ; stopped with an error : '+', '.join(stopped)) if stopped else ''))
     return True
 
@@ -469,7 +536,8 @@ RUN_OUTPUTS = [r'\.check\.dat', r'\.overlap\.dat',                              
                r'\.bonding\.dat',                                                                         #bonding_umd.py
                r'\.r\d+\.(?:popul|stat|step)\.dat', r'\.angles\.dat', r'\.bondslives\.dat',               #speciation_and_angles.py
                r'\.[A-Z][A-Za-z0-9]*\.rot(?:\.(?:pair|shell|time|map|2pt))?\.dat',                             #rotations_umd.py : <base>.<unit>
-               r'\.r\d+\.(?:liquid|vapor)\.(?:popul|stat)\.dat',                                           #liquid_and_vapor_speciation.py
+               r'\.comp\.\d+x\d+x\d+(?:\.(?:dist|density|voids|time|subcells|cell\d+_\d+_\d+|subcell_\d+_\d+_\d+))?\.dat',#composition_umd.py before its folder (2026-11-14, never released)
+               r'\.r\d+\.(?:liquid|vapor)\.(?:popul|stat)\.dat',                                           #exchange_umd.py -P (formerly liquid_and_vapor_speciation.py)
                r'\.r\d+(?:\.(?:liquid|vapor))?(?:\.(?:liquid|vapor))?\.lifetimes\.pdf',                    #lifetimes.py
                r'\.r\d+(?:\.(?:liquid|vapor))?__[A-Za-z0-9_]+\.msd\.dat',                                   #msd_clusters_umd.py
                r'\.msd\.dat', r'\.msd\.blocks\.dat', r'\.diffusion\.dat', r'\.diffusion\.tensor\.dat',       #msd_umd.py
@@ -477,8 +545,12 @@ RUN_OUTPUTS = [r'\.check\.dat', r'\.overlap\.dat',                              
                r'\.vels\.scf\.dat', r'\.vibr\.dat', r'\.vibr\.axes\.dat', r'\.vibr\.err\.dat', r'\.vacf\.diffusion\.dat',#vibrations_umd.py
                r'\.vdos\.thermo\.dat', r'\.2pt\.dat',                                                      #vdos_thermo.py
                r'(?:\.\d+)?\.xyz', r'(?:\.\d+)?\.lammpstrj', r'\._\d+_\.POSCAR\.vasp', r'\._\d+_\.lammps\.data']#umd2out.py
-RUN_FOLDERS = [r'(?:\.\d+)?\.deepmd']                                    #umd2out.py : the files it writes inside (DEEPMD_FILES)
 DEEPMD_FILES = [r'type\.raw', r'type_map\.raw', r'set\.\d{3}/(?:box|coord|energy|force|virial)\.npy']
+COMP_FILES = [r'(?:summary|dist|density|voids|time|fluctuations|episodes|exchange|exchange_atoms|fluxes|regions|subcells)\.dat', r'subcell_\d+_\d+_\d+\.dat']
+EXCHANGE_FILES = [r'(?:summary|stays|atoms|fluxes|states|interface|paths|gas|molecules)\.dat']   #exchange_umd.py
+RUN_FOLDERS = [(r'(?:\.\d+)?\.deepmd',DEEPMD_FILES),                             #umd2out.py : <base>.deepmd and the files it writes inside
+               (r'\.comp\.\d+x\d+x\d+',COMP_FILES),                                 #composition_umd.py : <base>.comp.<grid>
+               (r'\.exchange(?:\.clusters)?',EXCHANGE_FILES)]                                         #exchange_umd.py : <base>.exchange
 FOLDER_OUTPUTS = [r'gofrs_summary\.txt',                                   #analyze_gofr.py
                   r'diffusivities\.txt', r'diffusivities_clusters\.txt',  #analyze_msd.py, analyze_msd_clusters.py
                   r'fullthermo\.dat',                                      #averages.py -a
@@ -489,19 +561,20 @@ FOLDER_OUTPUTS = [r'gofrs_summary\.txt',                                   #anal
 
 def umd_outputs(folder):#The outputs of the package in folder (paths relative to it), from the UMD files there : never a UMD file, never a file
     names = sorted(os.listdir(folder or os.curdir))                      #whose name is not that of an output
-    bases = [n[:-8] for n in names if n.endswith('.umd.dat')]
+    bases = [n[:-8] for n in names if n.endswith('.umd.dat')]+[n[:-11] for n in names if n.endswith('.umd.dat.gz') and n[:-3] not in names]
     builds = [b for b in bases if re.fullmatch(r'.*\.build\d+',b)]     #build_umd.py writes <base>.build<k>.xyz with its UMD file : kept with it
     found = []
     for n in names:
         path = os.path.join(folder,n)
-        if n.endswith('.umd.dat') or n in [b+'.xyz' for b in builds]:
+        if n.endswith('.umd.dat') or n.endswith('.umd.dat.gz') or n in [b+'.xyz' for b in builds]:
             continue
         if os.path.isdir(path) and not os.path.islink(path):
-            if any(re.fullmatch(re.escape(b)+pattern,n) for b in bases for pattern in RUN_FOLDERS):
+            inside = [files for pattern, files in RUN_FOLDERS if any(re.fullmatch(re.escape(b)+pattern,n) for b in bases)]
+            if inside:#only the files the script writes there : anything else in the folder is kept
                 for sub, dirs, files in os.walk(path):
                     for f in sorted(files):
                         rel = os.path.relpath(os.path.join(sub,f),path).replace(os.sep,'/')
-                        if any(re.fullmatch(pattern,rel) for pattern in DEEPMD_FILES):
+                        if any(re.fullmatch(pattern,rel) for pattern in inside[0]):
                             found.append(os.path.join(n,rel))
         elif any(re.fullmatch(pattern,n) for pattern in FOLDER_OUTPUTS) or \
              any(re.fullmatch(re.escape(b)+pattern,n) for b in bases for pattern in RUN_OUTPUTS):
@@ -646,7 +719,7 @@ def print_snapshots(FileName,MyCrystal,TimeStep,CurrentTime,diffcoords):#Appends
 
 def copyhead(Target,File,Nsteps,first=0):#Writes to Target the lines of File before its first "atoms:" line (header and fields of the first snapshot), the
     #timestep multiplied by Nsteps, and when first > 0 a line first_snapshot (the snapshot of File where the snapshots of Target start)
-    with open(File,"r") as ff, open(Target,"w") as fa:
+    with open(real_path(File),"r") as ff, open(Target,"w") as fa:
         for line in ff:
             l = line.split()
             if len(l)>0 :

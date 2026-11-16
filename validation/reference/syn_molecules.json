@@ -1,0 +1,67 @@
+{
+ "about": "synthetic H2 and He jumping between an Ar slab and the gas, bonds from bonding_umd.py : molecular events, gas and pressure ; -m clusters",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py molecules",
+   "code": 0,
+   "time": 3.65
+  },
+  {
+   "command": "bonding_umd.py -f molecules.umd.dat -c molecules.cutoffs.inp",
+   "code": 0,
+   "time": 0.37
+  },
+  {
+   "command": "exchange_umd.py -f molecules.umd.dat -g H,He -t 0",
+   "code": 0,
+   "time": 5.79
+  },
+  {
+   "command": "exchange_umd.py -f molecules.umd.dat -g H,He -t 0 -m clusters",
+   "code": 0,
+   "time": 6.15
+  }
+ ],
+ "numbers": {
+  "molecules H2 evaporations = H / 2": 369.0,
+  "molecules H2 condensations = H / 2": 373.0,
+  "molecules He evaporations = He": 386.0,
+  "molecules H2 in the gas = H / 2": 6.57,
+  "molecules H2 pressure = H / 2": 0.016124,
+  "molecules some exchange": 1.0,
+  "molecules clusters : Ar condensed": 1.0,
+  "molecules clusters : H gas": 1.0,
+  "molecules clusters : He gas": 1.0,
+  "molecules clusters : no exchange of H": 0.0
+ },
+ "files": {
+  "molecules.truth.json": "fd1b77c82e78b3378d02f6e3983a45ae7b6b41ed22c47cc30e05870d4db59ec8",
+  "molecules.bonding.dat": "2d51be3f46e8bbb76c8bfc7e84e6bb84625a3a4d1276917a9cb22fc901428e30",
+  "molecules.umd.dat": "0906c8224c1f043acbc796ac9af7640210e88306da4e2738cfe8195b2deae245",
+  "molecules.cutoffs.inp": "7a638ab74d4f8bb4b74c7b7b477c7c93ff3de06482a8849cf517cbc132a2a9f4",
+  "molecules.exchange/states.dat": "3d13fb31d9777bf1c9217f4bc069aa0fe96ec7487a272d5dd68104976e812488",
+  "molecules.exchange/fluxes.dat": "403c9aa38e5594393d2ab1ab01033e21913d996ea3ee0e14c1686587ff028097",
+  "molecules.exchange/paths.dat": "15c510a9f7ea1c1def099c4ffde1e014864035780bf0d96f677f3ec2471c6569",
+  "molecules.exchange/stays.dat": "77b47d15deb74292a24cf08771d80508157211d73652544c6f064f41f1e37bf0",
+  "molecules.exchange/gas.dat": "bfaf25854652681b2fa5300d8a3beff08607afa3ff9fffc2b900521844ef39fe",
+  "molecules.exchange/molecules.dat": "1402a28ecb43ef6cd50bb4313e3f7d0f9fa1b16adbed6929ec1806c153f88638",
+  "molecules.exchange/atoms.dat": "dd57f6db091ae3cfdf34094d17abb8ab7d58d43ed2f4eab8c28433bb008aff3b",
+  "molecules.exchange/summary.dat": "9f4d51961df1b8e0f4d82f77669f04875635ccbed92659061d850a91f075e76b",
+  "molecules.exchange.clusters/states.dat": "3d13fb31d9777bf1c9217f4bc069aa0fe96ec7487a272d5dd68104976e812488",
+  "molecules.exchange.clusters/fluxes.dat": "ce35de2d8919f25d6bdad805d9c96d39f4b3a941e0407314d132e4141fd3da8e",
+  "molecules.exchange.clusters/paths.dat": "15c510a9f7ea1c1def099c4ffde1e014864035780bf0d96f677f3ec2471c6569",
+  "molecules.exchange.clusters/stays.dat": "ed93f1daab6c7e910e994aa94bd6c13cbaa3411f1d7ae4189159cc04410663c6",
+  "molecules.exchange.clusters/gas.dat": "bfaf25854652681b2fa5300d8a3beff08607afa3ff9fffc2b900521844ef39fe",
+  "molecules.exchange.clusters/molecules.dat": "b41deb51565d3f8db690d7b3f80631cd18fbe3359f27439a1f4cb37912f104d0",
+  "molecules.exchange.clusters/atoms.dat": "7cebcd2e93787f9b88775f8576c0d939a7799f07017d40a9ff504951bb027c11",
+  "molecules.exchange.clusters/summary.dat": "5b38743c226a75646bce3df9e6ce683342bfbb6e3815e526588415a8a7d14939"
+ }
+}

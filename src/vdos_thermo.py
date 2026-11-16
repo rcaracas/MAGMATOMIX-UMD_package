@@ -26,7 +26,7 @@ def read_umd_header(umdfile):#Elements, number of atoms and masses (amu) of each
     elements = None
     types = None
     masses = None
-    with open(umdfile,'r') as f:
+    with open(umdpf.real_path(umdfile),'r') as f:
         for line in f:
             entry = line.split()
             if len(entry) > 0 and entry[0] == 'elements':
@@ -43,7 +43,7 @@ def read_umd_header(umdfile):#Elements, number of atoms and masses (amu) of each
 def mean_volume(umdfile):#Mean volume of the cell (A^3) over the snapshots, from the rprimd lines
     volumes = []
     cell = []
-    with open(umdfile,'r') as f:
+    with open(umdpf.real_path(umdfile),'r') as f:
         for line in f:
             if line.startswith('rprimd_'):
                 entry = line.split()
@@ -194,7 +194,8 @@ def main(argv):
                 print('ERROR : the temperatures -t have to be strictly positive.')
                 sys.exit()
 
-    if not os.path.isfile(umdfile):
+    umdfile = umdpf.umd_input(umdfile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(umdfile)):
         umdpf.missing_umd(umdfile)
         sys.exit()
     base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
@@ -221,7 +222,7 @@ def main(argv):
         if found:
             fwhm = float(found.group(1))
     if Tvdos is None:#vibr.dat has no comments : the mean temperature of the UMD file, as used by vibrations_umd.py by default
-        T = [float(line.split()[1]) for line in open(umdfile) if line.startswith('Temperature')]
+        T = [float(line.split()[1]) for line in open(umdpf.real_path(umdfile)) if line.startswith('Temperature')]
         Tvdos = np.mean(T)
     if temperatures is None:
         temperatures = [Tvdos]

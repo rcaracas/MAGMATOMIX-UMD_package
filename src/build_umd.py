@@ -455,7 +455,7 @@ def extract(UMDname,arg,first,sampling,outname):#Trajectory of the selected atom
               'masses': ' '.join(str(MyCrystal.masses[t]) for t in present)+' ', 'Zelectrons': ' '.join(str(MyCrystal.zelec[t]) for t in present)+' ',
               'no.of.electrons': str(sum(MyCrystal.zelec[t]*n for t,n in zip(present,counts))), 'typat': ' '.join(str(t) for t in newtypat)+' '}
     written = 0
-    with open(UMDname,'r') as fin, open(outname,'w') as fout:
+    with open(umdpf.real_path(UMDname),'r') as fin, open(outname,'w') as fout:
         isnap = -1
         block = []
         inheader = True
@@ -672,11 +672,12 @@ def main(argv):
         elif opt == '--name':
             name = arg
 
+    infile = umdpf.umd_input(infile)                                    #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
     if extraction is not None:
         if operations or box is not None:
             print('--extract writes a trajectory : it cannot be combined with the operations or with -a')
             sys.exit()
-        if not os.path.isfile(infile):
+        if not os.path.isfile(umdpf.real_path(infile)):
             print('the UMD file',infile,'does not exist')
             sys.exit()
         nsnap = count_snapshots(infile)
@@ -689,11 +690,11 @@ def main(argv):
     if box is not None:
         inputs = [(None,Structure(np.diag(box),[],np.zeros((0,3)),np.zeros((0,3)),'empty box'))]
         base = name or 'box'
-    elif not os.path.isfile(infile):
+    elif not os.path.isfile(umdpf.real_path(infile)):
         print('the input file',infile,'does not exist : give a UMD or POSCAR file with -f, or an empty box with -a')
         sys.exit()
     else:
-        with open(infile,'r') as f:
+        with open(umdpf.real_path(infile),'r') as f:
             isumd = f.readline().split()[:1] == ['natom']
         if isumd:
             inputs, zelec = read_umd(infile,first,sampling)

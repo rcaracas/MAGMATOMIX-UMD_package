@@ -112,7 +112,8 @@ def main(argv):
             adjacent = arg
         elif opt in ("-k","--knCores"):
             nCores = int(arg)
-    if not os.path.isfile(umdfile):
+    umdfile = umdpf.umd_input(umdfile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(umdfile)):
         umdpf.missing_umd(umdfile)
         sys.exit()
     MyCrystal = umdpf.Crystallization(umdfile)[0]
@@ -165,7 +166,7 @@ def main(argv):
     #of a snapshot (the memory holds one batch per process). Not threads : the C reader (strtod) then spends its time on a lock of the system
     nworkers = max(1,min(nCores if nCores is not None else (os.cpu_count() or 1),nsnap))
     blocks = [block for block in np.array_split(np.arange(nsnap),nworkers) if len(block)]
-    snapbytes = (os.path.getsize(umdfile)-offsets[0])/nsnap
+    snapbytes = (os.path.getsize(umdpf.real_path(umdfile))-offsets[0])/nsnap
     batch = max(1,int(umdpf.BATCH_BYTES//max(1,snapbytes)))
     worker = partial(block_histograms,umdfile=umdfile,offsets=offsets,natom=natom,Nsteps=Nsteps,keep=keep,typat=typat,ntypes=ntypes,cells=cells,
                      invcells=np.linalg.inv(cells),volumes=volumes,dr=discrete,nbins=nbins,batch=batch)

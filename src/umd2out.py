@@ -259,7 +259,8 @@ def main(argv):
             formats = [FORMATS.get(x.strip(),x.strip().lower()) for x in arg.split(',')]
         elif opt == '-u':
             unwrapped = True
-    if not os.path.isfile(UMDname):
+    UMDname = umdpf.umd_input(UMDname)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(UMDname)):
         umdpf.missing_umd(UMDname)
         sys.exit()
     for fmt in formats:

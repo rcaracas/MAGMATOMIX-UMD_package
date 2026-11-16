@@ -135,7 +135,8 @@ def main(argv):
             for item in arg.split(','):
                 el, q = item.split(':')
                 charges[el] = float(q)
-    if not os.path.isfile(umdfile):
+    umdfile = umdpf.umd_input(umdfile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(umdfile)):
         umdpf.missing_umd(umdfile)
         sys.exit()
     if radiusfile and not os.path.isfile(radiusfile):

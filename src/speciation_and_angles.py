@@ -352,7 +352,8 @@ def main(argv):
         print ('give the central (-c) and adjacent (-a) elements')
         sys.exit()
 
-    if flagangles==1 and (not (os.path.isfile(UMDFile))):
+    UMDFile = umdpf.umd_input(UMDFile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if flagangles==1 and (not (os.path.isfile(umdpf.real_path(UMDFile)))):
         umdpf.missing_umd(UMDFile)
         sys.exit()
 

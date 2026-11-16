@@ -1,0 +1,89 @@
+{
+ "about": "synthetic grids : ideal mixing (variance / binomial 1, correlation 0, time correlation 0.9^t), segregated halves (ratio 2), a hole across the periodic faces (voids, densities, partition)",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py composition",
+   "code": 0,
+   "time": 4.75
+  },
+  {
+   "command": "composition_umd.py -f comp_ideal.umd.dat -n 4",
+   "code": 0,
+   "time": 2.52
+  },
+  {
+   "command": "composition_umd.py -f comp_segregated.umd.dat -n 4",
+   "code": 0,
+   "time": 2.12
+  },
+  {
+   "command": "composition_umd.py -f comp_hole.umd.dat -n 4 -g He",
+   "code": 0,
+   "time": 1.72
+  }
+ ],
+ "numbers": {
+  "comp_ideal variance / binomial Ar": 0.9765,
+  "comp_ideal variance / binomial Ne": 1.0277,
+  "comp_ideal variance / binomial all": 0.9998,
+  "comp_ideal correlation Ar-Ne": 0.0029,
+  "comp_segregated variance / binomial Ar": 1.9988,
+  "comp_segregated variance / binomial Ne": 2.0032,
+  "comp_segregated variance / binomial all": 0.9851,
+  "comp_segregated correlation Ar-Ne": -0.5077,
+  "comp_ideal 1/e time of the counts of Ar": 9.464,
+  "comp_ideal 1/e time of the counts of Ne": 9.643,
+  "comp_ideal 1/e time of the counts of all": 9.681,
+  "comp_hole void_fraction": 0.125,
+  "comp_hole void_regions": 1.0,
+  "comp_hole dense_regions": 1.0,
+  "comp_hole largest_void": 1130.1,
+  "comp_hole largest_dense": 7910.5,
+  "comp_hole largest_dense_melt_fraction": 1.0,
+  "comp_hole dense_density": 4.696,
+  "comp_hole void_density": 0.11763,
+  "comp_hole melt_density": 4.696,
+  "comp_hole fraction of Ar in the voids": 0.0,
+  "comp_hole fraction of Ar in the largest dense region": 1.0,
+  "comp_hole fraction of He in the voids": 1.0,
+  "comp_hole fraction of He in the largest dense region": 0.0
+ },
+ "files": {
+  "comp_ideal.umd.dat": "647b952de33734544976dc23ee68cdb1add3ad0a88257d530d315228ce6d5906",
+  "comp_hole.umd.dat": "c16bc2225f4d307a1132e360e152b5a17d786d59b3011f754f8dfd19083a22ac",
+  "comp_segregated.umd.dat": "5c27c4534405680c69d0ee72747b40f78a9fec039612f71f0852fd7baf097d45",
+  "composition.truth.json": "03f77515329e4ddac8505a85f6e37a99a55ce5ce21058332e10d31ff67e104ec",
+  "comp_ideal.comp.4x4x4/time.dat": "c36480efbc3016d9800571d35a41ce68ebeef81b1988fd9f23d8381a14f6a05c",
+  "comp_ideal.comp.4x4x4/density.dat": "00a05d16d417fb5adb707de5cb3bf05f34c5f15c724bdaced6fae34086b0f245",
+  "comp_ideal.comp.4x4x4/fluctuations.dat": "fd31bf006d965885c1cb2bdfd80aa35062a3c44c5c75ad2d1e3388df1af82651",
+  "comp_ideal.comp.4x4x4/dist.dat": "60d368c6994b5daffd95d28c1d92fef845924ff88d7829bb70ab36b9e6425c5a",
+  "comp_ideal.comp.4x4x4/episodes.dat": "c6cbdc9e6713bd0e429093a1aec61a309a1cece9ba30db0108873694edaeb218",
+  "comp_ideal.comp.4x4x4/voids.dat": "f0a1580fdc8530b633da75927758984013ff1d263d6e480f7112a13240ca61d9",
+  "comp_ideal.comp.4x4x4/regions.dat": "6c50f6a5d9f7ac5a8d2e457f29790a8a8e67c7fa43b4a9dab59b2b5ad1c69690",
+  "comp_ideal.comp.4x4x4/summary.dat": "1f7a257b8de3cb182845cc69f73e5cdb9a2d3df07fbb90859718f9f557147eff",
+  "comp_segregated.comp.4x4x4/time.dat": "56ceb03e1936d9ab537b8a137e965e4f00f97ddd56bdc3cc04302f43a0fe6cca",
+  "comp_segregated.comp.4x4x4/density.dat": "1aa92efdab94d842696c12d3a7b3592f07c5e10b17ffa33062e8bbf9b91387c8",
+  "comp_segregated.comp.4x4x4/fluctuations.dat": "d1c4c74248e4c4856c6b45ef8366aa8f389ca671add09e7c36fb20228c682034",
+  "comp_segregated.comp.4x4x4/dist.dat": "488549d86b7d493f8b008f396698128cd273b29d71885c09b71a822a545f348f",
+  "comp_segregated.comp.4x4x4/episodes.dat": "792c9aaa5e6785cbec90364c95a2671cf50a25fda79ef72d896205801b96da4e",
+  "comp_segregated.comp.4x4x4/voids.dat": "cc3a0510943bdb265d693b9453e5a1a22e997560b48bb63a1f8be2a66ba7a12c",
+  "comp_segregated.comp.4x4x4/regions.dat": "7d840dd027d823b6c77e75e03414db305cba6a57a1110a52a20f068a30214463",
+  "comp_segregated.comp.4x4x4/summary.dat": "8a8e594065b4ccca7edd46071eeba7c3ccec2581d7c4569a355498c8e313e98c",
+  "comp_hole.comp.4x4x4/time.dat": "bc599e36cace11906a690f3edd4bb8f100cd3764073d339a4051c4ef3d843b7b",
+  "comp_hole.comp.4x4x4/density.dat": "9f720e15e6d07f16c27a6f8f897c037e85f6dea96f2a6bcff59d2282e8dc0355",
+  "comp_hole.comp.4x4x4/fluctuations.dat": "be290802fffa01d7f6b850fe88d893b41cfd48295faa4bb349783d4b33389165",
+  "comp_hole.comp.4x4x4/dist.dat": "6db5590fd34debd88d48f1e304fbc8afd5057cb87eeef3a8be40717f32d4f08f",
+  "comp_hole.comp.4x4x4/episodes.dat": "8fa3bc3e137c9b7174c86528ed589b71d682d41e1d5fdc71a3d8c35f69a145db",
+  "comp_hole.comp.4x4x4/voids.dat": "7e0e9e51b7a3dd5ee4e5ad1a8f489aca1c08aeee8588d09cf79694883b183da3",
+  "comp_hole.comp.4x4x4/regions.dat": "8e4791fe60d14936f16bb67bb1ac421b69f6c032f6bc92ab01f3d185b90714bf",
+  "comp_hole.comp.4x4x4/summary.dat": "dbb73b8a8a188575eb9abd35726a276136c7ed479d1b994dbc3e7c2903eecabf"
+ }
+}

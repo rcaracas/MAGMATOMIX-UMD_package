@@ -1,0 +1,48 @@
+{
+ "about": "synthetic bubbles of a scripted history (lives, a merge, a split, cut ones) : the regions followed in time exact",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py bubbles",
+   "code": 0,
+   "time": 2.24
+  },
+  {
+   "command": "composition_umd.py -f bubbles.umd.dat -n 6 -g none",
+   "code": 0,
+   "time": 2.08
+  }
+ ],
+ "numbers": {
+  "bubbles complete": 5.0,
+  "bubbles new": 4.0,
+  "bubbles split": 1.0,
+  "bubbles vanished": 5.0,
+  "bubbles merged": 1.0,
+  "bubbles short_lived": 1.0,
+  "bubbles mean lifetime (fs)": 138.0,
+  "bubbles longest lifetime (fs)": 250.0,
+  "bubbles one dense region": 1.0,
+  "bubbles lifetimes of the complete bubbles": 1.0,
+  "bubbles volume of A (A3)": 282.65
+ },
+ "files": {
+  "bubbles.umd.dat": "ae5133abacddcb10d60395d7cec01fa9b8b3b736e6e21c58896791f38267c122",
+  "bubbles.truth.json": "9071b9d8da2134dcb4a673fcbfeeb9e28c380e82c3e3dacd7934389892c62db9",
+  "bubbles.comp.6x6x6/time.dat": "2fb119e30a2be56848948a52401e0f22a794869a9e13d365facef69f2cbd76e5",
+  "bubbles.comp.6x6x6/density.dat": "fec60815d147ec50cd60cbc94055fb77a158d84bc8631c96949c762bdc37fee8",
+  "bubbles.comp.6x6x6/fluctuations.dat": "19ac9d580541f71ac7dcc28f8afb9dfbddb6f54319fa5d3f2b8cbbe649ed084e",
+  "bubbles.comp.6x6x6/dist.dat": "bbd8fcfc2b9c52d683ae3d61fbfc7e785c7e687c5dd460cb20ad67ae1b223a15",
+  "bubbles.comp.6x6x6/episodes.dat": "a580da6c8e3319e1adba59707a04d706faa30e9a30087a947dafdf49b632895c",
+  "bubbles.comp.6x6x6/voids.dat": "1a49f0d4ecb74060432b09d3823136dead0877a08239e1da59f9a44c28d7b681",
+  "bubbles.comp.6x6x6/regions.dat": "9fcfc1e12479ec5fc541eca6ad459fb1869cdfcf87c10f1ebbd0b0eefdf07c53",
+  "bubbles.comp.6x6x6/summary.dat": "2cb47f73b08a147e41fcefe34c2d74d74043c162c90aa0420969341c428bd781"
+ }
+}

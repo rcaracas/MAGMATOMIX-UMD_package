@@ -31,13 +31,40 @@
 #               exp(-t/tau) (2 kT for a linear molecule, its angular velocity in the frame of the cell, as rotations_umd.py takes it) ; the truth is
 #               the 2PT entropy of the correlations the run really has, written here independently (and of exp(-t/tau), within the noise). The centres stay on the lattice (only the velocities are used). H2O (asymmetric top, symmetry
 #               number 2, with ACF.dat files of the Bader program in bohr, atoms shuffled and the origin shifted), CH4 (spherical top, 12), OH (linear, 1)
+#   alloy       Fe-Ni (10 % Ni) on a lattice, 64 sites in each sub-cell of a 3x3x3 grid (composition_umd.py -n 3) : alloy_random (the
+#               elements drawn anew at every snapshot : concentration ratio 1, Fe-Ni correlation -1, enriched fraction hypergeometric) and
+#               alloy_segregated (random for the first half, then all the Ni in the sub-cells ia = 0 : the ratio of the second half exact)
+#   blink       a hole of 2x2x2 sub-cells of a 4x4x4 grid, open for 30 snapshots and closed for 20, ten times : 72 complete void periods of
+#               30 fs, 72 complete dense periods of 20 fs (composition_umd.py -n 4 -g He)
+#   exchange    a slab of Ar 20 A thick (a jittered lattice) in a 40 x 20 x 20 A cell and 40 He jumping between the depths of the slab and of the gas (more than 6 A
+#               from the surfaces) as a Markov chain : out with probability 0.05 per step, back with 0.10 : rates 50 and 100 /ps, mean stays 20
+#               and 10 fs, gas fraction 1/3 ; interface 8 nm^2, half the volume gas, bulk density 342/8000 atoms/A^3 (exchange_umd.py -g He -t 0)
+#   interface   He scripted through the interface of the same slab : bounces (G-I-G, 8 fs in the interface), condensations and evaporations
+#               (G-I-L 6 fs, L-I-G 5 fs), visits (L-I-L 4 fs) : counts, times, sticking and escape probabilities exact (exchange_umd.py -g He -t 0)
+#   persist     400 Ar over a 4x4x4 grid, half of the sub-cells (fixed, at random) twice as likely as the others, 10 % of the atoms drawn anew
+#               at every snapshot : persistent fraction = variance of the mean counts / total variance (0.414), fluctuations decaying as 0.9^t
+#               (1/e at 9.49 fs) (composition_umd.py -n 4 -g none)
+#   bubbles     a 6x6x6 grid of Ar (4 per sub-cell) with empty sub-cells as bubbles of a scripted history (composition_umd.py -n 6 -g none) :
+#               A lives 100 fs ; B 250 fs and absorbs C (born at 200 fs) at 260 fs ; E splits at 180 fs, both pieces vanish at 240 fs ; D cut by
+#               the start, F by the end : 5 complete bubbles (100, 250, 60, 220, 60 fs), 1 split, 1 merge
+#   degassing   200 He all deep in the Ar slab at the start, jumping to the depth of the gas with probability 0.002 per step and back with
+#               0.004 (Markov chain) : the gas fills (relaxation time 167 fs) ; the expected evaporations and condensations of every window of
+#               150 snapshots are exact (exchange_umd.py -g He -t 0 -w 150)
+#   molecules   20 H2 and 20 He jumping between the Ar slab and the gas, with cutoffs for bonding_umd.py : molecular events and gas half those of
+#               the H atoms, equal for He ; -m clusters : the slab condensed, H2 and He always gas (exchange_umd.py -g H,He -t 0)
+#   idealgas_gz the ideal gas written compressed (idealgas.umd.dat.gz), with the truth of idealgas : the reading of .gz runs
+#   composition grids of 4x4x4 sub-cells, in reduced coordinates of a triclinic cell (composition_umd.py -n 4) : comp_ideal (Ar, Ne uniform, 10 %
+#               of the atoms drawn again at every snapshot : variance / binomial 1, correlation 0, correlation in time 0.9^t), comp_segregated (Ar in
+#               the half a < 1/2, Ne in the other : variance / binomial 2 exactly, correlation Ar-Ne -1/1.96875), comp_hole (10 Ar in each sub-cell
+#               but a hole of 2x2x2 sub-cells across the periodic faces, with 20 He in it : void fraction 1/8, one void and one dense region,
+#               He all in the void, densities exact)
 
 import sys, json, math
 import numpy as np
 
 KB = 8.617333262e-5                 #eV/K
 AMU_A2FS2 = 103.642696562           #amu A^2/fs^2 in eV (1.66053906660e-27 kg * 1e-10 m^2 / 1e-30 s^2 / 1.602176634e-19 J)
-MASS = {'H':1.008,'C':12.011,'O':15.999,'Si':28.085,'Cu':63.546,'Ar':39.948,'Ne':20.180,'Kr':83.798,'Xe':131.293}
+MASS = {'H':1.008,'He':4.0026,'Fe':55.845,'Ni':58.693,'C':12.011,'O':15.999,'Si':28.085,'Cu':63.546,'Ar':39.948,'Ne':20.180,'Kr':83.798,'Xe':131.293}
 NAVOGADRO = 6.02214076e23
 EV = 1.602176634e-19
 HPLANCK = 6.62607015e-34
@@ -646,8 +673,321 @@ def rotors2pt(rng):
                     f.write(' '+'-'*80+'\n    VACUUM CHARGE:               0.0000\n    VACUUM VOLUME:          %11.4f\n    NUMBER OF ELECTRONS:     %.4f\n' % (vacuum,9.0*nm))
     write_truth('rotors2pt',truth)
 
+def hypergeom_sf(k,N,K,n):#P(X >= k), X hypergeometric : n drawn from N of which K marked
+    return sum(math.comb(K,j)*math.comb(N-K,n-j) for j in range(max(k,0),min(K,n)+1))/math.comb(N,n)
+
+
+def alloy(rng):
+    L, g = 12, 3                                                        #sites per side, sub-cells per side : 4 sites per sub-cell side
+    M = (L//g)**3
+    cell = cell_from(30.0,31.0,32.0,85.0,95.0,100.0)
+    sites = (np.array([(i,j,k) for i in range(L) for j in range(L) for k in range(L)],dtype=float)+0.5)/L
+    N, K = len(sites), 172
+    q = K/N
+    nsnap = 300
+    truth = {'grid':g,'snapshots':nsnap}
+    inslab = np.floor(sites[:,0]*g).astype(int) == 0                    #the sub-cells ia = 0
+    for name in ('alloy_random','alloy_segregated'):
+        umd = UMD(name+'.umd.dat',['Fe','Ni'],[N-K,K])
+        for s in range(nsnap):
+            order = rng.permutation(N)
+            if name == 'alloy_segregated' and s >= nsnap//2:            #all the Ni in the slab, Fe everywhere else
+                slab, rest = rng.permutation(np.nonzero(inslab)[0]), rng.permutation(np.nonzero(~inslab)[0])
+                order = np.concatenate([rest,slab[K:],slab[:K]])         #the last K atoms are Ni
+            red = sites[order]+rng.uniform(-0.2,0.2,(N,3))/L               #never across the face of a sub-cell
+            x = red @ cell
+            umd.snapshot(float(s),1.0,cell,x,x,np.zeros((N,3)))
+        umd.close()
+    den = M*q*(1-q)*(N-M)/(N-1)                                         #random alloy, every sub-cell M atoms
+    S = int(inslab.sum())
+    qh = K/S
+    Eh = M*qh*(1-qh)*(S-M)/(S-1)+(M*qh-q*M)**2
+    nslab = g*g
+    seg = ((nslab*Eh+(g**3-nslab)*(q*M)**2)/g**3)/den
+    p = 1/g**3
+    kmin = math.ceil(1.5*q*M-1e-9)
+    truth['alloy_random'] = {'conc_ratio':{'Fe':1.0,'Ni':1.0},'corr_Fe-Ni':-1.0,
+                             'count_ratio':{'Ni':M*q*(1-q)*(N-M)/(N-1)/(K*p*(1-p)),'Fe':M*q*(1-q)*(N-M)/(N-1)/((N-K)*p*(1-p))},
+                             'enriched_Ni_1.5':hypergeom_sf(kmin,N,K,M)}
+    truth['alloy_segregated'] = {'first_half':1.0,'second_half':seg}
+    write_truth('alloy',truth)
+
+
+def blink(rng):
+    n, period, opened, nsnap = 4, 50, 30, 500
+    cell = cell_from(20.0,21.0,22.0,85.0,95.0,100.0)
+    hole = lambda c: c[0] in (3,0) and c[1] in (3,0) and c[2] in (3,0)
+    subcells = [(i,j,k) for i in range(n) for j in range(n) for k in range(n)]
+    full = np.array([c for c in subcells if not hole(c)],dtype=float)
+    holes = np.array([c for c in subcells if hole(c)],dtype=float)
+    nar = 10*len(full)+10*len(holes)
+    umd = UMD('blink.umd.dat',['Ar','He'],[nar,20])
+    for s in range(nsnap):
+        ar = np.repeat(full,10,axis=0)
+        if s % period < opened:                                        #open : the 80 other Ar in random full sub-cells
+            extra = full[rng.integers(0,len(full),10*len(holes))]
+        else:                                                           #closed : 10 Ar in each sub-cell of the hole
+            extra = np.repeat(holes,10,axis=0)
+        ar = (np.vstack([ar,extra])+rng.random((nar,3)))/n
+        he = (holes[rng.integers(0,len(holes),20)]+rng.random((20,3)))/n
+        x = np.vstack([ar,he]) @ cell
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((len(x),3)))
+    umd.close()
+    #hole sub-cells : open [50k, 50k+30) k = 0..9 (k = 0 cut by the start), closed [50k+30, 50k+50) (k = 9 cut by the end) ; the others dense all along
+    write_truth('blink',{'void_periods':9*len(holes),'void_mean':30.0,'void_cut':len(holes),'dense_periods':9*len(holes),'dense_mean':20.0,
+                         'dense_cut':len(holes)+len(full),'void_time_fraction':len(holes)*opened*(nsnap//period)/nsnap/n**3})
+
+
+def slab_cell():#Orthorhombic cell 40 x 20 x 20 A ; an Ar slab of 20 A (0 <= x < 20 : 7 x 7 x 7 = 343 Ar on a simple cubic lattice of 20/7 A, jittered
+    #by up to 0.4 A : the low density fluctuations of a condensed phase, 0.0429 atoms/A^3), the gas from 20 to 40 A : two flat surfaces of 400 A^2 at
+    #x = 0 and 20 ; the deep zones (more than 6 A from the surfaces, the interface of exchange_umd.py being 3.1 A wide) : the slab from 6 to 14 A,
+    #the gas from 26 to 34 A. Uniform random Ar (an ideal gas, density fluctuations ~2.5 times larger) make the surface bulge by more than 3 A
+    return np.diag([40.0,20.0,20.0]), 343
+
+
+def slab_frame(rng,nar):#Positions of the Ar of the slab (Cartesian) : lattice sites (i + 1/2) 20/7, jittered
+    a = 20.0/7
+    sites = (np.array([(i,j,k) for i in range(7) for j in range(7) for k in range(7)],dtype=float)+0.5)*a
+    return sites+rng.uniform(-0.4,0.4,sites.shape)
+
+
+def zone(rng,kind,n):#Cartesian positions in a zone : deep in the slab (L), at the surface x = 20 (I), deep in the gas (G)
+    x = {'L':rng.uniform(6.0,14.0,n),'G':rng.uniform(26.0,34.0,n),'I':np.full(n,20.0)}[kind]
+    return np.column_stack([x,rng.uniform(0.0,20.0,n),rng.uniform(0.0,20.0,n)])
+
+
+def exchange(rng):
+    nsnap, nhe, pe, pc, T = 1500, 40, 0.05, 0.10, 1000.0
+    cell, nar = slab_cell()
+    umd = UMD('exchange.umd.dat',['Ar','He'],[nar,nhe])
+    sv = np.sqrt(KB*T/(np.array([MASS['Ar']]*nar+[MASS['He']]*nhe)*AMU_A2FS2))   #A/fs, per component
+    ingas = rng.random(nhe) < pe/(pe+pc)                                #stationary start
+    for s in range(nsnap):
+        if s > 0:
+            u = rng.random(nhe)
+            ingas = np.where(ingas,u >= pc,u < pe)                       #gas : back with pc ; slab : out with pe
+        he = np.where(ingas[:,None],zone(rng,'G',nhe),zone(rng,'L',nhe))
+        x = np.vstack([slab_frame(rng,nar),he])
+        v = rng.normal(size=(len(x),3))*sv[:,None]                      #Maxwell-Boltzmann at T
+        umd.snapshot(float(s),1.0,cell,x,x,v)
+    umd.close()
+    delta = 1.2816*2.4                                                  #the half-width of the interface of exchange_umd.py by default
+    VG = (20.0-2*delta)*400.0                                           #the gas zone : the gas slab less the interface on both sides (flat surfaces)
+    nG = nhe*pe/(pe+pc)/VG
+    vth = math.sqrt(KB*T/(2*math.pi*MASS['He']*AMU_A2FS2))
+    write_truth('exchange',{'k_evaporation':pe*1000.0,'k_condensation':pc*1000.0,'stay_condensed':1.0/pe,'stay_gas':1.0/pc,'gas_fraction':pe/(pe+pc),
+                            'area_nm2':8.0,'gas_volume_fraction':0.5,'bulk_density':342/8000.0,'T_gas':T,
+                            'P_He_GPa':nG*KB*T*160.21766208,'D_He':2.0,'J_HK':nG*vth*1e5,'gas_zone':VG})
+
+
+def persist(rng):
+    n, natom, nsnap, r = 4, 400, 800, 0.1
+    cell = cell_from(20.0,21.0,22.0,85.0,95.0,100.0)
+    subcells = np.array([(i,j,k) for i in range(n) for j in range(n) for k in range(n)],dtype=float)
+    weight = np.ones(len(subcells))
+    weight[rng.permutation(len(subcells))[:len(subcells)//2]] = 2.0      #the rich sub-cells
+    prob = weight/weight.sum()
+    where = rng.choice(len(subcells),natom,p=prob)
+    umd = UMD('persist.umd.dat',['Ar'],[natom])
+    for s in range(nsnap):
+        if s > 0:
+            moved = rng.random(natom) < r
+            where[moved] = rng.choice(len(subcells),moved.sum(),p=prob)
+        x = ((subcells[where]+rng.random((natom,3)))/n) @ cell
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((natom,3)))
+    umd.close()
+    mu = natom*prob
+    static = ((mu-mu.mean())**2).mean()
+    fluct = (natom*prob*(1-prob)).mean()
+    write_truth('persist',{'persistent':static/(static+fluct),'fluctuating_decay':-1.0/math.log(1.0-r)})
+
+
+def bubbles(rng):
+    n, per, nsnap = 6, 4, 400
+    cell = cell_from(24.0,25.0,26.0,85.0,95.0,100.0)
+    history = [([(1,1,1),(1,1,2),(1,2,1),(1,2,2)],50,150),        #A
+               ([(4,4,4),(4,4,3)],100,350),                       #B
+               ([(4,4,1)],200,350),                               #C, joined to B by the bridge from 260
+               ([(4,4,2)],260,350),                               #the bridge
+               ([(1,4,0),(1,4,2)],20,240),                        #E : its two ends
+               ([(1,4,1)],20,180),                                #E : its middle, refilled at 180 (split)
+               ([(3,0,4)],0,100),                                 #D
+               ([(0,5,5)],370,400)]                               #F
+    subcells = [(i,j,k) for i in range(n) for j in range(n) for k in range(n)]
+    natom = per*len(subcells)
+    umd = UMD('bubbles.umd.dat',['Ar'],[natom])
+    for s in range(nsnap):
+        empty = {c for cells, a, b in history if a <= s < b for c in cells}
+        full = [c for c in subcells if c not in empty]
+        where = [c for c in full for _ in range(per)]
+        where += [full[i] for i in rng.integers(0,len(full),natom-len(where))]   #the atoms of the empty sub-cells, elsewhere
+        x = ((np.array(where,dtype=float)+rng.random((natom,3)))/n) @ cell
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((natom,3)))
+    umd.close()
+    V = abs(np.linalg.det(cell))/n**3
+    write_truth('bubbles',{'complete':5,'lifetimes':[100.0,250.0,60.0,220.0,60.0],'mean_lifetime':138.0,'longest':250.0,'new':4,'split':1,
+                           'vanished':5,'merged':1,'short_lived':1,'volume_A':4*V,'dense_regions':1})  #F (30 fs) shorter than -t 50 : short-lived
+
+
+def degassing(rng):
+    nsnap, nhe, pe, pc, win = 1500, 200, 0.002, 0.004, 150
+    cell, nar = slab_cell()
+    umd = UMD('degassing.umd.dat',['Ar','He'],[nar,nhe])
+    ingas = np.zeros(nhe,dtype=bool)                                   #all in the slab at the start
+    for s in range(nsnap):
+        if s > 0:
+            u = rng.random(nhe)
+            ingas = np.where(ingas,u >= pc,u < pe)
+        he = np.where(ingas[:,None],zone(rng,'G',nhe),zone(rng,'L',nhe))
+        x = np.vstack([slab_frame(rng,nar),he])
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((len(x),3)))
+    umd.close()
+    q, lam = pe/(pe+pc), 1.0-pe-pc
+    gasmean = nhe*q*(1.0-lam**np.arange(nsnap))                         #expected atoms in the gas at each snapshot
+    evap = np.zeros(nsnap)
+    cond = np.zeros(nsnap)
+    evap[1:] = pe*(nhe-gasmean[:-1])                                     #expected events of the transition to snapshot t
+    cond[1:] = pc*gasmean[:-1]
+    windows = [(evap[k:k+win].sum(),cond[k:k+win].sum()) for k in range(0,nsnap,win)]
+    write_truth('degassing',{'window_fs':win,'evaporations':[w[0] for w in windows],'condensations':[w[1] for w in windows]})
+
+
+def interface(rng):#He atoms scripted through the four paths of the interface, in cycles : bounce (G 30, I 8 : G-I-G), condensation and evaporation
+    #(G 30, I 6, L 30, I 5 : G-I-L then L-I-G), visit (L 30, I 4 : L-I-L) ; five atoms of each, the cycles shifted ; the passages complete when the
+    #interface stay has a state before and after it within the run
+    nsnap, per = 600, 5
+    cell, nar = slab_cell()
+    patterns = {'bounce':[('G',30),('I',8)],'exchange':[('G',30),('I',6),('L',30),('I',5)],'visit':[('L',30),('I',4)]}
+    seqs = []
+    for kind, pat in patterns.items():
+        cyc = ''.join(z*l for z, l in pat)
+        for k in range(per):
+            shift = 7*k
+            seqs.append([cyc[(t+shift) % len(cyc)] for t in range(nsnap)])
+    nhe = len(seqs)
+    umd = UMD('interface.umd.dat',['Ar','He'],[nar,nhe])
+    for s in range(nsnap):
+        he = np.vstack([zone(rng,seqs[a][s],1) for a in range(nhe)])
+        x = np.vstack([slab_frame(rng,nar),he])
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((len(x),3)))
+    umd.close()
+    counts = {'G-I-G':[],'G-I-L':[],'L-I-L':[],'L-I-G':[]}
+    for seq in seqs:#the passages : stays in I with a state before and after them
+        runs = []
+        for z in seq:
+            if runs and runs[-1][0] == z:
+                runs[-1][1] += 1
+            else:
+                runs.append([z,1])
+        for i in range(1,len(runs)-1):
+            if runs[i][0] == 'I':
+                counts[runs[i-1][0]+'-I-'+runs[i+1][0]].append(runs[i][1])
+    truth = {p:{'n':len(v),'time':float(np.mean(v)) if v else None} for p, v in counts.items()}
+    n = {p:len(v) for p, v in counts.items()}
+    truth['sticking'] = n['G-I-L']/(n['G-I-L']+n['G-I-G'])
+    truth['escape'] = n['L-I-G']/(n['L-I-G']+n['L-I-L'])
+    truth['area_nm2'], truth['gas_volume_fraction'], truth['bulk_density'] = 8.0, 0.5, 342/8000.0
+    write_truth('interface',truth)
+
+
+def molecules(rng):#20 H2 (0.74 A) and 20 He jumping between the depths of the Ar slab and of the gas (Markov chain, 0.05 out, 0.10 back), the molecules
+    #kept apart (centres more than 2.5 A apart) ; velocities at 1000 K ; the cutoffs for bonding_umd.py : Ar-Ar 3.3 A (the slab one molecule), H-H 0.9 A
+    #(the H2), nothing else bound. Exact : the H2 evaporations and condensations are half those of the H atoms, those of He equal the atoms ; in the gas
+    #half as many H2 as H atoms, their pressure half ; with -m clusters the slab is condensed, H2 and He always gas (no exchange)
+    nsnap, nmol, nhe, pe, pc, T = 600, 20, 20, 0.05, 0.10, 1000.0
+    cell, nar = slab_cell()
+    natom = nar+2*nmol+nhe
+    sv = np.sqrt(KB*T/(np.array([MASS['Ar']]*nar+[MASS['H']]*(2*nmol)+[MASS['He']]*nhe)*AMU_A2FS2))
+    umd = UMD('molecules.umd.dat',['Ar','H','He'],[nar,2*nmol,nhe])
+    q = pe/(pe+pc)
+    gasmol, gashe = rng.random(nmol) < q, rng.random(nhe) < q
+    def apart(n,kinds):#centres in their zones, more than 2.5 A apart (rejection)
+        pts = []
+        for k in range(n):
+            while True:
+                c = zone(rng,'G' if kinds[k] else 'L',1)[0]
+                if all(np.linalg.norm((c-p_+np.array([20.0,10.0,10.0])) % np.array([40.0,20.0,20.0])-np.array([20.0,10.0,10.0])) > 2.5 for p_ in pts):
+                    pts.append(c)
+                    break
+        return np.array(pts)
+    for s in range(nsnap):
+        if s > 0:
+            u, w = rng.random(nmol), rng.random(nhe)
+            gasmol, gashe = np.where(gasmol,u >= pc,u < pe), np.where(gashe,w >= pc,w < pe)
+        centres = apart(nmol+nhe,np.concatenate([gasmol,gashe]))
+        axis = rng.normal(size=(nmol,3))
+        axis /= np.linalg.norm(axis,axis=1)[:,None]
+        h = np.vstack([centres[:nmol]+0.37*axis,centres[:nmol]-0.37*axis])
+        h = h.reshape(2,nmol,3).transpose(1,0,2).reshape(2*nmol,3)       #the two H of a molecule next to each other
+        x = np.vstack([slab_frame(rng,nar),h,centres[nmol:]])
+        v = rng.normal(size=(natom,3))*sv[:,None]
+        umd.snapshot(float(s),1.0,cell,x,x,v)
+    umd.close()
+    with open('molecules.cutoffs.inp','w') as f:
+        f.write('Ar Ar 3.3\nH H 0.9\n')
+    write_truth('molecules',{'H2_per_H':0.5,'He_per_He':1.0})
+
+
+def idealgas_gz(rng):#the ideal gas, compressed : idealgas.umd.dat.gz (the scripts decompress it into a temporary file), same truth
+    import gzip, shutil, os
+    idealgas(rng)
+    with open('idealgas.umd.dat','rb') as fi, open('idealgas.umd.dat.gz','wb') as raw, gzip.GzipFile(filename='',fileobj=raw,mode='wb',mtime=0) as fo:#mtime 0 : the same file at every run
+        shutil.copyfileobj(fi,fo)
+    os.remove('idealgas.umd.dat')
+
+
+def composition(rng):
+    cell = cell_from(20.0,21.0,22.0,85.0,95.0,100.0)
+    volume = abs(np.linalg.det(cell))
+    nsnap, n = 2000, 4
+    truth = {'grid':n,'snapshots':nsnap}
+    #comp_ideal : uniform ; at every snapshot 10 % of the atoms, drawn at random, are placed anew : <dN(0) dN(t)> = 0.9^t <dN^2>
+    elements, counts = ['Ar','Ne'], [60,40]
+    natom = sum(counts)
+    umd = UMD('comp_ideal.umd.dat',elements,counts)
+    red = rng.random((natom,3))
+    for s in range(nsnap):
+        moved = rng.random(natom) < 0.1
+        red[moved] = rng.random((moved.sum(),3))
+        x = red @ cell
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((natom,3)))
+    umd.close()
+    truth['comp_ideal'] = {'ratio':{'Ar':1.0,'Ne':1.0,'all':1.0},'corr':{'Ar-Ne':0.0},'decay_fs':-1.0/math.log(0.9)}
+    #comp_segregated : Ar uniform in the half a < 1/2, Ne in a > 1/2, drawn anew at every snapshot. N atoms in the 32 sub-cells of a half (q = 1/32) :
+    #mean square deviation from mu = N/64 over the 64 sub-cells = (N q (1-q) + mu^2)/2 + mu^2/2 ; N = 64 : 1.96875, binomial 0.984375 : ratio 2 ;
+    #<dAr dNe> = -mu_Ar mu_Ne = -1 ; all : 2 x 1.96875 - 2 = 1.9375 against 128/64 x 63/64 = 1.96875
+    elements, counts = ['Ar','Ne'], [64,64]
+    umd = UMD('comp_segregated.umd.dat',elements,counts)
+    for s in range(nsnap):
+        red = rng.random((128,3))
+        red[:64,0] *= 0.5
+        red[64:,0] = 0.5+0.5*red[64:,0]
+        x = red @ cell
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((128,3)))
+    umd.close()
+    truth['comp_segregated'] = {'ratio':{'Ar':2.0,'Ne':2.0,'all':1.9375/1.96875},'corr':{'Ar-Ne':-1.0/1.96875}}
+    #comp_hole : 10 Ar at random in each sub-cell but those of the hole, the 2x2x2 sub-cells of indexes 3 and 0 along a, b, c (connected only across
+    #the periodic faces), which hold 20 He at random : void fraction 1/8, one void region of V/8, one dense region of 7V/8 with all the Ar atoms
+    hole = lambda i: i in (3,0)
+    subcells = [(i,j,k) for i in range(n) for j in range(n) for k in range(n)]
+    full = [c for c in subcells if not (hole(c[0]) and hole(c[1]) and hole(c[2]))]
+    holes = [c for c in subcells if hole(c[0]) and hole(c[1]) and hole(c[2])]
+    elements, counts = ['Ar','He'], [10*len(full),20]
+    umd = UMD('comp_hole.umd.dat',elements,counts)
+    for s in range(nsnap//4):
+        ar = (np.repeat(np.array(full,dtype=float),10,axis=0)+rng.random((10*len(full),3)))/n
+        he = (np.array(holes,dtype=float)[rng.integers(0,len(holes),20)]+rng.random((20,3)))/n
+        x = np.vstack([ar,he]) @ cell
+        umd.snapshot(float(s),1.0,cell,x,x,np.zeros((len(x),3)))
+    umd.close()
+    G = 1.66053906660
+    truth['comp_hole'] = {'void_fraction':0.125,'void_regions':1,'dense_regions':1,'largest_void':volume/8,'largest_dense':7*volume/8,
+                          'largest_dense_melt_fraction':1.0,'dense_density':10*len(full)*MASS['Ar']/(7*volume/8)*G,'void_density':20*MASS['He']/(volume/8)*G,
+                          'in_voids':{'Ar':0.0,'He':1.0},'melt_density':10*MASS['Ar']/(volume/64)*G,'snapshots':nsnap//4}
+    write_truth('composition',truth)
+
 KINDS = {'idealgas':idealgas,'fcc':fcc,'water':water,'randomwalk':randomwalk,'ou':ou,'oscillators':oscillators,'stress':stress,'ti':ti,
-         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt}
+         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules}
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] not in KINDS:

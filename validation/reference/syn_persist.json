@@ -1,0 +1,40 @@
+{
+ "about": "synthetic sub-cells of two fixed weights, atoms drawn anew 10 % per step : persistent fraction of the heterogeneity, decay of the fluctuations 0.9^t",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py persist",
+   "code": 0,
+   "time": 2.06
+  },
+  {
+   "command": "composition_umd.py -f persist.umd.dat -n 4 -g none",
+   "code": 0,
+   "time": 2.13
+  }
+ ],
+ "numbers": {
+  "persist persistent fraction of the counts": 0.3922,
+  "persist decay of the fluctuations (fs)": 9.912,
+  "persist correlation at the end": 0.3946
+ },
+ "files": {
+  "persist.truth.json": "65dbd48178a2d7466ff3803c0a2cb31b4fb9aa19b23a3c8f1704b5461d3d0eb1",
+  "persist.umd.dat": "a0c304f1b5b9d03ce6551d092ff405562788621e27093eaf361ab0cfe378f5b5",
+  "persist.comp.4x4x4/time.dat": "5cf9d1761a3c3106d9724deb87c3b7cd8c669462fc92038eb0da8d98eecc6cdd",
+  "persist.comp.4x4x4/density.dat": "c983f26db1a3e99683bd8c6e5b3eb5047e5e0b6fa75b018c904e98856253d544",
+  "persist.comp.4x4x4/fluctuations.dat": "5815c3526cf62b7d5d7d3935316faf127a94c7d8ff5fbb25210926e8d4a2a76e",
+  "persist.comp.4x4x4/dist.dat": "1431d3fd019102aad053886de520aeb5781d11a0703184e7096fb4926f401e52",
+  "persist.comp.4x4x4/episodes.dat": "fdad6cd15f4796d845ce5c17cdad21fe833a09aa90ae098af08e04ac427bd1df",
+  "persist.comp.4x4x4/voids.dat": "d6d3230f125c4490220c0412cfd69847e4269f14141f1207bfc9937cae628ec3",
+  "persist.comp.4x4x4/regions.dat": "d86b8d4b02c9f670e7938cf028efb75dadbb05ee10f8c632d27fee86985e4413",
+  "persist.comp.4x4x4/summary.dat": "92f2786e0e69e060a071c28e4f5c8a24d951660de191a09b360b24bc9e3e8c84"
+ }
+}

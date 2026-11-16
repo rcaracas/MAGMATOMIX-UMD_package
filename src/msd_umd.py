@@ -265,7 +265,8 @@ def main(argv):
             planearg = arg
 
 
-    if (os.path.isfile(umdfile)):
+    umdfile = umdpf.umd_input(umdfile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if (os.path.isfile(umdpf.real_path(umdfile))):
         base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
         umdpf.remove_former_outputs([base+ext for ext in ('.msd.dat','.msd.blocks.dat','.diffusion.dat','.diffusion.tensor.dat')])#of a former run
 

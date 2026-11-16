@@ -121,7 +121,8 @@ def main(argv):
 
 
 #checking the existence of the files before doing any other operation
-    if os.path.isfile(UMDname):
+    UMDname = umdpf.umd_input(UMDname)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if os.path.isfile(umdpf.real_path(UMDname)):
         print ('using ',UMDname,' umd file')
     else:
         umdpf.missing_umd(UMDname)

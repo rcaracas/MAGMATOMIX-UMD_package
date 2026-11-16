@@ -196,7 +196,7 @@ def check_halves(V,gall,window,nBlocks,typat,ntypat,elements,dt,npad,taper,weigh
 
 def read_temperatures(umdfile):#Temperature of each snapshot, as written in the UMD file
     temperatures = []
-    with open(umdfile,'r') as f:
+    with open(umdpf.real_path(umdfile),'r') as f:
         for line in f:
             if line.startswith('Temperature'):
                 temperatures.append(float(line.split()[1]))
@@ -401,7 +401,8 @@ def main(argv):
     if plot and umdfile == '':#-v alone : the results already in the folder, nothing computed
         show_results()
         return
-    if not os.path.isfile(umdfile):
+    umdfile = umdpf.umd_input(umdfile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(umdfile)):
         umdpf.missing_umd(umdfile)
         sys.exit()
     base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]

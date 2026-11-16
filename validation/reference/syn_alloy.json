@@ -1,0 +1,65 @@
+{
+ "about": "synthetic Fe-Ni on a lattice : random alloy (concentration ratio 1, Fe-Ni correlation -1, enriched fraction hypergeometric) and Ni segregating in the second half (quarters exact, change detected)",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py alloy",
+   "code": 0,
+   "time": 6.31
+  },
+  {
+   "command": "composition_umd.py -f alloy_random.umd.dat -n 3 -e Ni:1.5,Ni:0.5",
+   "code": 0,
+   "time": 2.07
+  },
+  {
+   "command": "composition_umd.py -f alloy_segregated.umd.dat -n 3 -e Ni:1.5",
+   "code": 0,
+   "time": 1.7
+  }
+ ],
+ "numbers": {
+  "alloy_random concentration ratio Fe": 0.9966,
+  "alloy_random count ratio Fe": 0.0993,
+  "alloy_random no change during the run Fe": 1.0,
+  "alloy_random concentration ratio Ni": 0.9966,
+  "alloy_random count ratio Ni": 0.8979,
+  "alloy_random no change during the run Ni": 1.0,
+  "alloy_random correlation Fe-Ni": -1.0,
+  "alloy_random fraction enriched in Ni (1.5) expected for a random alloy": 0.0964,
+  "alloy_random fraction enriched in Ni (1.5)": 0.0963,
+  "alloy_segregated concentration ratio of Ni, quarter 1": 0.9975,
+  "alloy_segregated concentration ratio of Ni, quarter 2": 0.993,
+  "alloy_segregated concentration ratio of Ni, quarter 3": 15.371,
+  "alloy_segregated concentration ratio of Ni, quarter 4": 15.3889,
+  "alloy_segregated change during the run detected": 1.0
+ },
+ "files": {
+  "alloy_random.umd.dat": "d5ed2fdeaef1ec9360fbf09d103ba0635c517cd8e2d47fb4a178c7150bf3a257",
+  "alloy.truth.json": "cdee3a0f9e752baf660957552153d14749a78db1ca8bd78c830c61a7a0cb98a5",
+  "alloy_segregated.umd.dat": "75d086c382507af89335fbfc7970adced809e4d9addcce6b07ee8c6acfc9f442",
+  "alloy_segregated.comp.3x3x3/time.dat": "dd5b79c90802e9e2ce9c3bd26580409df2b9e6f6df56dc5c2fa73ffa55aefd55",
+  "alloy_segregated.comp.3x3x3/density.dat": "f4fbaa6e5de1f3da5a5dd4edce7f6b7287972bc03907ceeef43060ccef83d70f",
+  "alloy_segregated.comp.3x3x3/fluctuations.dat": "d72343606be5dd8b13b645fba8a8119543e2912577162ac1ba747fbff419ba44",
+  "alloy_segregated.comp.3x3x3/dist.dat": "16ac7217727ab82f6e1a82b122f903b5634f6f18033f65d22a12674cb555f887",
+  "alloy_segregated.comp.3x3x3/episodes.dat": "48c46d84e4569707049b3af9ab155a8b1aba7c8e59f08641320302bb3bcd0c60",
+  "alloy_segregated.comp.3x3x3/voids.dat": "d99867e1e3194107c59c927e9f66e6094b996ba71f3eccd9de9ec06e44586a94",
+  "alloy_segregated.comp.3x3x3/regions.dat": "1edcc3fa0987fbf3f208fbefac95b04856a6dbf7772ee91d458e0b8170ac1136",
+  "alloy_segregated.comp.3x3x3/summary.dat": "54a3f9fd28a95e449b2088478b7cbabf8c5799030bf019614899d8885dbe6a99",
+  "alloy_random.comp.3x3x3/time.dat": "54764f912ebc1d501f7d79aa635bddab100bbf0190993c445690831dc9272c20",
+  "alloy_random.comp.3x3x3/density.dat": "274fa3cf5e71699accf845f4383f64f9c18ca4f6b464a0a1ea03e4adccb05164",
+  "alloy_random.comp.3x3x3/fluctuations.dat": "c0648b4f841cd2e9522579d7f7640c6f7ef3d6895dba4c2b86ee091116cfda00",
+  "alloy_random.comp.3x3x3/dist.dat": "957a34dcb6f8c18367ae0b8a232b272eb4892af49a9f55e2abd1b613fd33e8a2",
+  "alloy_random.comp.3x3x3/episodes.dat": "f9acf2fd581a4d03caf65ae0c4b032ece2bc4da49922bfd16cc07788035f608d",
+  "alloy_random.comp.3x3x3/voids.dat": "cfaf024ef3711271281bde992da00bbab9c33413dab1706398bd0a9c6a16db7f",
+  "alloy_random.comp.3x3x3/regions.dat": "b98140ff57172892dfa3bba6fa6088dc4920da8db57bc5c76cb070a9c0e0e05b",
+  "alloy_random.comp.3x3x3/summary.dat": "f80c585f99a75b77e15feede5541618fea9966e5e04c56d797d448c308d15b38"
+ }
+}

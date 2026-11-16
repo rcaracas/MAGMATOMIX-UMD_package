@@ -46,6 +46,7 @@ class Step:#One script run : command line, input files it needs, output files it
 
 
 def base_of(umdfile):
+    umdfile = umdfile[:-3] if umdfile.endswith('.gz') else umdfile
     return umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
 
 
@@ -61,8 +62,8 @@ def read_done(folder):
 def run(step,folder,base,overwrite,results):#Runs one step ; its status is appended to results
     label = step.label(base)
     short = lambda f: f.replace(base,'<base>',1) if base else f
-    mtime = lambda f: os.path.getmtime(os.path.join(folder,f))
-    missing = [f for f in step.needs if not os.path.isfile(os.path.join(folder,f))]
+    mtime = lambda f: os.path.getmtime(umdpf.source_path(os.path.join(folder,f)))         #a decompressed run : the date of its .gz
+    missing = [f for f in step.needs if not os.path.isfile(umdpf.real_path(os.path.join(folder,f)))]
     before = step.outputs(folder)
     done = read_done(folder)
     if missing:
@@ -211,7 +212,8 @@ def main(argv):
         if opt == '-h':
             print('umd_workflow.py : automated analysis of UMD files, by panels of the flowchart of the package (documentation/umd-flowchart.pdf)')
             print(usage)
-            print('-f : UMD files, separated by commas. Default, or -f all : every *.umd.dat of the current folder.')
+            print('-f : UMD files, separated by commas. Default, or -f all : every *.umd.dat of the current folder. A run <name>.umd.dat.gz is')
+            print('     decompressed once into a temporary file, read by every step, and removed at the end : the outputs have the usual names.')
             print('-g : structural properties (geometry) : gofr_umd.py, analyze_gofr.py (bond cutoffs = first minima of the g(r)), bonding_umd.py')
             print('     with these cutoffs, speciation_and_angles.py -r 1 (central atoms and their adjacent neighbours, with the angles -t 1 and')
             print('     the bond lifetimes -l 1) and -r 0 (polymerization of all the atoms : molecules, -c all -a all), lifetimes.py (plot of the')
@@ -254,11 +256,12 @@ def main(argv):
         elif opt == '-o':
             overwrite = True
     if files is None or files == ['all']:#-f all : the default, every UMD file of the folder
-        files = sorted(glob.glob('*.umd.dat'))
+        files = umdpf.umd_files()
     missing = [f for f in files if not os.path.isfile(f)]
     if missing or not files:
-        print('Files not found :',', '.join(missing) if missing else 'no *.umd.dat in the folder')
+        print('Files not found :',', '.join(missing) if missing else 'no *.umd.dat (or .umd.dat.gz) in the folder')
         sys.exit()
+    files = [umdpf.umd_input(f) for f in files]#<run>.umd.dat.gz : decompressed once into a temporary file, read by every step as <run>.umd.dat
     if sampling < 1:
         print('-s has to be at least 1')
         sys.exit()
@@ -324,7 +327,7 @@ def main(argv):
                 steps += [Step('thermo_integration_umd.py',['-f',','.join(umds)]+skip,umds,['thermo_integration.dat'])]
         for step in steps:
             run(step,folder,'',overwrite,results)
-        allumds = umds+[os.path.basename(f) for f in sorted(glob.glob(os.path.join(folder,'*.umd.dat'))) if os.path.basename(f) not in umds]
+        allumds = umds+[os.path.basename(f) for f in umdpf.umd_files(folder) if os.path.basename(f) not in umds and os.path.basename(f)[:-3] not in umds]
         rows = {}
         for umd in allumds:                                                     #also the UMD files of the folder done before
             if (folder,umd) not in elementroles:

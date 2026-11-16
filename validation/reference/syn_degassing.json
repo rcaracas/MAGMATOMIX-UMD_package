@@ -1,0 +1,58 @@
+{
+ "about": "synthetic He degassing from an Ar slab (Markov chain) : evaporation and condensation fluxes of every window exact, equilibrium found",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py degassing",
+   "code": 0,
+   "time": 5.12
+  },
+  {
+   "command": "exchange_umd.py -f degassing.umd.dat -g He -t 0 -w 150",
+   "code": 0,
+   "time": 6.62
+  }
+ ],
+ "numbers": {
+  "degassing window 0 evaporations": 52.000049999999995,
+  "degassing window 0 condensations": 10.999994999999998,
+  "degassing window 1 evaporations": 40.999950000000005,
+  "degassing window 1 condensations": 28.000049999999998,
+  "degassing window 2 evaporations": 31.99995,
+  "degassing window 2 condensations": 37.00005,
+  "degassing window 3 evaporations": 46.999950000000005,
+  "degassing window 3 condensations": 37.99995,
+  "degassing window 4 evaporations": 39.0,
+  "degassing window 4 condensations": 31.99995,
+  "degassing window 5 evaporations": 37.99995,
+  "degassing window 5 condensations": 31.000049999999998,
+  "degassing window 6 evaporations": 39.0,
+  "degassing window 6 condensations": 43.000049999999995,
+  "degassing window 7 evaporations": 42.0,
+  "degassing window 7 condensations": 37.00005,
+  "degassing window 8 evaporations": 49.000049999999995,
+  "degassing window 8 condensations": 40.000049999999995,
+  "degassing window 9 evaporations": 34.99995,
+  "degassing window 9 condensations": 49.000049999999995,
+  "degassing net flux of the first window positive (> 3 errors)": 1.0,
+  "degassing equilibrium found after the first window": 1.0
+ },
+ "files": {
+  "degassing.umd.dat": "0acf0f475dc53eeaa0687b53568adafb0e6af69c977baa6abcd09ddb6b9b84fc",
+  "degassing.truth.json": "abac5643c57d1d5bf8e382f685abbed19bdb16a918a57176af9b5b05c84e7b4f",
+  "degassing.exchange/states.dat": "a89bc351d7642367873104071f4e31b4dbf7e6232f2ee2545f1c4993031f0444",
+  "degassing.exchange/fluxes.dat": "7c576331fcadc847d43bf151af5de9cc949fcaa80f8fcbf79238dcdb251af530",
+  "degassing.exchange/paths.dat": "467473ea394aa469b9ed6fd80c75ab859b7d96361a9436b19698adabc3234c91",
+  "degassing.exchange/stays.dat": "555d4fc27eb116fedfe6e16a0b9362740ff31d0283c32107312a0e8843238979",
+  "degassing.exchange/gas.dat": "f75237bae7cf669c93456018e0f1b570922131149869f34ea557a6c19baeffb1",
+  "degassing.exchange/atoms.dat": "bdc5e3458fe04d9e65872f5641fe6866bb250a73426ab1c8fd053ae4db789f7d",
+  "degassing.exchange/summary.dat": "f2079921c63e862b28b0eded362f69ac290997f4cd5f2695b440769f493028de"
+ }
+}

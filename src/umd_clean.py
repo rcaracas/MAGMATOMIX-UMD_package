@@ -37,7 +37,7 @@ def main(argv):
             print('     delete that folder yourself once you are sure.')
             print('--delete : with -y, deletes them for good instead.')
             print('-r : also the folders below the current one (each one gets its own umd_cleaned_ folder ; those are never entered).')
-            print('Removed : the files whose whole name is that of an output of a script for a UMD file <base>.umd.dat of the same folder')
+            print('Removed : the files whose whole name is that of an output of a script for a UMD file <base>.umd.dat (or .umd.dat.gz) of the same folder')
             print('(<base>.gofr.dat, .maximum_bonds.inp, .bonding.dat, .r1.popul.dat, .msd.dat, .vibr.dat, ..., the files umd2out.py writes in')
             print('<base>.deepmd), and the files written once per folder (gofrs_summary.txt, diffusivities.txt, fullthermo.dat, thermo_integration.dat,')
             print('umd_workflow.log/.done/.summary.dat, ...) ; the list is umd_processes_fast.RUN_OUTPUTS and FOLDER_OUTPUTS.')
@@ -69,7 +69,7 @@ def main(argv):
         if not outputs:
             continue
         total += len(outputs)
-        umds = [n for n in sorted(os.listdir(folder)) if n.endswith('.umd.dat')]
+        umds = [os.path.basename(n) for n in umdpf.umd_files(folder)]                     #also the compressed runs, <base>.umd.dat.gz
         print('\n'+folder+' : '+str(len(outputs))+' output files of '+str(len(umds))+' UMD files ('+', '.join(umds)+')')
         for rel in outputs:
             print('   '+rel)
@@ -78,7 +78,7 @@ def main(argv):
         target = os.path.join(folder,'umd_cleaned_'+stamp)
         for rel in outputs:
             path = os.path.join(folder,rel)
-            if path.endswith('.umd.dat'):#never : umd_outputs does not return UMD files
+            if path.endswith('.umd.dat') or path.endswith('.umd.dat.gz'):#never : umd_outputs does not return UMD files
                 continue
             if delete:
                 os.remove(path)

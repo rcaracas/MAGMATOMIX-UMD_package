@@ -25,7 +25,7 @@ FIELDS = ('TotalElectronicEnergy','InternalEnergy','KineticEnergyIons','Electron
 
 
 def read_lambda(UMDname):#lambda_ThermoInt of the header (1 when absent)
-    with open(UMDname,'r') as f:
+    with open(umdpf.real_path(UMDname),'r') as f:
         for line in f:
             if line.startswith('lambda_ThermoInt'):
                 return float(line.split()[1])
@@ -132,11 +132,12 @@ def main(argv):
         elif opt == '-v':
             visual = True
     if files is None or files == ['all']:#-f all : the default, every UMD file of the folder
-        files = sorted(glob.glob('*.umd.dat'))
-    missing = [f for f in files if not os.path.isfile(f)]
+        files = umdpf.umd_files()
+    missing = [f for f in files if not os.path.isfile(umdpf.real_path(f))]#a run decompressed by umd_workflow.py : its temporary file
     if missing or not files:
-        print('Files not found :',', '.join(missing) if missing else 'no *.umd.dat in the folder')
+        print('Files not found :',', '.join(missing) if missing else 'no *.umd.dat (or .umd.dat.gz) in the folder')
         sys.exit()
+    files = [umdpf.umd_input(f) for f in files]#<run>.umd.dat.gz : decompressed into temporary files, removed at the end
     if not 0.0 < k < 1.0:
         print('-k must be between 0 and 1')
         sys.exit()

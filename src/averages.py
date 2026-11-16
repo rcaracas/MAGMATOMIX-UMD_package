@@ -38,7 +38,7 @@ def grep_lines(FileName, Patterns):
     found = {p:[] for p in Patterns}
     encoded = [(p,p.encode()) for p in Patterns]
     anyof = re.compile(b'|'.join(re.escape(b) for p,b in encoded))
-    with open(FileName,'rb') as f:
+    with open(umdpf.real_path(FileName),'rb') as f:
         for line in f:
             if anyof.search(line):
                 for p,b in encoded:
@@ -56,7 +56,7 @@ def grep_pattern(FileName, Pattern, SkipSteps, required=True, lines=None):
     anchor=Pattern.split()[0]
     if lines is None:
         try:
-            greps=subprocess.check_output(['grep',Pattern,FileName],env=dict(os.environ,LC_ALL='C')).decode("utf-8").split('\n')#3x faster than in a UTF-8 locale
+            greps=subprocess.check_output(['grep',Pattern,umdpf.real_path(FileName)],env=dict(os.environ,LC_ALL='C')).decode("utf-8").split('\n')#3x faster than in a UTF-8 locale
         except subprocess.CalledProcessError:
             greps = []
         except OSError:                                                 #no grep (Windows) : the same lines read in Python
@@ -189,7 +189,8 @@ def write_thermo(files,SkipSteps,units):#Thermodynamics of the UMD files, in ful
         Crystal,TimeStep = umdpf.Crystallization(FileName)
         if Crystal.elements != MyCrystal.elements or Crystal.types != MyCrystal.types:
             print('WARNING : composition',Crystal.elements,Crystal.types,'differs from the header of fullthermo.dat (',files[0],')')
-        nsteps, natom, mass, results, notes = thermodynamics(FileName,SkipSteps)
+        nsteps, natom, mass, results, notes = thermodynamics(umdpf.umd_input(FileName),SkipSteps)    #a .gz : decompressed, then removed
+        umdpf.release_inputs()
         for note in notes:
             print('   ',note)
         if nsteps is None:
@@ -313,19 +314,20 @@ def main(argv):
         elif opt == '-u':
             units = int(arg)
     if not files or files == ['all']:#-f all : the default, every UMD file of the folder
-        files = sorted(glob.glob('*.umd.dat'))
+        files = umdpf.umd_files()
     if not files:
         print('No UMD file in the current folder : give them with -f')
         sys.exit()
     for FileName in files:
-        if not os.path.isfile(FileName):
+        if not os.path.isfile(umdpf.real_path(FileName)):              #a run decompressed by umd_workflow.py : its temporary file
             print('No input file or file "',FileName,'" does not exist')
             sys.exit()
     if Thermo:
         write_thermo(files,SkipSteps,units)
         return
     for FileName in files:
-        averages(FileName,Pattern,SkipSteps,LongOutput,Visual)
+        averages(umdpf.umd_input(FileName),Pattern,SkipSteps,LongOutput,Visual)  #a .gz : decompressed, then removed before the next file
+        umdpf.release_inputs()
 
 
 def averages(FileName,Pattern,SkipSteps,LongOutput,Visual):#One quantity, or P, T and E, of one file

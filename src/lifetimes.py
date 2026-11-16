@@ -7,7 +7,7 @@
 
 import sys, getopt, glob, os, re
 import numpy as np
-import liquid_and_vapor_speciation as lvs
+import exchange_umd as lvs                                          #split : the liquid and vapor species (formerly liquid_and_vapor_speciation.py)
 import umd_processes_fast as umdpf
 
 COLORS = ['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#6250d6','#e34948']#one per central element, in this fixed order
@@ -185,10 +185,10 @@ def main(argv):
             print(usage)
             print('-f : popul files, separated by commas. Default : every *.r1.popul.dat of the current folder.')
             print('-c : central elements (columns), separated by commas. Default : the -c of the popul header (needed for the vapor/liquid popul files')
-            print('     of liquid_and_vapor_speciation.py, which have no header).')
+            print('     of exchange_umd.py -P, which have no header).')
             print('-t : species living less than t fs are left out. Default 0.')
             print('-x : rows from xmin to xmax adjacent atoms, e.g. -x 3,9. Default : all the x present. The single atoms (row 0) are always shown.')
-            print('-l : splits the species into liquid and vapor, as liquid_and_vapor_speciation.py : an atom is in the vapor when its r0 cluster has')
+            print('-l : splits the species into liquid and vapor, as exchange_umd.py -P : an atom is in the vapor when its r0 cluster has')
             print('     fewer than l atoms, a species is in the liquid when one of its atoms is. One figure for the liquid and one for the vapor.')
             print('-s : with -l, the r0 step files (speciation_and_angles.py -r 0, same bonding file and -s), one per popul file, separated by commas.')
             print('     Default : <prefix>.r0.step.dat for each <prefix>.r<r>.popul.dat.')

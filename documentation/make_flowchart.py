@@ -139,7 +139,7 @@ line([(18,1116),(150,1116)],head=False)
 cmd(30,1108,'lifetimes.py',size=16)
 gray(150,1116,200,1116)
 prop(208,1110,['LIFETIMES','OF SPECIES'])
-cmd(30,1160,['liquid_and_vapor_speciation.py','stat-concentrate.py'],size=16)
+cmd(30,1160,['exchange_umd.py -P','stat-concentrate.py'],size=16)
 gray(262,1186,312,1186)
 prop(320,1180,['LIQUID / VAPOR','PARTITIONING'])
 

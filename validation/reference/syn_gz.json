@@ -1,0 +1,57 @@
+{
+ "about": "the synthetic ideal gas compressed (.umd.dat.gz, decompressed into a temporary file) : g(r) = 1, running coordination exact, outputs named from idealgas.umd.dat",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py idealgas_gz",
+   "code": 0,
+   "time": 1.03
+  },
+  {
+   "command": "gofr_umd.py -f idealgas.umd.dat.gz",
+   "code": 0,
+   "time": 0.33
+  },
+  {
+   "command": "check_umd.py -f idealgas.umd.dat.gz",
+   "code": 0,
+   "time": 0.54
+  },
+  {
+   "command": "composition_umd.py -f idealgas.umd.dat.gz -n 3",
+   "code": 0,
+   "time": 2.05
+  }
+ ],
+ "numbers": {
+  "idealgas mean g Ar-Ar beyond 2 A": 0.9948079731244667,
+  "idealgas Int(Ar-Ar) at 6.80 A / exact": 0.998604921442624,
+  "idealgas mean g Ar-Ne beyond 2 A": 1.001899153599354,
+  "idealgas Int(Ar-Ne) at 6.80 A / exact": 1.0020094021191044,
+  "idealgas mean g Ne-Ar beyond 2 A": 1.001899153599354,
+  "idealgas Int(Ne-Ar) at 6.80 A / exact": 1.0020094021191046,
+  "idealgas mean g Ne-Ne beyond 2 A": 0.9953038510549879,
+  "idealgas Int(Ne-Ne) at 6.80 A / exact": 0.9954150566213685
+ },
+ "files": {
+  "idealgas.umd.dat.gz": "f970842fed7d54832ee1411dcdca3c84ed5baba3fa0a0ec8205ca9abff5d77e4",
+  "idealgas.truth.json": "534495b9f6ed5fe61ad7614e4a73600b915e3fdf5366e1acf5782d0ea9b30658",
+  "idealgas.gofr.dat": "db6579c6f09b9e1b1a5a929700d807376ea0ce7e71dbadf2b1dff8e58e572c5d",
+  "idealgas.check.dat": "e221e156574811957c8b60121e2d90ca0e66a2e8c111c7d4b2711c42c34928ad",
+  "idealgas.comp.3x3x3/time.dat": "da565c26da7cd52acd622e2d1ceab1808cb391d1795575edbd406e4952958d1e",
+  "idealgas.comp.3x3x3/density.dat": "fadaea9b1d91b12ba6b1ee2a454a42e4d48fd03474dfea6e95f2f455a08cbe98",
+  "idealgas.comp.3x3x3/fluctuations.dat": "f661970af811a8075b7dd04475cc70d5fcf0ac21e334a79088af25b3a9962380",
+  "idealgas.comp.3x3x3/dist.dat": "c2098450b41b1f13f386437742bdf1b4a35835ae6b37ecec016dca00f430e1a3",
+  "idealgas.comp.3x3x3/episodes.dat": "b72740459d4b05e4e7d41703348ab4414c1ee31303296531e3d8b9ae43e35fe4",
+  "idealgas.comp.3x3x3/voids.dat": "c7eafc1831b3205c6f150cae9a0dae3257a7fb565e09ca523e9c3215457b2d6c",
+  "idealgas.comp.3x3x3/regions.dat": "fcdb510bc5ed40e101cde75a93e9ba55774c05bb74fa839281e606318b51b259",
+  "idealgas.comp.3x3x3/summary.dat": "dde4046b75ef1f87397493f74d40933735480ef9cedff192ee66d8bac6200ed7"
+ }
+}

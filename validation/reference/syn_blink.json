@@ -1,0 +1,44 @@
+{
+ "about": "synthetic hole opening for 30 fs and closing for 20 fs, ten times : periods of the void and dense states exact",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py blink",
+   "code": 0,
+   "time": 2.09
+  },
+  {
+   "command": "composition_umd.py -f blink.umd.dat -n 4 -g He",
+   "code": 0,
+   "time": 2.09
+  }
+ ],
+ "numbers": {
+  "blink complete void periods": 72.0,
+  "blink cut void periods": 8.0,
+  "blink mean void period (fs)": 30.0,
+  "blink complete dense periods": 72.0,
+  "blink cut dense periods": 64.0,
+  "blink mean dense period (fs)": 20.0,
+  "blink void time fraction": 0.075
+ },
+ "files": {
+  "blink.truth.json": "38125bfefccae4efcf3aad4da37d367246a89c19b8486edf55a9f113146d9faf",
+  "blink.umd.dat": "4c094bd668c479ba726af39ee4cc5f52ded76ea8c897006ee3804da0f1896c13",
+  "blink.comp.4x4x4/time.dat": "4850695f94f267f00916e3ad707c1f987975df25ffed0f0857ba2c404cacdaca",
+  "blink.comp.4x4x4/density.dat": "13ca4621e8bb926596e9d33ef3374bc608334094623c07d354fa3ae1e30693cd",
+  "blink.comp.4x4x4/fluctuations.dat": "42518cdb9ab0224c90462160f70d6c8f6d1438a3c162da1409094b08d53405ef",
+  "blink.comp.4x4x4/dist.dat": "685d44b57d8971df589636548553827dff2da91ef06fca4caea86f07f193fe12",
+  "blink.comp.4x4x4/episodes.dat": "051c9d16d73208f58bf7a8a142bd573cfd5ba71e6e24494b7a35e447b0bdafb4",
+  "blink.comp.4x4x4/voids.dat": "08edb4d3dc8af62786358cba34e072125e88b6805bb40dc4af776531b27ff80d",
+  "blink.comp.4x4x4/regions.dat": "391fe0235e6defa2bb95f2f855f2413611f51cddbec6b062219cc2a9f2b82d07",
+  "blink.comp.4x4x4/summary.dat": "2e19e0e4710bc7861f7af8bb8b0c8ede09f70ac07e9abfe63ac7e56dfac1623a"
+ }
+}

@@ -495,7 +495,8 @@ def main(argv):
             temperature = float(arg)
         elif opt == '-y':
             sigma = int(arg)
-    if not os.path.isfile(UMDFile):
+    UMDFile = umdpf.umd_input(UMDFile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(UMDFile)):
         umdpf.missing_umd(UMDFile)
         sys.exit()
     base = UMDFile[:-8] if UMDFile.endswith('.umd.dat') else os.path.splitext(UMDFile)[0]

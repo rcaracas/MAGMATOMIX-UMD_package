@@ -181,6 +181,138 @@ for name, umd, full, about in (
                        tab(re.escape(base)+r'\.2pt\.dat','element'),tab(r'diffusivities_clusters\.txt','file',columns=['D(m2/s)','alpha'])],
                       full=full,about='umd_workflow.py, '+about))
 
+def comp_numbers(path):#numbers of the summary of composition_umd.py : ratio, error, fraction in voids of each element ; correlations ; voids ; 1/e times
+    out = {}
+    section = None
+    with open(path) as f:
+        lines = [l.rstrip('\n') for l in f]
+    labels = []
+    for line in lines:
+        if not line or line.startswith('#'):
+            section = None if not line else section
+            continue
+        cells = line.split('\t')
+        if line.startswith('element\tevaporation_(1/ps)\t'):
+            section = 'fluxes'
+            continue
+        if line.startswith('element\tevaporations\t'):
+            section = 'exchange'
+            continue
+        if line.startswith('element\tx\t'):
+            section = 'conc'
+            continue
+        if line.startswith('element\t'):
+            section = 'elements'
+            continue
+        if line.startswith('state\t'):
+            section = 'states'
+            continue
+        if line.startswith('Correlation'):
+            section = 'corr'
+            continue
+        if line.startswith('errors\t'):
+            section = 'correrr'
+            continue
+        if line.startswith('Voids'):
+            section = 'voids'
+            continue
+        if line.startswith('kind\tregions\t'):
+            section = 'regions'
+            continue
+        if line.startswith('series\t'):
+            section = 'times'
+            continue
+        if line.startswith('Times'):
+            section = 'timeshead'
+            continue
+        if section in ('corr','correrr') and cells[0] == '':
+            labels = cells[1:]
+            continue
+        num = lambda x: float(x.lstrip('>')) if x.strip() not in ('','nan') else float('nan')
+        if section == 'elements':
+            out['ratio '+cells[0]] = num(cells[5])
+            out['ratio_err '+cells[0]] = num(cells[6])
+            if len(cells) > 7 and cells[7]:
+                out['in_voids '+cells[0]] = num(cells[7])
+            if len(cells) > 8 and cells[8]:
+                out['in_largest_dense '+cells[0]] = num(cells[8])
+        elif section == 'conc' and len(cells) >= 10:
+            out['conc_ratio '+cells[0]] = num(cells[2])
+            out['conc_ratio_err '+cells[0]] = num(cells[3])
+            for k in range(4):
+                out['conc_quarter%d %s' % (k+1,cells[0])] = num(cells[4+k])
+            out['conc_quarter_errs '+cells[0]] = [float(v.lstrip('>')) for v in cells[8].split()]
+            out['conc_change '+cells[0]] = num(cells[9])
+        elif section == 'states' and len(cells) >= 8:
+            out['periods '+cells[0]] = num(cells[1])
+            out['cut_periods '+cells[0]] = num(cells[2])
+            out['mean_period '+cells[0]] = num(cells[3])
+            out['mean_period_err '+cells[0]] = num(cells[4])
+            out['time_fraction '+cells[0]] = num(cells[7])
+            if len(cells) > 8 and cells[8]:
+                out['random_alloy_fraction '+cells[0]] = num(cells[8])
+        elif section == 'fluxes' and len(cells) >= 6:
+            for k, key in enumerate(('flux_evaporation','flux_condensation','flux_evaporation_area','flux_condensation_area'),1):
+                out[key+' '+cells[0]] = num(cells[k])
+            out['equilibrium_from '+cells[0]] = num(cells[5]) if cells[5] != 'not reached' else float('inf')
+        elif section == 'exchange' and len(cells) >= 13:
+            for k, key in enumerate(('evaporations','condensations','k_evaporation','k_evaporation_err','k_condensation','k_condensation_err',
+                                     'stay_condensed','stay_condensed_err','stay_gas','stay_gas_err','gas_fraction','net'),1):
+                out[key+' '+cells[0]] = num(cells[k])
+        elif section in ('corr','correrr'):
+            for l, x in zip(labels,cells[1:]):
+                out[('corr ' if section == 'corr' else 'corr_err ')+cells[0]+'-'+l] = num(x)
+        elif section == 'regions' and len(cells) >= 13:
+            for k, key in enumerate(('regions','short_lived','complete','mean_lifetime','mean_lifetime_err','median_lifetime','longest','new','split',
+                                     'vanished','merged','mean_volume'),1):
+                out['regions_'+key+' '+cells[0]] = num(cells[k])
+        elif section == 'times' and len(cells) >= 8:
+            for k, key in enumerate(('','_err','_persistent','_persistent_err','_fluctuating','_fluctuating_err','_end'),1):
+                out[cells[0]+key] = num(cells[k])
+        elif section == 'voids' and len(cells) >= 2:
+            out[cells[0]] = num(cells[1])
+            if len(cells) > 2:
+                out[cells[0]+'_err'] = num(cells[2])
+    return out
+
+
+def comp_summary(name):#numbers of a summary of composition_umd.py, for the cases on real runs
+    def probe(folder,outs):
+        return {name+' '+k:v for k, v in comp_numbers(os.path.join(folder,name)).items() if isinstance(v,float)}
+    probe.__name__ = 'composition '+name
+    return probe
+
+
+def exch_numbers(path):#numbers of the summary of exchange_umd.py : interface, time in each state, paths, exchange, fluxes
+    out, section, head = {}, None, []
+    num = lambda x: float(x.lstrip('>')) if x.strip() not in ('','nan','not reached') else (float('inf') if x.strip() == 'not reached' else float('nan'))
+    for line in open(path):
+        line = line.rstrip('\n')
+        if not line or line.startswith('#'):
+            section = None if not line else section
+            continue
+        cells = line.split('\t')
+        if line.startswith('Interface (means'):
+            section = 'interface'
+            continue
+        if line.startswith('element\t'):
+            section, head = 'table', cells
+            continue
+        if section == 'interface' and len(cells) >= 2:
+            out[cells[0]] = num(cells[1])
+        elif section == 'table':
+            for h, v in zip(head[1:],cells[1:]):
+                out[h+' '+cells[0]] = num(v)
+    return out
+
+
+def exch_summary(name):#numbers of a summary of exchange_umd.py, for the cases on real runs
+    def probe(folder,outs):
+        return {name+' '+k:v for k, v in exch_numbers(os.path.join(folder,name)).items()}
+    probe.__name__ = 'exchange '+name
+    return probe
+
+
 PYRO = 'pyrolite.a13.T3000K.outcar.umd.dat'
 GLY = 'glycine.umd.dat'
 COR = 'al2o3.new.umd.dat'
@@ -204,6 +336,17 @@ CASES += [
           ('analyze_gofr.py',['-f','water.dump.gofr.dat']),('bonding_umd.py',['-f','water.dump.umd.dat','-c','water.dump.maximum_bonds.inp']),
           ('rotations_umd.py',['-f','water.dump.umd.dat','-c','O','-a','H'])],
          [tab(r'water\.dump\.OH2\.rot\.dat','quantity')],about='rotations_umd.py on ice VII (LAMMPS DeePMD water + NaCl, 500 K, 10 GPa) : H2O dipoles'),
+    Case('composition_h2',['pyrolite+H2.test.umd.dat'],[('composition_umd.py',['-f','pyrolite+H2.test.umd.dat']),
+                                                         ('composition_umd.py',['-f','pyrolite+H2.test.umd.dat','-l','7.5','-i','500','-s','2','-c','1:1:1,3:0:2','-a','Si,O,H'])],
+         [comp_summary('pyrolite+H2.test.comp.6x6x6/summary.dat'),comp_summary('pyrolite+H2.test.comp.4x4x4/summary.dat')],
+         about='composition_umd.py on pyrolite + H2 at 4000 K expanded to 0.2 g/cm3 : melt and gas, fluctuations, voids, partition of H'),
+    Case('exchange_h2',['pyrolite+H2.test.umd.dat','hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat'],[('gofr_umd.py',['-f','pyrolite+H2.test.umd.dat']),
+                                                      ('analyze_gofr.py',['-f','pyrolite+H2.test.gofr.dat']),
+                                                      ('bonding_umd.py',['-f','pyrolite+H2.test.umd.dat','-c','pyrolite+H2.test.maximum_bonds.inp']),
+                                                      ('exchange_umd.py',['-f','pyrolite+H2.test.umd.dat']),
+                                                      ('exchange_umd.py',['-f','hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat'])],
+         [exch_summary('pyrolite+H2.test.exchange/summary.dat'),exch_summary('hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.exchange/summary.dat')],
+         about='exchange_umd.py on pyrolite + H2 (a small melt cluster in its gas ; molecules from its bonds) and on the hydrous andesite (a bulk melt : everything condensed)'),
     Case('gofr_select',[PYRO],[('gofr_umd.py',['-f',PYRO,'-c','Si,Mg','-a','O']),
                                ('analyze_gofr.py',['-f','pyrolite.a13.T3000K.outcar.SiMg-O.gofr.dat']),
                                ('bonding_umd.py',['-f',PYRO,'-c','pyrolite.a13.T3000K.outcar.SiMg-O.maximum_bonds.inp','-i','100','-s','2']),
@@ -225,7 +368,7 @@ CASES += [
           ('speciation_and_angles.py',['-f',GLY,'-b','glycine.bonding.dat','-c','all','-a','all','-r','0']),
           ('speciation_and_angles.py',['-f',GLY,'-b','glycine.bonding.dat','-c','C,N','-a','H,O','-r','1','-t','1','-l','1','-s','2','-m','5']),
           ('speciation_and_angles.py',['-f',GLY,'-b','glycine.bonding.dat','-c','C','-a','all','-r','2']),
-          ('liquid_and_vapor_speciation.py',['-s','glycine.r0.step.dat','-p','glycine.r1.popul.dat','-l','12']),
+          ('exchange_umd.py',['-S','glycine.r0.step.dat','-P','glycine.r1.popul.dat','-l','12']),
           ('lifetimes.py',['-f','glycine.r1.popul.dat','-l','12']),
           ('stat-concentrate.py',['-l','12','-c','C,H']),
           ('msd_clusters_umd.py',['-f',GLY,'-p','glycine.r1.popul.dat']),
@@ -283,6 +426,7 @@ CASES += [
 #viscosity_umd.py read at 10 correlation times ; exact results (counts, angles, ideal gas) a small tolerance.
 
 import json
+import numpy as np
 
 def truth_of(folder,kind):
     with open(os.path.join(folder,kind+'.truth.json')) as f:
@@ -508,6 +652,164 @@ def KB_T(t):#kB T per atom in eV, to turn 0.02 eV per cell into kB/atom
     return 8.617333262e-5*t['T']*t['natom']
 
 
+def t_composition(folder,outs):#composition_umd.py on the synthetic grids : statistical results within 5 of their errors (autocorrelation time) or
+    #8 (4 blocks, 1/e times) ; exact results to the digits of the summary
+    t = truth_of(folder,'composition')
+    out = []
+    for name in ('comp_ideal','comp_segregated'):
+        n = comp_numbers(os.path.join(folder,name+'.comp.4x4x4','summary.dat'))
+        for el, exact in t[name]['ratio'].items():
+            out.append((name+' variance / binomial '+el,n['ratio '+el],exact,max(5*n['ratio_err '+el],1e-4)))
+        for pair, exact in t[name]['corr'].items():
+            out.append((name+' correlation '+pair,n['corr '+pair],exact,max(5*n['corr_err '+pair],0.01)))
+    n = comp_numbers(os.path.join(folder,'comp_ideal.comp.4x4x4','summary.dat'))
+    for el in ('Ar','Ne','all'):
+        out.append(('comp_ideal 1/e time of the counts of '+el,n['count_'+el],t['comp_ideal']['decay_fs'],8*n['count_'+el+'_err']))
+    h, n = t['comp_hole'], comp_numbers(os.path.join(folder,'comp_hole.comp.4x4x4','summary.dat'))
+    for key, column in (('void_fraction','void_fraction'),('void_regions','void_regions'),('dense_regions','dense_regions'),
+                        ('largest_void','largest_void_(A3)'),('largest_dense','largest_dense_(A3)'),('largest_dense_melt_fraction','largest_dense_melt_fraction'),
+                        ('dense_density','dense_density_(g/cm3)'),('void_density','void_density_(g/cm3)'),('melt_density','melt_density_seen_by_its_mass_(g/cm3)')):
+        out.append(('comp_hole '+key,n[column],h[key],1e-4*abs(h[key])+1e-9))
+    for el, exact in h['in_voids'].items():
+        out.append(('comp_hole fraction of '+el+' in the voids',n['in_voids '+el],exact,1e-4))
+        out.append(('comp_hole fraction of '+el+' in the largest dense region',n['in_largest_dense '+el],1.0-exact,1e-4))
+    return out
+
+
+def t_alloy(folder,outs):#composition_umd.py -n 3 -e Ni:1.5 on the synthetic Fe-Ni : random alloy and segregation in the second half ;
+    #statistical results within 5 of their errors (autocorrelation time), exact ones to the digits of the summary
+    t = truth_of(folder,'alloy')
+    out = []
+    n = comp_numbers(os.path.join(folder,'alloy_random.comp.3x3x3','summary.dat'))
+    r = t['alloy_random']
+    for el in ('Fe','Ni'):
+        out.append(('alloy_random concentration ratio '+el,n['conc_ratio '+el],r['conc_ratio'][el],5*n['conc_ratio_err '+el]))
+        out.append(('alloy_random count ratio '+el,n['ratio '+el],r['count_ratio'][el],max(5*n['ratio_err '+el],1e-4)))
+        out.append(('alloy_random no change during the run '+el,float(n['conc_change '+el] < 4.0),1.0,0))
+    out.append(('alloy_random correlation Fe-Ni',n['corr Fe-Ni'],r['corr_Fe-Ni'],1e-4))
+    out.append(('alloy_random fraction enriched in Ni (1.5) expected for a random alloy',n['random_alloy_fraction enriched_Ni_1.5'],r['enriched_Ni_1.5'],1e-4))
+    out.append(('alloy_random fraction enriched in Ni (1.5)',n['time_fraction enriched_Ni_1.5'],r['enriched_Ni_1.5'],0.01))
+    n = comp_numbers(os.path.join(folder,'alloy_segregated.comp.3x3x3','summary.dat'))
+    g = t['alloy_segregated']
+    errs = n['conc_quarter_errs Ni']
+    for k, exact in ((1,g['first_half']),(2,g['first_half']),(3,g['second_half']),(4,g['second_half'])):
+        out.append(('alloy_segregated concentration ratio of Ni, quarter %d' % k,n['conc_quarter%d Ni' % k],exact,5*errs[k-1]))
+    out.append(('alloy_segregated change during the run detected',float(n['conc_change Ni'] > 4.0),1.0,0))
+    return out
+
+
+def t_blink(folder,outs):#composition_umd.py -n 4 -g He on the blinking hole : periods exact
+    t = truth_of(folder,'blink')
+    n = comp_numbers(os.path.join(folder,'blink.comp.4x4x4','summary.dat'))
+    out = []
+    for state in ('void','dense'):
+        out.append(('blink complete '+state+' periods',n['periods '+state],t[state+'_periods'],0))
+        out.append(('blink cut '+state+' periods',n['cut_periods '+state],t[state+'_cut'],0))
+        out.append(('blink mean '+state+' period (fs)',n['mean_period '+state],t[state+'_mean'],1e-6))
+    out.append(('blink void time fraction',n['time_fraction void'],t['void_time_fraction'],1e-4))
+    return out
+
+
+def t_exchange(folder,outs):#exchange_umd.py -g He -t 0 on He jumping between the depths of an Ar slab and of the gas (Markov chain) : rates and stays
+    #within 5 of their errors (Poisson ; std / sqrt(stays)) ; the geometry of the slab (interface 8 nm^2, half the volume gas, bulk density)
+    t = truth_of(folder,'exchange')
+    n = exch_numbers(os.path.join(folder,'exchange.exchange','summary.dat'))
+    #the errors : columns named error after each value ; read by position
+    rows = [l.rstrip('\n').split('\t') for l in open(os.path.join(folder,'exchange.exchange','summary.dat'))]
+    head = next(r for r in rows if r[0] == 'element' and 'evaporations' in r)
+    he = next(r for r in rows[rows.index(head):] if r[0] == 'He')
+    vals = dict(zip(['evaporations','condensations','k_evaporation','k_evaporation_err','k_condensation','k_condensation_err','stay_condensed',
+                     'stay_condensed_err','stay_gas','stay_gas_err','gas_fraction','net'],[float(v) for v in he[1:]]))
+    out = [('exchange He '+key,vals[key],t[key],5*vals[key+'_err']) for key in ('k_evaporation','k_condensation','stay_condensed','stay_gas')]
+    out.append(('exchange He gas fraction',vals['gas_fraction'],t['gas_fraction'],0.02))
+    out.append(('exchange Ar never leaves the slab',n['evaporations Ar'],0.0,0))
+    out.append(('exchange interface area (nm2)',n['area_(nm2)'],t['area_nm2'],0.02*t['area_nm2']))
+    out.append(('exchange gas volume fraction',n['gas_volume_fraction'],t['gas_volume_fraction'],0.01))
+    out.append(('exchange bulk density',n['bulk_density_(atoms/A3)'],t['bulk_density'],0.01*t['bulk_density']))
+    out.append(('exchange gas temperature (K)',n['T_gas_(K) He'],t['T_gas'],0.02*t['T_gas']))
+    out.append(('exchange partial pressure of He (GPa)',n['P_(GPa) He'],t['P_He_GPa'],5*n['P_err He']+0.01*t['P_He_GPa']))
+    out.append(('exchange partition coefficient of He',n['D He'],t['D_He'],5*n['D_err He']))
+    out.append(('exchange Hertz-Knudsen flux of He',n['J_HK_(1/ps/nm2) He'],t['J_HK'],0.08*t['J_HK']))
+    out.append(('exchange no Ar in the gas',n['N_gas Ar'],0.0,0))
+    return out
+
+
+def t_interface(folder,outs):#exchange_umd.py -g He -t 0 on He scripted through the interface of the slab : passages and times exact
+    t = truth_of(folder,'interface')
+    n = exch_numbers(os.path.join(folder,'interface.exchange','summary.dat'))
+    out = []
+    for p in ('G-I-G','G-I-L','L-I-L','L-I-G'):
+        out.append(('interface '+p+' passages',n[p+' He'],t[p]['n'],0))
+        out.append(('interface '+p+' time (fs)',n[p+'_time_(fs) He'],t[p]['time'],1e-6))
+    out.append(('interface sticking',n['sticking He'],t['sticking'],1e-4))
+    out.append(('interface escape',n['escape He'],t['escape'],1e-4))
+    out.append(('interface area (nm2)',n['area_(nm2)'],t['area_nm2'],0.02*t['area_nm2']))
+    out.append(('interface bulk density',n['bulk_density_(atoms/A3)'],t['bulk_density'],0.01*t['bulk_density']))
+    return out
+
+
+def t_persist(folder,outs):#composition_umd.py -n 4 -g none on sub-cells of two fixed weights with atoms drawn anew : persistent fraction within 5 of
+    #its error, the decay of the fluctuations within 8 of its error (4 blocks), the correlation at the end close to the persistent fraction
+    t = truth_of(folder,'persist')
+    n = comp_numbers(os.path.join(folder,'persist.comp.4x4x4','summary.dat'))
+    return [('persist persistent fraction of the counts',n['count_Ar_persistent'],t['persistent'],5*n['count_Ar_persistent_err']),
+            ('persist decay of the fluctuations (fs)',n['count_Ar_fluctuating'],t['fluctuating_decay'],8*n['count_Ar_fluctuating_err']),
+            ('persist correlation at the end',n['count_Ar_end'],t['persistent'],0.05)]
+
+
+def t_bubbles(folder,outs):#composition_umd.py -n 6 -g none on the scripted bubbles : the regions followed in time, exact
+    t = truth_of(folder,'bubbles')
+    n = comp_numbers(os.path.join(folder,'bubbles.comp.6x6x6','summary.dat'))
+    out = [('bubbles '+key,n['regions_'+key+' void'],t[key],0) for key in ('complete','new','split','vanished','merged','short_lived')]
+    out += [('bubbles mean lifetime (fs)',n['regions_mean_lifetime void'],t['mean_lifetime'],1e-6),
+            ('bubbles longest lifetime (fs)',n['regions_longest void'],t['longest'],1e-6),
+            ('bubbles one dense region',n['regions_regions dense'],t['dense_regions'],0)]
+    rows = [l.rstrip('\n').split('\t') for l in open(os.path.join(folder,'bubbles.comp.6x6x6','regions.dat')) if not l.startswith('#')]
+    head = rows[0]
+    life = sorted(float(r[head.index('lifetime_(fs)')]) for r in rows[1:] if r[1] == 'void' and r[head.index('complete')] == '1')
+    out.append(('bubbles lifetimes of the complete bubbles',float(life == sorted(t['lifetimes'])),1.0,0))
+    vol = [float(r[head.index('max_volume_(A3)')]) for r in rows[1:] if r[1] == 'void' and r[head.index('birth_(fs)')] == '50.00']
+    out.append(('bubbles volume of A (A3)',vol[0] if vol else float('nan'),t['volume_A'],0.01))
+    return out
+
+
+def t_degassing(folder,outs):#exchange_umd.py -n 4 -g He -t 0 -w 150 on He degassing from an Ar slab : the events of every window against their exact
+    #expected numbers (within 5 Poisson errors), a net flux in the first window, equilibrium found later
+    t = truth_of(folder,'degassing')
+    rows = [l.rstrip('\n').split('\t') for l in open(os.path.join(folder,'degassing.exchange','fluxes.dat')) if not l.startswith('#')]
+    head, data = rows[0], [[float(v) for v in r] for r in rows[1:]]
+    span = t['window_fs']/1000.0
+    col = lambda name: head.index(name)
+    out = []
+    for k, r in enumerate(data):
+        for name, exact in (('evaporation',t['evaporations'][k]),('condensation',t['condensations'][k])):
+            got = r[col(name+'_(1/ps)_He')]*span
+            out.append(('degassing window %d %ss' % (k,name),got,exact,5*np.sqrt(max(exact,1.0))))
+    first = data[0]
+    out.append(('degassing net flux of the first window positive (> 3 errors)',float(first[col('net_(1/ps)_He')] > 3*first[col('net_err_He')]),1.0,0))
+    summary = open(os.path.join(folder,'degassing.exchange','summary.dat')).read()
+    found = re.search(r'\nHe\t[^\n]*\t([0-9.]+|not reached)\n',summary.split('equilibrium_from_(fs)')[1])
+    out.append(('degassing equilibrium found after the first window',float(found is not None and found.group(1) != 'not reached' and float(found.group(1)) > 0),1.0,0))
+    return out
+
+
+def t_molecules(folder,outs):#exchange_umd.py -g H,He -t 0 on H2 and He jumping between an Ar slab and the gas (bonds from bonding_umd.py) : the molecular
+    #events and gas exactly half those of the H atoms, equal for He ; -m clusters : the slab condensed, H2 and He always gas, no exchange
+    n = exch_numbers(os.path.join(folder,'molecules.exchange','summary.dat'))
+    rows = [l.rstrip('\n').split('\t') for l in open(os.path.join(folder,'molecules.exchange','molecules.dat')) if not l.startswith('#')]
+    m = {r[0]:dict(zip(rows[0][1:],[float(v) for v in r[1:]])) for r in rows[1:]}
+    out = [('molecules H2 evaporations = H / 2',m['H_2']['evaporations'],n['evaporations H']/2,1e-9),
+           ('molecules H2 condensations = H / 2',m['H_2']['condensations'],n['condensations H']/2,1e-9),
+           ('molecules He evaporations = He',m['He_1']['evaporations'],n['evaporations He'],1e-9),
+           ('molecules H2 in the gas = H / 2',m['H_2']['in_gas'],n['N_gas H']/2,1e-3),
+           ('molecules H2 pressure = H / 2',m['H_2']['P_(GPa)'],n['P_(GPa) H']/2,1e-4*n['P_(GPa) H']),
+           ('molecules some exchange',float(n['evaporations H'] > 100),1.0,0)]
+    c = exch_numbers(os.path.join(folder,'molecules.exchange.clusters','summary.dat'))
+    out += [('molecules clusters : Ar condensed',c['condensed Ar'],1.0,0),('molecules clusters : H gas',c['gas H'],1.0,0),
+            ('molecules clusters : He gas',c['gas He'],1.0,0),('molecules clusters : no exchange of H',c['evaporations H'],0.0,0)]
+    return out
+
+
 def t_faults(folder,outs):
     out = []
     for name, expect in (('faults_clean',{'1':'OK','2':'OK','3':'OK'}),('faults_bad',{'1':'WARNING','3':'WARNING'})):
@@ -565,6 +867,31 @@ CASES += [
          about='synthetic stress (Ornstein-Uhlenbeck) : viscosity ; T and P as AR(1) series : averages and their errors'),
     Case('syn_ti',[],[('@synthetic.py',['ti']),('thermo_integration_umd.py',['-t','1500'])],truth=[t_ti],
          about='synthetic harmonic wells at the Gauss-Legendre lambdas : <U>, ideal gas, F, S exact'),
+    Case('syn_gz',[],[('@synthetic.py',['idealgas_gz']),('gofr_umd.py',['-f','idealgas.umd.dat.gz']),('check_umd.py',['-f','idealgas.umd.dat.gz']),
+                      ('composition_umd.py',['-f','idealgas.umd.dat.gz','-n','3'])],truth=[t_idealgas],
+         about='the synthetic ideal gas compressed (.umd.dat.gz, decompressed into a temporary file) : g(r) = 1, running coordination exact, outputs named from idealgas.umd.dat'),
+    Case('syn_alloy',[],[('@synthetic.py',['alloy']),('composition_umd.py',['-f','alloy_random.umd.dat','-n','3','-e','Ni:1.5,Ni:0.5']),
+                         ('composition_umd.py',['-f','alloy_segregated.umd.dat','-n','3','-e','Ni:1.5'])],truth=[t_alloy],
+         about='synthetic Fe-Ni on a lattice : random alloy (concentration ratio 1, Fe-Ni correlation -1, enriched fraction hypergeometric) and Ni segregating in the second half (quarters exact, change detected)'),
+    Case('syn_exchange',[],[('@synthetic.py',['exchange']),('exchange_umd.py',['-f','exchange.umd.dat','-g','He','-t','0'])],truth=[t_exchange],
+         about='synthetic He jumping between the depths of an Ar slab and of the gas (Markov chain) : rates, stays, gas fraction ; interface area, gas volume, bulk density'),
+    Case('syn_interface',[],[('@synthetic.py',['interface']),('exchange_umd.py',['-f','interface.umd.dat','-g','He','-t','0'])],truth=[t_interface],
+         about='synthetic He scripted through the interface of an Ar slab : bounces, condensations, visits, evaporations, times in the interface, sticking and escape exact'),
+    Case('syn_persist',[],[('@synthetic.py',['persist']),('composition_umd.py',['-f','persist.umd.dat','-n','4','-g','none'])],truth=[t_persist],
+         about='synthetic sub-cells of two fixed weights, atoms drawn anew 10 % per step : persistent fraction of the heterogeneity, decay of the fluctuations 0.9^t'),
+    Case('syn_bubbles',[],[('@synthetic.py',['bubbles']),('composition_umd.py',['-f','bubbles.umd.dat','-n','6','-g','none'])],truth=[t_bubbles],
+         about='synthetic bubbles of a scripted history (lives, a merge, a split, cut ones) : the regions followed in time exact'),
+    Case('syn_degassing',[],[('@synthetic.py',['degassing']),('exchange_umd.py',['-f','degassing.umd.dat','-g','He','-t','0','-w','150'])],
+         truth=[t_degassing],about='synthetic He degassing from an Ar slab (Markov chain) : evaporation and condensation fluxes of every window exact, equilibrium found'),
+    Case('syn_molecules',[],[('@synthetic.py',['molecules']),('bonding_umd.py',['-f','molecules.umd.dat','-c','molecules.cutoffs.inp']),
+                             ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He','-t','0']),
+                             ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He','-t','0','-m','clusters'])],truth=[t_molecules],
+         about='synthetic H2 and He jumping between an Ar slab and the gas, bonds from bonding_umd.py : molecular events, gas and pressure ; -m clusters'),
+    Case('syn_blink',[],[('@synthetic.py',['blink']),('composition_umd.py',['-f','blink.umd.dat','-n','4','-g','He'])],truth=[t_blink],
+         about='synthetic hole opening for 30 fs and closing for 20 fs, ten times : periods of the void and dense states exact'),
+    Case('syn_composition',[],[('@synthetic.py',['composition'])]+[('composition_umd.py',['-f',f+'.umd.dat','-n','4']+o) for f, o in
+                               (('comp_ideal',[]),('comp_segregated',[]),('comp_hole',['-g','He']))],truth=[t_composition],
+         about='synthetic grids : ideal mixing (variance / binomial 1, correlation 0, time correlation 0.9^t), segregated halves (ratio 2), a hole across the periodic faces (voids, densities, partition)'),
     Case('syn_check',[],[('@synthetic.py',['faults']),('check_umd.py',['-f','faults_clean.umd.dat']),
                          ('check_umd.py',['-f','faults_bad.umd.dat'])],truth=[t_faults],
          about='synthetic random walk, clean and with a duplicated snapshot and a missed crossing : check_umd'),

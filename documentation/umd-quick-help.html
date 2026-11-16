@@ -9,13 +9,13 @@
     vertical-align: top; padding-top: 2.5mm; border-top: 1px solid #d9d6d7; width: 8mm; text-align: right; }
 }
 :root { --purple:#782F9A; --magenta:#ED127B; --ink:#231F20; --muted:#5d5a5b; --rule:#d9d6d7; --code:#f4f1f5; }
-html,body { margin:0; background:#fff; color:var(--ink); font-family:Helvetica, Arial, sans-serif; font-size:9.6pt; line-height:1.36; }
+html,body { margin:0; background:#fff; color:var(--ink); font-family:Helvetica, Arial, sans-serif; font-size:9.6pt; line-height:1.32; }
 h1 { font-size:17pt; margin:0 0 1mm 0; letter-spacing:.2px; }
 .sub { color:var(--muted); margin:0 0 3mm 0; font-size:8.4pt; }
 .cols { column-count:2; column-gap:7mm; }
 h2 { font-size:10.4pt; color:var(--magenta); text-transform:uppercase; letter-spacing:.6px; margin:2.6mm 0 1.4mm 0; padding-bottom:.6mm;
      border-bottom:1.2px solid var(--magenta); break-after:avoid; }
-.card { break-inside:avoid; margin:0 0 3mm 0; }
+.card { break-inside:avoid; margin:0 0 2.5mm 0; }
 .name { font-family:Menlo, Consolas, monospace; font-weight:bold; color:var(--purple); font-size:9.6pt; }
 .what { color:var(--ink); }
 .cmd { font-family:Menlo, Consolas, monospace; font-size:8.2pt; background:var(--code); padding:.4mm 1.2mm; border-radius:1mm; display:block; margin:.5mm 0; white-space:normal; }
@@ -27,9 +27,9 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 .wf { border:1.4px solid var(--purple); border-radius:1.5mm; padding:1.6mm 2.2mm; margin:0 0 3mm 0; }
 </style></head>
 <body>
-<h1>MAGMATOMIX/UMD 3.2 &mdash; quick help</h1>
+<h1>MAGMATOMIX/UMD 3.3 &mdash; quick help</h1>
 <p class="sub">The scripts in the order of the workflow and of the panels of the flowchart (<code>documentation/umd-flowchart.pdf</code>).
-<code>&lt;base&gt;</code> = the UMD file without <code>.umd.dat</code>. All the options of a script: <code>-h</code>. <code>-f all</code>: every <code>*.umd.dat</code> of the folder, one after the other. Run them from <code>src/</code> after compiling the C libraries (<code>README.txt</code>).</p>
+<code>&lt;base&gt;</code> = the UMD file without <code>.umd.dat</code>. All the options of a script: <code>-h</code>. <code>-f all</code>: every <code>*.umd.dat</code> of the folder, one after the other. A compressed run <code>run.umd.dat.gz</code> is read as it is. Run them from <code>src/</code> after compiling the C libraries (<code>README.txt</code>).</p>
 
 <div class="wf">
 <span class="name">umd_workflow.py</span> <span class="what">&mdash; runs all the analyses of the panels below on UMD files, check first, and summarizes the results; a rerun continues where it stopped and redoes only the steps whose options changed.</span>
@@ -85,13 +85,17 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">rotations_umd.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c O -a H -x 2 -u dipole|bonds -g 50 -r shell -V bader/|O:16.5,H:4.2|25.3 -t T -y 2</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.OH2.rot.pair.dat</code>, <code>.rot.shell.dat</code>, <code>.rot.time.dat</code>, <code>.rot.map.dat</code>, <code>.rot.2pt.dat</code>, <code>.rot.dat</code></span></div>
 
+<div class="card"><span class="name">composition_umd.py</span> <span class="what">&mdash; sub-cell counts: mixing, alloy segregation, voids, bubbles and droplets in time, gas-melt fluxes and equilibrium, map.</span>
+<span class="cmd">composition_umd.py -f run.umd.dat -n 6 -g H,C -e Ni:1.5 -t 50 -w 500 -c 1:1:1|r5|all -a Si,O -v</span>
+<span class="io"><b>out:</b> folder <code>&lt;base&gt;.comp.6x6x6/</code>: <code>summary.dat</code> and the details</span></div>
+
 <div class="card"><span class="name">lifetimes.py</span> <span class="what">&mdash; plot of the lifetime of every species (columns: central elements; rows: coordination).</span>
 <span class="cmd">lifetimes.py -f &lt;base&gt;.r1.popul.dat -t min_life -x 3,9 -l 12 -m -v</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1.lifetimes.pdf</code> (with <code>-l</code>: liquid and vapor figures)</span></div>
 
-<div class="card"><span class="name">liquid_and_vapor_speciation.py</span> <span class="what">&mdash; splits the species into liquid and vapor from the size of their r0 cluster.</span>
-<span class="cmd">liquid_and_vapor_speciation.py -p &lt;base&gt;.r1.popul.dat -s &lt;base&gt;.r0.step.dat -l 12</span>
-<span class="io"><b>out:</b> <code>&lt;base&gt;.r1.liquid.popul.dat</code>, <code>.liquid.stat.dat</code>, <code>.vapor.popul.dat</code>, <code>.vapor.stat.dat</code></span></div>
+<div class="card"><span class="name">exchange_umd.py</span> <span class="what">&mdash; melt&ndash;gas exchange through the interface: paths, rates, fluxes, equilibrium, pressure, partition, molecules; liquid/vapor species (<code>-P</code>).</span>
+<span class="cmd">exchange_umd.py -f run.umd.dat -g H -t 50 -w 500 -b &lt;base&gt;.bonding.dat -m field|clusters</span>
+<span class="io"><b>out:</b> folder <code>&lt;base&gt;.exchange/</code>: <code>summary.dat</code>, <code>fluxes.dat</code>, <code>molecules.dat</code>&hellip;</span></div>
 
 <div class="card"><span class="name">stat-concentrate.py</span> <span class="what">&mdash; gathers the <code>*.r0.stat.dat</code> of the runs of a folder (same P, T), with the liquid/vapor partitioning.</span>
 <span class="cmd">stat-concentrate.py -l max_vapor_size -t min_time_fs -c Na,K</span>

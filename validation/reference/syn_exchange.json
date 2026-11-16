@@ -1,0 +1,50 @@
+{
+ "about": "synthetic He jumping between the depths of an Ar slab and of the gas (Markov chain) : rates, stays, gas fraction ; interface area, gas volume, bulk density",
+ "environment": {
+  "commit": "3.1-3-ge64242e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py exchange",
+   "code": 0,
+   "time": 4.09
+  },
+  {
+   "command": "exchange_umd.py -f exchange.umd.dat -g He -t 0",
+   "code": 0,
+   "time": 6.6
+  }
+ ],
+ "numbers": {
+  "exchange He k_evaporation": 49.76,
+  "exchange He k_condensation": 102.9,
+  "exchange He stay_condensed": 19.77,
+  "exchange He stay_gas": 9.679,
+  "exchange He gas fraction": 0.3261,
+  "exchange Ar never leaves the slab": 0.0,
+  "exchange interface area (nm2)": 8.0039,
+  "exchange gas volume fraction": 0.49992,
+  "exchange bulk density": 0.0428285,
+  "exchange gas temperature (K)": 1000.4,
+  "exchange partial pressure of He (GPa)": 0.032181,
+  "exchange partition coefficient of He": 2.066,
+  "exchange Hertz-Knudsen flux of He": 1.34,
+  "exchange no Ar in the gas": 0.0
+ },
+ "files": {
+  "exchange.umd.dat": "1bf85b42990207024e428af8f965ca37385fd5d303856a001ed7207744f8d9ef",
+  "exchange.truth.json": "6e723295e49c30930a9708aeb5da707d7990aa84b722d3233fff97cce201d0d5",
+  "exchange.exchange/states.dat": "86a20e50fe6907a03b651a5dcae65d2dbb619ee532a6a8818be34ff07da79431",
+  "exchange.exchange/fluxes.dat": "e3ba4305640658df7e1ce93f0bda23d933cedcd617cdfa954c505219649478b8",
+  "exchange.exchange/paths.dat": "81ea5f350ac3cabb60dff964f3abef51c3cbe54fc17eb293ce680497dcc711a5",
+  "exchange.exchange/stays.dat": "2f2479b6c6f7406dbcc391830b911601a803f155baf4407405f29394676fe0b8",
+  "exchange.exchange/gas.dat": "7251d276cbcc33288cb549f84ab6767c49bea8dc4b8b5dd1fccb6537859548bf",
+  "exchange.exchange/atoms.dat": "cdb4b5f59a1c5a8f3105018433941142ae186923da3744b79c1164d02faf18af",
+  "exchange.exchange/summary.dat": "a2fd46eca49f022e9851cdb714b9901f3be18894b7da85a25062c3613eba63f0"
+ }
+}

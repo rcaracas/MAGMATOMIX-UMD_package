@@ -151,7 +151,8 @@ def main(argv):
         elif opt in ("-k","--kCores"):
             nCores = int(arg)
 
-    if not (os.path.isfile(UMDname)):
+    UMDname = umdpf.umd_input(UMDname)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not (os.path.isfile(umdpf.real_path(UMDname))):
         umdpf.missing_umd(UMDname)
         sys.exit()
 
@@ -206,7 +207,7 @@ def main(argv):
     #Batches of snapshots, sized from the bytes of a snapshot in the file : each worker reads its snapshots from the UMD file and returns the
     #text of their bonds, written in order as the batches come (the memory holds a few batches, whatever the size of the run)
     nsnap = len(offsets)
-    snapbytes = (os.path.getsize(UMDname)-offsets[0])/(nsnap*Nsteps)
+    snapbytes = (os.path.getsize(umdpf.real_path(UMDname))-offsets[0])/(nsnap*Nsteps)
     ranges = umdpf.batch_ranges(nsnap,snapbytes*Nsteps,nCores)
     worker = partial(bonding_batch,UMDname=UMDname,natom=natom,BondTable=BondTable,CrystalTypes=CrystalTypes,ntypat=MyCrystal.ntypat,
                      numCells=numCells,specifics=specifics,first=first,Nsteps=Nsteps,TimeStep=TimeStep)

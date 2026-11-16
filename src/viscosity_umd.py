@@ -131,7 +131,8 @@ def main(argv):
                 sys.exit()
         elif opt in ("-v","--visual"):
             plot = True
-    if not os.path.isfile(UMDfile):
+    UMDfile = umdpf.umd_input(UMDfile)                     #<run>.umd.dat.gz : decompressed into a temporary file, the outputs named from <run>.umd.dat
+    if not os.path.isfile(umdpf.real_path(UMDfile)):
         umdpf.missing_umd(UMDfile)
         sys.exit()
 
