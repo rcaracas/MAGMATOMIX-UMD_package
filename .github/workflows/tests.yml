@@ -43,7 +43,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: validation-${{ matrix.os }}
-          path: ci-runs
+          path: |
+            ci-runs/report.txt
+            ci-runs/**/*.out
+            ci-runs/**/*.log
           retention-days: 7
       - name: Attach the compiled libraries to the release
         if: github.event_name == 'release'

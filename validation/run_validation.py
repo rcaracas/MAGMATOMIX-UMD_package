@@ -118,7 +118,7 @@ def run_case(case,folder,data):
     skip = set(inputs)|{os.path.basename(o) for o in os.listdir(folder) if re.match(r'\d\d\..*\.out$',o)}
     for top, dirs, files in os.walk(folder):
         for f in files:
-            rel = os.path.relpath(os.path.join(top,f),folder)
+            rel = os.path.relpath(os.path.join(top,f),folder).replace(os.sep,'/')      #the same name on every system (Windows : \\)
             if rel in skip or os.path.islink(os.path.join(top,f)):
                 continue
             if any(fnmatch.fnmatch(f,p) for p in VOLATILE):
