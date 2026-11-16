@@ -5,7 +5,14 @@ Several scripts use C functions compiled as shared libraries (loaded with ctypes
     c_clusters     chemical species (speciation_and_angles.py)
 
 Compile them before running the scripts, in the src folder, where the python scripts are: the libraries must be in the same folder.
-The compiled libraries are not distributed with the package.
+
+The simplest, on any system (macOS, Linux, Windows with the gcc of MinGW-w64):
+
+      cd src
+      python3 compile_libraries.py          (python on Windows)
+
+Every release on GitHub also has the compiled libraries attached (umd-c-libraries-windows.zip, -linux.zip, -macos.zip): unzip
+them into the src folder instead of compiling (on Windows, no compiler needed: see WINDOWS.md). By hand:
 
 
 -If you're on MacOS : .dylib libraries

@@ -4,14 +4,12 @@ Post-processing package that performs analysis of structural, transport, and the
 UMD stores the atomic trajectories and the thermodynamic information of a run in one ASCII format, the `.umd.dat` file. Parsers write it from VASP, ABINIT, CP2K, QBox and LAMMPS outputs; the analysis scripts read it.
 
 ## Quick start
-Python 3 with numpy, scipy and matplotlib, and a C compiler. Compile the C libraries in `src/` (macOS; Linux and Windows in `README.txt`):
+Python 3 with numpy, scipy and matplotlib, and a C compiler (gcc). Compile the four C libraries once, on macOS, Linux or Windows (the commands themselves are in `README.txt`):
 ```bash
 cd src
-gcc -O2 -dynamiclib -o c_UMDprocess.dylib c_UMDprocess.c
-gcc -dynamiclib -o c_bonds_full.dylib c_bonds_full.c
-gcc -dynamiclib -o c_clusters.dylib c_clusters.c
-gcc -O2 -dynamiclib -o c_gofr.dylib c_gofr.c
+python3 compile_libraries.py
 ```
+**Windows**: see [`WINDOWS.md`](WINDOWS.md); every release has the libraries compiled for Windows (`umd-c-libraries-windows.zip`), so no compiler is needed. The package is tested on Linux, Windows and macOS at every change (GitHub Actions).
 Then, for example:
 ```bash
 python3 VaspParser.py -f OUTCAR            # writes OUTCAR.umd.dat
