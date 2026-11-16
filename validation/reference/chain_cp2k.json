@@ -1,7 +1,7 @@
 {
  "about": "CP2K run parsed, then the workflow",
  "environment": {
-  "commit": "3.0-1-g9dafa18-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "CP2KParser.py -f position.xyz -v velocity.xyz -r force.xyz -e log.out -a stress.out -c main_2.out",
    "code": 0,
-   "time": 4.48
+   "time": 4.44
   },
   {
    "command": "umd_workflow.py -f position.xyz.umd.dat",
    "code": 0,
-   "time": 9.43
+   "time": 12.61
   }
  ],
  "numbers": {
@@ -31,6 +31,7 @@
   "step position.xyz.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step position.xyz.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
   "step position.xyz.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "step position.xyz.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3": "OK",
   "step position.xyz.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step position.xyz.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "step folder analyze_msd_clusters.py": "OK",
@@ -61,6 +62,8 @@
   "position.xyz.umd.dat CN_H-O": 1.0018,
   "position.xyz.umd.dat CN_H-S": 0.0099,
   "position.xyz.umd.dat main_r1_species(%)": "O_1H_1:96.0 O_1:2.9 O_1H_1S_1:1.0 O_2H_1:0.2 O_1H_1S_2:0.0",
+  "position.xyz.umd.dat void_fraction": 0.0,
+  "position.xyz.umd.dat void_fraction_err": 0.0,
   "position.xyz.check.dat check 1": "OK",
   "position.xyz.check.dat check 2": "OK",
   "position.xyz.check.dat check 3": "OK",
@@ -88,7 +91,7 @@
  "files": {
   "position.xyz.vibr.err.dat": "8607454a4afa6c851402d1de4c9dfd7225bcc5308459930d08806494328fd1ec",
   "position.xyz.coordinations.inp": "152efe163ebea372caa6fe729226a829b6fdde4d2e257755aaac2d57c4c836cf",
-  "umd_workflow.summary.dat": "0e418998182d7b8c545afb43b65446d7720659d163ef6a3af14efc440714c50e",
+  "umd_workflow.summary.dat": "7129e46fe82c2ef8e733ef9870da6db0e20d763007653f5c810a3e6286d626e1",
   "umd_workflow.log": "not compared",
   "position.xyz.r1.lifetimes.pdf": "not compared",
   "position.xyz.bondslives.dat": "b55956457954d252bbf189f95881cdbeb0b3e970fb779b5227548ea7dd453790",
@@ -122,6 +125,14 @@
   "position.xyz.vibr.dat": "37896085241e366072320786bebdd3270d327a8346a679b8d1f6ceb90fd15251",
   "position.xyz.r0.stat.dat": "6f1452d0f0fba4d5fef4b73de2a97b28c015f52319f932bfc787c7176881ecd5",
   "position.xyz.r1.stat.dat": "3ddab02b9aa24b52e6b0692ee5845c30743b3a3f99971c686828c3b6440b55db",
-  "position.xyz.angles.dat": "dc7e92c868dd20354209c78d033868e73e430b0f171bc80dd14fc51e80d40e53"
+  "position.xyz.angles.dat": "dc7e92c868dd20354209c78d033868e73e430b0f171bc80dd14fc51e80d40e53",
+  "position.xyz.comp.3x3x3/time.dat": "002c081e724f728551002ff49d999e7810c824ab4900f370c9a02d49bbd88fb4",
+  "position.xyz.comp.3x3x3/density.dat": "908237456838d11266ef87419db85ee70aef65185866c4a042311894e33df4b9",
+  "position.xyz.comp.3x3x3/fluctuations.dat": "9de6323a30235dfa267311ab5833f00cd68d7cae8f828281006402afade3bda4",
+  "position.xyz.comp.3x3x3/dist.dat": "9ebda6fdad7c44f7878085668c973ffa75f925733e46cc8c4fe1942af1b9eeae",
+  "position.xyz.comp.3x3x3/episodes.dat": "40128fbd5b27f0a522b09d3a13f366cdb6cceac655d0e8920e39bb61c24eb479",
+  "position.xyz.comp.3x3x3/voids.dat": "f6ef6ef4c74f4aec656a4ffafdacc55bce1ba69f8b79eb5db6995e497e7e91ad",
+  "position.xyz.comp.3x3x3/regions.dat": "e2198451ccc9ddcac19091814c903546d403a5b8aa023538838d0e13276ad83e",
+  "position.xyz.comp.3x3x3/summary.dat": "172f6a1c806842b94ebd03aa6036cb74e60505727c2dfd55caf05dbad04705e1"
  }
 }

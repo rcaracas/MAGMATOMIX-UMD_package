@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, hydrous andesite melt 3000 K, 468 MB, restarts",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat",
    "code": 0,
-   "time": 42.3
+   "time": 51.07
   }
  ],
  "numbers": {
@@ -26,6 +26,7 @@
   "step hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
   "step hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "step hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3": "OK",
   "step hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "step folder analyze_msd_clusters.py": "OK",
@@ -74,6 +75,8 @@
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat CN_Ca-O": 5.6257,
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat CN_H-O": 1.0578,
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat main_r1_species(%)": "O_4Si_1:40.2 O_1H_1:16.7 O_4Al_1:12.2 O_3Si_1:2.7 O_5Al_1:2.5",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat void_fraction": 0.0057144,
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.umd.dat void_fraction_err": 0.0016,
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.check.dat check 1": "OK",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.check.dat check 2": "OK",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.check.dat check 3": "OK",
@@ -487,7 +490,7 @@
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_2H_1.msd.dat": "7ec701891f6bfe1f51a6ee75e0ae962e6d800f3b77ac26e077dfcc63d6ea98ac",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_7Na_1.msd.dat": "779059b3cd30c59e2630d113ab99d410fb9a72f1032c91c6e43eb0da58088ff2",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_5Mg_1.msd.dat": "7469e3170be2a17680fa1001b5a8304e30bd633b3d3e1b43e33c70041baa0096",
-  "umd_workflow.summary.dat": "87e3e4b9a67a94ab11b1f40eefe0f6d9c4e89fe4fe460a32e5cddff3e08fec98",
+  "umd_workflow.summary.dat": "7b7be9d2b11f7696a69ef9bd90116d299ad6d4ab798b951e0540641e41d8c5df",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_4K_1.msd.dat": "58fe641f34923664274fb4f155fa8a003e6e13fe7469be8e83f171539faed203",
   "umd_workflow.log": "not compared",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_7Ca_1.msd.dat": "7b9defc7caa407778081a623b3c0d09d2a0c1ad380688953af0fffc2ecd55fc0",
@@ -558,6 +561,14 @@
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.check.dat": "73471dccddea07311cdfd2c1cd35f01ddeff4f20c9fc9f7dce0dfa994253ef21",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_5Si_1.msd.dat": "4fa84a0b11a912da3525c1bc3a30711b3be28a1116742cfd780754751723300c",
   "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__O_5Ca_1.msd.dat": "e71ae2b042f176efa59c8b3d19334a3a4a0ff3f287ec979da408a34719e9f405",
-  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__H_1.msd.dat": "275d82a6625166cdba519c551df7e424ba07cbb823f345ba56470fb344c6bec9"
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.r1__H_1.msd.dat": "275d82a6625166cdba519c551df7e424ba07cbb823f345ba56470fb344c6bec9",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/time.dat": "575aa7a6a5dd635505207927c38b6f28ed8079ec6e359db1fd938fa67a00e610",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/density.dat": "e3842b953ae148ed23393b3f66e9ec947d03070bca31272a090abe640ca478e2",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/fluctuations.dat": "03f2ef41a35fd897d598cc144c1fb1e37345c6a2e8c3d08e5011d98c445801e1",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/dist.dat": "c168c450e2262b65f34657af110b5f6fd6de2e712d0c19c0352b0580ff0cbe0d",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/episodes.dat": "9e21dcb67d0e0eba1713c0d5db91cd6adb1dd6f158c00ac53365c08627ae2e1f",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/voids.dat": "49164ca5f79f030ea852b3c5c25cd4a8f76428edf5c330f57dac3e3ce1dfc276",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/regions.dat": "0c39c5e1d99f3597ba4b418a1bd59ddebe069e125fae5ef6350b7355874a678a",
+  "hydrousandesite.a15.0.T3000K.reduced.-A-.outcar.comp.3x3x3/summary.dat": "3caa8d6470efa7d489ae31c3624e6c958389b229b6b22e21aedc04281ec91746"
  }
 }

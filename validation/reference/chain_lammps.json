@@ -1,7 +1,7 @@
 {
  "about": "LAMMPS water parsed, then the workflow",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "LAMMPSParser2umd.py -f test.dump -l log.lammps",
    "code": 0,
-   "time": 2.51
+   "time": 2.48
   },
   {
    "command": "umd_workflow.py -f test.dump.umd.dat",
    "code": 0,
-   "time": 8.44
+   "time": 11.58
   }
  ],
  "numbers": {
@@ -31,6 +31,7 @@
   "step test.dump.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step test.dump.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
   "step test.dump.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "step test.dump.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3": "OK",
   "step test.dump.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step test.dump.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "step folder analyze_msd_clusters.py": "OK",
@@ -58,6 +59,8 @@
   "test.dump.umd.dat dCv_quantum(kB/atom)": -1.0354380971565693,
   "test.dump.umd.dat CN_H-O": 1.0001,
   "test.dump.umd.dat main_r1_species(%)": "O_1H_1:100.0 O_2H_1:0.0",
+  "test.dump.umd.dat void_fraction": 0.0,
+  "test.dump.umd.dat void_fraction_err": 0.0,
   "test.dump.check.dat check 1": "OK",
   "test.dump.check.dat check 2": "OK",
   "test.dump.check.dat check 3": "OK",
@@ -83,7 +86,7 @@
   "test.dump.r0.step.dat": "57d87dccb168b98cde8f6bf41dd36c8c639f891364ecc4ee48b26f5491e91ea8",
   "test.dump.r1.step.dat": "ae54416a0fbbaa7688f05fff8d2f1cfe6452568467f92c51a8b70451bef501e2",
   "test.dump.r1.popul.dat": "a059c07b73700f1e7ccc9f758b176779dc9169df4b0e11f36f560a076cbaa1a9",
-  "umd_workflow.summary.dat": "e89205af525fafec3263f6f0a5a432d69d9dc627044b8f2ce2f3aac2aa2e1c7f",
+  "umd_workflow.summary.dat": "d988e5d670313497ae3d877ad74f8b89cdc43bab16c71272297e02ab1374d6e6",
   "umd_workflow.log": "not compared",
   "test.dump.vels.scf.dat": "7d157788d70f660297db3141fda1db2f3350d6aeaf30345fd1ee65c755e742cc",
   "test.dump.umd.dat": "4355fab80895e00386eba920125a9f4c1dec2b8217de2523f9af2634cea50c76",
@@ -111,6 +114,14 @@
   "test.dump.maximum_bonds.inp": "4ff023939d94e80ab1a57ec160376d45c083b623da3474e76f1e0cf01be9fb9a",
   "test.dump.average_bonds.inp": "329ea1ee19083180d9a9f0e1ab4cf65df84129d30a6f3e4588915214f5d0e346",
   "test.dump.r1__O_1H_1.msd.dat": "07c36f80984bfb617811f79aeb2b8dba9ef37e15b3736589544c789893b6f69f",
-  "test.dump.vibr.dat": "634c44ff42dd97e79db658b290f55d98bcb1ecffaaf9f21601d4bd0ad94cfe75"
+  "test.dump.vibr.dat": "634c44ff42dd97e79db658b290f55d98bcb1ecffaaf9f21601d4bd0ad94cfe75",
+  "test.dump.comp.3x3x3/time.dat": "d20c499d791ef381b8a8de8b45a8ba5ef8cd01079ba316168344bf7459ce110e",
+  "test.dump.comp.3x3x3/density.dat": "43db923df71dd765595f8c29b61b4b76302e9d1ab93bdbb5a4d51892ed9dbc03",
+  "test.dump.comp.3x3x3/fluctuations.dat": "fa01f847990a6505a5d3e2c007cbadcd777bbda737ba8f18f951af03127dd47d",
+  "test.dump.comp.3x3x3/dist.dat": "d23aa480ca290f895cc5189c8c4e85be4d89274cd61bdfee297a6997fb46f986",
+  "test.dump.comp.3x3x3/episodes.dat": "dbce91965ccc4185bc25eb8ab5a11bd443606cbc43a1be2dc19996d509f5b8e0",
+  "test.dump.comp.3x3x3/voids.dat": "66aef3289b11bf959cb2a75ac0e60d0f03f56f535ed288c6caba5c9a872ecf82",
+  "test.dump.comp.3x3x3/regions.dat": "4cb1f34f929d99c009c751b1756c0a41276c56cc11e9bf8b5ff590471baef0a3",
+  "test.dump.comp.3x3x3/summary.dat": "8b27c68095e27ffab4ca7540d6fb3c7b81e013a0f1bc4a5d80b9f94869d6f031"
  }
 }

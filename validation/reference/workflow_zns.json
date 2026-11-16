@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, ZnS 1000 K, on-the-fly ML",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f zns.T1000K.prod.outcar.umd.dat",
    "code": 0,
-   "time": 27.5
+   "time": 31.82
   }
  ],
  "numbers": {
@@ -26,6 +26,7 @@
   "step zns.T1000K.prod.outcar.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step zns.T1000K.prod.outcar.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
   "step zns.T1000K.prod.outcar.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "step zns.T1000K.prod.outcar.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3": "OK",
   "step zns.T1000K.prod.outcar.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step zns.T1000K.prod.outcar.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "step folder analyze_msd_clusters.py": "OK",
@@ -53,6 +54,8 @@
   "zns.T1000K.prod.outcar.umd.dat dCv_quantum(kB/atom)": -0.027548440178223152,
   "zns.T1000K.prod.outcar.umd.dat CN_Zn-S": 3.9993,
   "zns.T1000K.prod.outcar.umd.dat main_r1_species(%)": "S_4Zn_1:99.9 S_3Zn_1:0.1 S_5Zn_1:0.0",
+  "zns.T1000K.prod.outcar.umd.dat void_fraction": 0.0012222,
+  "zns.T1000K.prod.outcar.umd.dat void_fraction_err": 0.00036,
   "zns.T1000K.prod.outcar.check.dat check 1": "OK",
   "zns.T1000K.prod.outcar.check.dat check 2": "OK",
   "zns.T1000K.prod.outcar.check.dat check 3": "OK",
@@ -116,7 +119,7 @@
   "zns.T1000K.prod.outcar.r1.popul.dat": "7388e5523a8c28a3404cd97eae3b82c2f607bcbbb550259161c795404b4ba27d",
   "zns.T1000K.prod.outcar.visc.dat": "ca02e85346e4f63f88e8c14ca7e2f5ec3f59ec51de11d4dc2b93e9288f5c9f59",
   "zns.T1000K.prod.outcar.vels.scf.dat": "21ef4a02bfe3d91608522e49422a700677f2f66ab52d8bd10249cafd0f590103",
-  "umd_workflow.summary.dat": "60f219da12ecae27e39d9dde057b2b167ece1f9c33278409c41468e67f1cb03e",
+  "umd_workflow.summary.dat": "c634805acf67a4e7d1e96bde1e589199a77ea6b3f991a0cbf201599d3d52df36",
   "umd_workflow.log": "not compared",
   "zns.T1000K.prod.outcar.2pt.dat": "4c8b8a4ef1444441e7f9a71b83cd1dc13d5f5d5b9da8ab5c643f4321a8bc3f27",
   "zns.T1000K.prod.outcar.r0.popul.dat": "9003c9f52c0d5be38f5349697a8ad56789d849b9c1e14d8fc90f994bdba213cc",
@@ -147,6 +150,14 @@
   "zns.T1000K.prod.outcar.r1__S_5Zn_1.msd.dat": "6ff799a36ac673e8c04fdff7d4f75774efc6adabc26a32273df0c5ee09a7f1dc",
   "zns.T1000K.prod.outcar.vacf.diffusion.dat": "a9fb991a3f48229f060b20c3bb8426ee8c38ff7f3f76ff62f28725d08c139390",
   "zns.T1000K.prod.outcar.gofr.dat": "919870783569037f878321867d1f5480846d393399db7679a99c31987f87edb4",
-  "zns.T1000K.prod.outcar.msd.dat": "8f2b570cf882ac61fbe9cb19a38b0f5384fc006592623b16b4d32f9ee8c7d400"
+  "zns.T1000K.prod.outcar.msd.dat": "8f2b570cf882ac61fbe9cb19a38b0f5384fc006592623b16b4d32f9ee8c7d400",
+  "zns.T1000K.prod.outcar.comp.3x3x3/time.dat": "a8606d154eb7c046a3113ccc47a61a66d490669465fd2a4848e61db3a6d8dbf3",
+  "zns.T1000K.prod.outcar.comp.3x3x3/density.dat": "f290450c79d97cbac88af6d06800ecc046c596215d6a4d70e4db88a79b3c7bbd",
+  "zns.T1000K.prod.outcar.comp.3x3x3/fluctuations.dat": "567677426ccbc6f12bc680618219d7c14a2537f3df0dcd6852cf1327c981b542",
+  "zns.T1000K.prod.outcar.comp.3x3x3/dist.dat": "47786262efb93a75b8ad9c2589b3afb043c4fca31ca19ea493de0edb03f183fe",
+  "zns.T1000K.prod.outcar.comp.3x3x3/episodes.dat": "772af7649bcc753ce8aedcc3da69cfb6419685bc228bbfeb486955df1f716eeb",
+  "zns.T1000K.prod.outcar.comp.3x3x3/voids.dat": "448ce285a07782cd4abfc5b9d665a24b9c97b6e491801c4abfd718a2339d3355",
+  "zns.T1000K.prod.outcar.comp.3x3x3/regions.dat": "b063904a41ecc3a3a0b286c7611f76caaae3be6580c1c835ee83fb4b715a90af",
+  "zns.T1000K.prod.outcar.comp.3x3x3/summary.dat": "00cc19d71c528bd0d8879797830484e959564e52dc4fcf441dae545957b8aa22"
  }
 }

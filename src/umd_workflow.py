@@ -13,11 +13,17 @@
 import sys, getopt, os, glob, time, subprocess, json, re
 import umd_processes_fast as umdpf
 import crystallography as cr
+import composition_umd
 
 SRC = os.path.dirname(os.path.abspath(__file__))
 LOG = 'umd_workflow.log'
 DONE = 'umd_workflow.done'
 SUMMARY = 'umd_workflow.summary.dat'
+SUBCELL = 5.0                                                                   #A, the default -l of composition_umd.py : the grid, as there
+GAS = 0.1                                                                       #mean void fraction of composition_umd.py from which the run has a gas phase
+CONDENSED = 10                                                                  #and the least number of atoms of the condensed elements (not volatile)
+COMP_FILES = ['summary.dat','dist.dat','density.dat','voids.dat','time.dat','fluctuations.dat','episodes.dat','regions.dat']
+EXCHANGE_FILES = ['summary.dat','states.dat','gas.dat','paths.dat','stays.dat','atoms.dat','fluxes.dat']
 
 
 class Step:#One script run : command line, input files it needs, output files it writes (names relative to the folder ; pattern :
@@ -105,12 +111,59 @@ def run(step,folder,base,overwrite,results):#Runs one step ; its status is appen
     results.append((folder,step.command(),status))
 
 
+def exchange_step(folder,compdir,umd,base,bonds,skip,ncondensed):#exchange_umd.py when composition_umd.py found a gas phase (mean void fraction
+    #>= GAS) and the run has a condensed phase (at least CONDENSED atoms of the elements that are not volatile, all if all are volatile)
+    if ncondensed < CONDENSED:
+        print('   %-14s %s' % ('not needed','exchange_umd.py')+'\n'+' '*18+'(no condensed phase : %d atoms of the condensed elements < %d)' % (ncondensed,CONDENSED))
+        return None
+    found = name_values(os.path.join(folder,compdir,'summary.dat')).get('void_fraction')
+    try:
+        fraction = float(found[0])
+    except (TypeError,ValueError):
+        print('   %-14s %s' % ('skipped','exchange_umd.py')+'\n'+' '*18+'(no void fraction : composition_umd.py did not run)')
+        return None
+    if fraction < GAS:
+        print('   %-14s %s' % ('not needed','exchange_umd.py')+'\n'+' '*18+'(no gas phase : mean void fraction %.3g < %g)' % (fraction,GAS))
+        return None
+    outdir = base+'.exchange'
+    makes = [outdir+'/'+f for f in EXCHANGE_FILES]+([outdir+'/molecules.dat'] if bonds else [])
+    return Step('exchange_umd.py',['-f',umd]+(['-b',bonds] if bonds else [])+skip,[umd]+([bonds] if bonds else []),makes)
+
+
 def roles(elements,central,adjacent):#Central and adjacent elements of the speciation : by default the cations around the anions
     if central is None:
         central = [el for el in elements if (cr.Elements2charge(el) or 0) > 0]
     if adjacent is None:
         adjacent = [el for el in elements if (cr.Elements2charge(el) or 0) < 0]
     return central, adjacent
+
+
+def comp_grid(path,first):#Grid of sub-cells of composition_umd.py with its default length, from the cell of the first snapshot used ; None if
+    #there is a single sub-cell (cell narrower than 1.5 SUBCELL) or no cell
+    try:
+        cell = umdpf.read_cells(path,1,1,first)[0]
+    except SystemExit:
+        return None
+    grid = [max(1,int(round(w/SUBCELL))) for w in composition_umd.widths(cell)]
+    return grid if grid[0]*grid[1]*grid[2] > 1 else None
+
+
+def name_values(path):#First values of the name-value lines of a summary file (composition_umd.py, exchange_umd.py) : {name : (value, error)}
+    found = {}
+    if os.path.isfile(path):
+        with open(path) as f:
+            for line in f:
+                entry = line.rstrip('\n').split('\t')
+                if len(entry) >= 2 and entry[0] and not line.startswith('#'):
+                    found.setdefault(entry[0].strip(),(entry[1].strip(),entry[2].strip().lstrip('>') if len(entry) > 2 else 'nan'))
+    return found
+
+
+def comp_folder(folder,base):#The output folder of composition_umd.py at the grid of the workflow (the one in umd_workflow.done), else None
+    for key in read_done(folder):
+        if key.startswith(base+'.comp.') and key.endswith('/summary.dat'):
+            return os.path.dirname(key)
+    return None
 
 
 def table(path,first):#Rows of a tab-separated file whose column names are on the line beginning with first : {first column : {name : value}}
@@ -166,6 +219,26 @@ def summary_row(folder,umd,central,adjacent):#Main results of one UMD file, from
     if species:
         main = sorted(species.values(),key=lambda s: -float(s['Percent']))[:5]
         row['main_r1_species(%)'] = ' '.join(s['Cluster']+':'+'%.1f' % (100*float(s['Percent'])) for s in main)
+    comp = comp_folder(folder,base_of(umd))
+    if comp:
+        found = name_values(os.path.join(folder,comp,'summary.dat'))
+        if 'void_fraction' in found:
+            row['void_fraction'], row['void_fraction_err'] = found['void_fraction']
+    found = name_values(base+'.exchange/summary.dat')
+    if found:
+        for name, key in (('interface_area(nm2)','area_(nm2)'),('gas_volume_fraction','gas_volume_fraction')):
+            if key in found:
+                row[name] = found[key][0]
+        with open(base+'.exchange/summary.dat') as f:
+            for line in f:
+                gas = re.search(r'Gas : temperature (\S+) K',line)
+                if gas:
+                    row['T_gas(K)'] = gas.group(1)
+                pressure = re.search(r'total pressure of the atoms in the gas (\S+) \+/- (\S+)',line)
+                if pressure:
+                    row['P_gas_atoms(GPa)'], row['P_gas_atoms_err'] = pressure.group(1), pressure.group(2)
+                if line.startswith('total_molecules_in_gas'):
+                    row['P_gas_molecules(GPa)'] = line.split('\t')[3].strip()
     if row and os.path.isfile(base+'.check.dat'):
         with open(base+'.check.dat') as f:
             row['check_warnings'] = str(sum('WARNING' in line for line in f))
@@ -176,7 +249,8 @@ def write_summary(folder,rows,umds):#One line per UMD file, the columns of all t
     columns = []
     for row in rows.values():
         columns += [c for c in row if c not in columns]
-    groups = ('nsteps','check_warnings','density','P(','P_err','T(','T_err','E(','E_err','Cv','D_','eta','S_2PT','dE','dS','dCv','CN_','main')
+    groups = ('nsteps','check_warnings','density','P(','P_err','T(','T_err','E(','E_err','Cv','D_','eta','S_2PT','dE','dS','dCv','CN_','main',
+              'void','interface','gas_volume','T_gas','P_gas_atoms','P_gas_molecules')
     columns.sort(key=lambda c: [c.startswith(g) for g in groups].index(True))  #by quantity, the elements in their order of appearance
     with open(os.path.join(folder,SUMMARY),'w') as f:
         f.write('# umd_workflow.py summary, '+time.strftime('%Y-%m-%d %H:%M')+' : main results of the UMD files of this folder, from the files of the scripts\n')
@@ -184,7 +258,9 @@ def write_summary(folder,rows,umds):#One line per UMD file, the columns of all t
         f.write('# eta : <base>.visc.dat (viscosity_umd.py) ; S_2PT and the quantum corrections (to add to the MD values) : <base>.2pt.dat,\n')
         f.write('# <base>.vdos.thermo.dat (vdos_thermo.py) ; CN : <base>.coordinations.inp (analyze_gofr.py), central - adjacent elements ;\n')
         f.write('# species : <base>.r1.stat.dat (speciation_and_angles.py -r 1), the 5 most frequent, % of the species time ; check_warnings :\n')
-        f.write('# number of warnings of check_umd.py (<base>.check.dat) ; errors : _err columns (errors of the mean or of the blocks)\n')
+        f.write('# number of warnings of check_umd.py (<base>.check.dat) ; void_fraction : <base>.comp.<grid>/summary.dat (composition_umd.py) ;\n')
+        f.write('# interface, gas (temperature, pressure of the atoms and of the molecules) : <base>.exchange/summary.dat (exchange_umd.py, runs with\n')
+        f.write('# a gas phase) ; errors : _err columns (errors of the mean or of the blocks)\n')
         if os.path.isfile(os.path.join(folder,'thermo_integration.dat')):
             f.write('# free energy and entropy by thermodynamic integration of the runs at several lambda : thermo_integration.dat\n')
         f.write('\t'.join(['file']+columns)+'\n')
@@ -219,7 +295,10 @@ def main(argv):
             print('     the bond lifetimes -l 1) and -r 0 (polymerization of all the atoms : molecules, -c all -a all), lifetimes.py (plot of the')
             print('     r1 species).')
             print('-t : transport properties : msd_umd.py (diffusion coefficients), viscosity_umd.py, and, when the r1 species exist (-g, or a')
-            print('     former run), msd_clusters_umd.py and analyze_msd_clusters.py (diffusion of the chemical species).')
+            print('     former run), msd_clusters_umd.py and analyze_msd_clusters.py (diffusion of the chemical species), composition_umd.py')
+            print('     (compositional fluctuations, voids, droplets ; sub-cells of about %g A) and, when the run has a gas phase (mean void' % SUBCELL)
+            print('     fraction of composition_umd.py at least %g) and a condensed phase (at least %d atoms of elements that are not volatile),' % (GAS,CONDENSED))
+            print('     exchange_umd.py (exchange of atoms between the condensed phase and the gas ; molecules from the bonding file when there is one).')
             print('-d : thermodynamic properties : averages.py -a (fullthermo.dat, one line per UMD file of the folder), vibrations_umd.py,')
             print('     vdos_thermo.py, and thermo_integration_umd.py on the UMD files of a folder when one of them has lambda_ThermoInt < 1.')
             print('     Without -g, -t, -d : the three panels.')
@@ -227,7 +306,8 @@ def main(argv):
             print('-i : snapshots skipped at the beginning (equilibration), passed to all the scripts reading the UMD file. Default 0.')
             print('-s : one snapshot out of s is used by check_umd.py (checks of the atoms), gofr_umd.py, bonding_umd.py (hence the speciation)')
             print('     and msd_umd.py. Default 1. viscosity_umd.py and vibrations_umd.py always use every snapshot : their time correlations')
-            print('     need the time step of the run (sampling would alias the vibrations and coarsen the Green-Kubo integrals).')
+            print('     need the time step of the run (sampling would alias the vibrations and coarsen the Green-Kubo integrals), and so do')
+            print('     composition_umd.py and exchange_umd.py (times of the fluctuations, passages through the interface).')
             print('-c, -a : central and adjacent elements of speciation_and_angles.py -r 1, separated by commas. Default : the cations (formal')
             print('     charge > 0, crystallography.Elements2charge) around the anions (charge < 0), e.g. Si,Mg,Al around O.')
             print('-o : runs every step again. Default : a step whose output files are newer than its inputs and were written by the same')
@@ -239,7 +319,8 @@ def main(argv):
             print('scripts is appended to umd_workflow.log in that folder. No window is opened.')
             print('Output : umd_workflow.summary.dat in each folder, one line per UMD file of the folder with results : number of snapshots,')
             print('warnings of check_umd.py, density, P, T, E, Cv (with errors), D of each element, viscosity, S_2PT, quantum corrections,')
-            print('coordination numbers of the central - adjacent pairs, the 5 most frequent r1 species ; nan where a result is missing.')
+            print('coordination numbers of the central - adjacent pairs, the 5 most frequent r1 species, void fraction, and for runs with a gas')
+            print('phase the interface area, gas volume fraction, gas temperature and pressure ; nan where a result is missing.')
             sys.exit()
         elif opt == '-f':
             files = [x.strip() for x in arg.split(',') if x.strip()]
@@ -307,13 +388,28 @@ def main(argv):
                       Step('viscosity_umd.py',['-f',umd]+skip,[umd],[base+'.stress.scf.dat',base+'.visc.dat'])]
             if any(step.makes[0] == popul for step in steps) or os.path.isfile(os.path.join(folder,popul)):
                 steps += [Step('msd_clusters_umd.py',['-f',umd,'-p',popul],[umd,popul],[],base+'.r1__*.msd.dat')]
+            grid = comp_grid(path,first)
+            volatile = [el in composition_umd.VOLATILES for el in MyCrystal.elements]
+            ncondensed = sum(n for n, v in zip(MyCrystal.types,volatile) if not v or all(volatile))
+            if grid:
+                compdir = base+'.comp.%dx%dx%d' % tuple(grid)
+                steps += [Step('composition_umd.py',['-f',umd,'-n',','.join(map(str,grid))]+skip,[umd],[compdir+'/'+f for f in COMP_FILES])]
+                bonds = base+'.bonding.dat'
+                withbonds = any(step.makes and step.makes[0] == bonds for step in steps) or os.path.isfile(os.path.join(folder,bonds))
+                steps += [lambda compdir=compdir, umd=umd, base=base, bonds=bonds, withbonds=withbonds:
+                          exchange_step(folder,compdir,umd,base,bonds if withbonds else None,skip,ncondensed)]
+            else:
+                steps += [lambda: print('   %-14s %s' % ('not needed','composition_umd.py')+'\n'+' '*18+
+                                        '(the cell is narrower than 1.5 sub-cells of %g A)' % SUBCELL)]
 
         if 'd' in panels:
             steps += [Step('vibrations_umd.py',['-f',umd]+skip,[umd],[base+'.vels.scf.dat',base+'.vibr.dat',base+'.vibr.err.dat',base+'.vacf.diffusion.dat']),
                       Step('vdos_thermo.py',['-f',umd],[umd,base+'.vibr.err.dat'],[base+'.vdos.thermo.dat',base+'.2pt.dat'])]
 
         for step in steps:
-            run(step,folder,base,overwrite,results)
+            step = step() if callable(step) else step                         #a step decided on the results of the steps before it
+            if step:
+                run(step,folder,base,overwrite,results)
 
     for folder, umds in byfolder.items():#Steps over all the UMD files of a folder, and the summary
         print('\n'+folder+' :')

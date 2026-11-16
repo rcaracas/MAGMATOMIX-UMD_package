@@ -1,7 +1,7 @@
 {
  "about": "the workflow with -i -s -c -a, run again (done before), then -g with other elements (reruns)",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -c Si,Al -a O",
    "code": 0,
-   "time": 9.71
+   "time": 13.73
   },
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -c Si,Al -a O",
    "code": 0,
-   "time": 0.1
+   "time": 0.69
   },
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -g",
    "code": 0,
-   "time": 3.0
+   "time": 4.32
   }
  ],
  "numbers": {
@@ -36,6 +36,7 @@
   "run 1 step pyrolite.a13.T3000K.outcar.umd.dat msd_umd.py -f <base>.umd.dat -i 500 -s 2": "OK",
   "run 1 step pyrolite.a13.T3000K.outcar.umd.dat viscosity_umd.py -f <base>.umd.dat -i 500": "OK",
   "run 1 step pyrolite.a13.T3000K.outcar.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "run 1 step pyrolite.a13.T3000K.outcar.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3 -i 500": "OK",
   "run 1 step pyrolite.a13.T3000K.outcar.umd.dat vibrations_umd.py -f <base>.umd.dat -i 500": "OK",
   "run 1 step pyrolite.a13.T3000K.outcar.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "run 1 step folder analyze_msd_clusters.py": "OK",
@@ -50,6 +51,7 @@
   "run 2 step pyrolite.a13.T3000K.outcar.umd.dat msd_umd.py -f <base>.umd.dat -i 500 -s 2": "done before",
   "run 2 step pyrolite.a13.T3000K.outcar.umd.dat viscosity_umd.py -f <base>.umd.dat -i 500": "done before",
   "run 2 step pyrolite.a13.T3000K.outcar.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "done before",
+  "run 2 step pyrolite.a13.T3000K.outcar.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3 -i 500": "done before",
   "run 2 step pyrolite.a13.T3000K.outcar.umd.dat vibrations_umd.py -f <base>.umd.dat -i 500": "done before",
   "run 2 step pyrolite.a13.T3000K.outcar.umd.dat vdos_thermo.py -f <base>.umd.dat": "done before",
   "run 2 step folder analyze_msd_clusters.py": "done before",
@@ -105,7 +107,9 @@
   "pyrolite.a13.T3000K.outcar.umd.dat CN_Mg-O": 4.9706,
   "pyrolite.a13.T3000K.outcar.umd.dat CN_Al-O": 4.0823,
   "pyrolite.a13.T3000K.outcar.umd.dat CN_Si-O": 4.0114,
-  "pyrolite.a13.T3000K.outcar.umd.dat main_r1_species(%)": "Si_1O_4:33.5 Mg_1O_5:19.1 Mg_1O_4:13.3 Mg_1O_6:10.2 Al_1O_4:3.5"
+  "pyrolite.a13.T3000K.outcar.umd.dat main_r1_species(%)": "Si_1O_4:33.5 Mg_1O_5:19.1 Mg_1O_4:13.3 Mg_1O_6:10.2 Al_1O_4:3.5",
+  "pyrolite.a13.T3000K.outcar.umd.dat void_fraction": 0.004163,
+  "pyrolite.a13.T3000K.outcar.umd.dat void_fraction_err": 0.0014
  },
  "files": {
   "pyrolite.a13.T3000K.outcar.vdos.thermo.dat": "5a25c829597a954b11f8ddf399806272458a5f9e9b20148d4b45bbb73888c16e",
@@ -115,7 +119,7 @@
   "pyrolite.a13.T3000K.outcar.r1__Al_1O_5.msd.dat": "7fa53762007f08935e4b6ce55258810519ac41e252872a02d5416e10676f160a",
   "pyrolite.a13.T3000K.outcar.average_bonds.inp": "1aa5f492a97cffb5603dc5f0249943d1a1bff7a8ad5d414932ed7135a7af2f22",
   "pyrolite.a13.T3000K.outcar.maximum_bonds.inp": "4c8bbeb62c6c01fd8a43287ea9749c6557822cbd523bcc3b9cfb7b456f4cb2f6",
-  "umd_workflow.summary.dat": "9954b2f71f776241ed1756f27b27e45093a81dc763ddede43a56469702a2d33a",
+  "umd_workflow.summary.dat": "058e68b5693b8ebe3f050cb3e29c51fadc30da4aa72b606eaaa186f82f39ed8f",
   "umd_workflow.log": "not compared",
   "pyrolite.a13.T3000K.outcar.visc.dat": "48cda46bac5e3d45a6959f73c762253072d85fbb0fc61a992db223a69036cae0",
   "pyrolite.a13.T3000K.outcar.angles.dat": "b6cac7ad88ac8d1750727490e85e38e87d5a042eeb51c4587c95ad46d88f9058",
@@ -147,6 +151,14 @@
   "pyrolite.a13.T3000K.outcar.r1__Si_1O_4.msd.dat": "2aa0c01033c34e29554239bfb4c1170da54e3a0475f1bb5912837708eae3a12e",
   "pyrolite.a13.T3000K.outcar.vacf.diffusion.dat": "f32a527e83f0a9b40670fbda8c8088f06d0e2717c3585b737052000162768eda",
   "pyrolite.a13.T3000K.outcar.r1__Si_1O_5.msd.dat": "10a96750a32f70adb73efb4effb1f132e146c27b554f4ef8f69b98e0fc6b7740",
-  "pyrolite.a13.T3000K.outcar.r1.lifetimes.pdf": "not compared"
+  "pyrolite.a13.T3000K.outcar.r1.lifetimes.pdf": "not compared",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/time.dat": "1fcc9e7995d72b8697a376d5803fa5f2805288a28478f4dfaf84e5467bec9f06",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/density.dat": "b5eaa3ac48d14bc4e59b69f5d4a27812ed0bc98d220f0672efe74641f993ce5d",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/fluctuations.dat": "922e40197ee9132aae1afd14eabbb8a96e1f718fb4336bcf386bc4f37018ff94",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/dist.dat": "039aede7e22dc6eb067d31c476a3dda9ebcbc458bd4033a147b97548e453c406",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/episodes.dat": "ab84bca43963d8d38772b36b0de1b60809ebb76dba476299152390cee74065b0",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/voids.dat": "a7d8af19f902590540abe90494a9bd0867a6bb64db81bdc173223c3b0c34a7db",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/regions.dat": "78a555519a6b8bdec78fb2ee9de179740b3c80f02e61dc076206f6303829c851",
+  "pyrolite.a13.T3000K.outcar.comp.3x3x3/summary.dat": "bdbe036692a30dce4747ede1ec7feee33b9e5c0e9efe731b54ada55cb9ba89f7"
  }
 }

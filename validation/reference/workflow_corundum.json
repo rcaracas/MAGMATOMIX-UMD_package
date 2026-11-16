@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, hexagonal corundum + 1 He",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f al2o3.new.umd.dat",
    "code": 0,
-   "time": 28.94
+   "time": 47.14
   }
  ],
  "numbers": {
@@ -26,6 +26,7 @@
   "step al2o3.new.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step al2o3.new.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
   "step al2o3.new.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "step al2o3.new.umd.dat composition_umd.py -f <base>.umd.dat -n 2,2,5": "OK",
   "step al2o3.new.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step al2o3.new.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "step folder analyze_msd_clusters.py": "OK",
@@ -55,6 +56,8 @@
   "al2o3.new.umd.dat dCv_quantum(kB/atom)": -0.062340956802464646,
   "al2o3.new.umd.dat CN_Al-O": 5.9997,
   "al2o3.new.umd.dat main_r1_species(%)": "Al_1O_6:99.9 Al_1O_5:0.1 Al_1O_7:0.0",
+  "al2o3.new.umd.dat void_fraction": 0.0,
+  "al2o3.new.umd.dat void_fraction_err": 0.0,
   "al2o3.new.check.dat check 1": "OK",
   "al2o3.new.check.dat check 2": "OK",
   "al2o3.new.check.dat check 3": "OK",
@@ -144,7 +147,7 @@
   "al2o3.new.angles.dat": "6f2fda139f54a88b676f3ad65c2d0b47ec58473ac23b27c1dbb91723b5bf2529",
   "al2o3.new.r0.stat.dat": "5aa3d1020ca4a24a3d429de3df5afa20a6fa5290bca9f9c367758b14b9ad60ed",
   "al2o3.new.r1.stat.dat": "40d50498e367fb2de0fff801589f06be414885f61b87011b49935eeab607c42e",
-  "umd_workflow.summary.dat": "21b0e1993e2cb2949a2f763292662a852bd94c86d092b00e5e8281b6d9af3400",
+  "umd_workflow.summary.dat": "1e18a017e297b6d10a8f50ddb5a5fd8d8277a3bec28498b929b76cfd20db8551",
   "al2o3.new.gofr.dat": "0580633228fcbe27d78c116ba556151929180468846129718c091cfceb5a47fb",
   "al2o3.new.r1__Al_1O_6.msd.dat": "7bbc2c3f724d48a285345422fa4a1842d265aae97e75b4377405fd67299bb3bd",
   "al2o3.new.coordinations.inp": "96ae01c9d111cf1c6445f83d582baf5b361ba2377f52a4a3b03efc9d3ec9ff3a",
@@ -170,6 +173,14 @@
   "al2o3.new.bondslives.dat": "4e3194eada5c363dd0fb77f257acea27628822128b6b58262ece28649fc99307",
   "al2o3.new.r1.popul.dat": "d3c75d216d2c1e0d6e5250572b8ab185f536dd8c018f38f172cb7a3bc99e405c",
   "al2o3.new.diffusion.dat": "c9386c3a7c5f17a66136012051bd869216eceb49df54f7a2574dc342a22c3274",
-  "al2o3.new.vels.scf.dat": "9bb7b6f5fbfbfac029170e47c33ad815dc24fbb94333ded820ce2837e17fe8b4"
+  "al2o3.new.vels.scf.dat": "9bb7b6f5fbfbfac029170e47c33ad815dc24fbb94333ded820ce2837e17fe8b4",
+  "al2o3.new.comp.2x2x5/time.dat": "b52ad592492dc722fc780e67ed04c6cd5fd52b184e10532500bfc5a6d9f1dcc2",
+  "al2o3.new.comp.2x2x5/density.dat": "6f542ece1c78b69642d4a77e6647001a7dc830fb2b71233744498630674f26c1",
+  "al2o3.new.comp.2x2x5/fluctuations.dat": "6658420db35e98a4ab1532b78289e10141d5dccea200b0c5b1630e4a5644cf44",
+  "al2o3.new.comp.2x2x5/dist.dat": "72aa0c944bd73dfa195156d98499cc776a6e12da26b8f0d2b11fbde7d171ea8c",
+  "al2o3.new.comp.2x2x5/episodes.dat": "904d34dfa621706477d9679f62314094df58679ac71f3563c78a21024a7196cc",
+  "al2o3.new.comp.2x2x5/voids.dat": "15823749a165792f274b87ad3c26ecda612f2c34120fe31196973bb8fb469bcb",
+  "al2o3.new.comp.2x2x5/regions.dat": "ee132d970c74750bca5268ef0d181feb28dc403b474628af1918d2f9eee84093",
+  "al2o3.new.comp.2x2x5/summary.dat": "dd226df4e4908e593b633496650989c43f24aaaa85c3fe475d5b286457872516"
  }
 }

@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, glycine crystal, cubic, 100 atoms, 10000 snapshots",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f glycine.umd.dat",
    "code": 0,
-   "time": 15.71
+   "time": 20.52
   }
  ],
  "numbers": {
@@ -26,6 +26,7 @@
   "step glycine.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step glycine.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
   "step glycine.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
+  "step glycine.umd.dat composition_umd.py -f <base>.umd.dat -n 2,2,2": "OK",
   "step glycine.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step glycine.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
   "step folder analyze_msd_clusters.py": "OK",
@@ -60,6 +61,8 @@
   "glycine.umd.dat CN_H-O": 0.1056,
   "glycine.umd.dat CN_H-N": 0.4998,
   "glycine.umd.dat main_r1_species(%)": "N_1H_1:35.6 H_1:28.6 C_1N_1:14.3 C_1O_2:14.3 O_1H_1:6.9",
+  "glycine.umd.dat void_fraction": 0.020012,
+  "glycine.umd.dat void_fraction_err": 0.0044,
   "glycine.check.dat check 1": "OK",
   "glycine.check.dat check 2": "OK",
   "glycine.check.dat check 3": "OK",
@@ -182,7 +185,7 @@
   "glycine.vdos.thermo.dat": "db5fc50f32c88a0dd374b462e9dc8ea48752a513582678995e762a73f6695569",
   "glycine.2pt.dat": "954fc91d6bc907ae90caaf7d485d200f736a0a8f2c62c127fb7d019fff9edbb9",
   "glycine.r1.popul.dat": "daa7b7f5cccdae4ec33b1810cb8a50f67fc0e2df41e366a4bb5e2f8558df460c",
-  "umd_workflow.summary.dat": "96bb3e5be7bacdaf4ec76d91ce2e0cf726059548ff903489c6e9844435a07015",
+  "umd_workflow.summary.dat": "46d57172a6af255f1a0c13f21495814042ce3741e36d4f009e02a3770598b74a",
   "umd_workflow.log": "not compared",
   "glycine.vels.scf.dat": "bc87031597cb92fd10159ce8fe204796908e6bdbaa33872e161500c706b00a9c",
   "glycine.r1__O_1H_1.msd.dat": "dd24a9b689a12428019bfc66b0f8007f68bd0304cfb7c470bdd98a697235a404",
@@ -212,6 +215,14 @@
   "glycine.r1.stat.dat": "e4286e6151c784fbc4ebea8079452c7860435831b0585eaf7e525860c926a3d8",
   "glycine.r0.stat.dat": "5980f513efceaa69bc4cd63f8355f7b4afcbbf9cd442707ba642c32004454da0",
   "glycine.r1__N_2H_1.msd.dat": "a46b2caa6fe43ed4988c5d8d967f26fdd3199c5bb9e59bdd691fd2f20c8847ef",
-  "glycine.msd.dat": "d65f3a277c5d89c83d574984dee0e0933f4a41bdc92698cb2c0f4875bc5bdea4"
+  "glycine.msd.dat": "d65f3a277c5d89c83d574984dee0e0933f4a41bdc92698cb2c0f4875bc5bdea4",
+  "glycine.comp.2x2x2/time.dat": "4f968d126cd98bb24228a2b88a531ffa1c9abea04fafaea3621ce9c7ac2bad24",
+  "glycine.comp.2x2x2/density.dat": "91bb23f424d42f49819f04ea550c3a8a30e81037a2226449a88defb953978243",
+  "glycine.comp.2x2x2/fluctuations.dat": "f08500cc88df55ac9fed6d988f74efeaeefa3a657ee44b186c12b7ddd3e85a7f",
+  "glycine.comp.2x2x2/dist.dat": "35a4a0b03f871b212f6527e44da36b6dcc6c892588f91761e5e288af292ab21e",
+  "glycine.comp.2x2x2/episodes.dat": "73de4b4f9349e0c7cd9e15a4baf4e97944d27a5480ffafab223e2ad03f6a0201",
+  "glycine.comp.2x2x2/voids.dat": "1377c20fc328a1a9432e4e1683c0c38945eb19340850ad69828af839b462dd50",
+  "glycine.comp.2x2x2/regions.dat": "966a57b59a5bea5ac65c6d2c04babe83145dabb6a08d42279ff08b27620b9f77",
+  "glycine.comp.2x2x2/summary.dat": "2b93911a8e4f1e2df467675805ed5a5f97c935fcbf7af5622041e28668e1922f"
  }
 }

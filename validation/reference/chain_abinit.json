@@ -1,7 +1,7 @@
 {
  "about": "ABINIT run parsed, then the workflow",
  "environment": {
-  "commit": "2.14-dirty",
+  "commit": "3.3-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -17,7 +17,7 @@
   {
    "command": "umd_workflow.py -f abinit.exMD.output.umd.dat",
    "code": 0,
-   "time": 7.89
+   "time": 9.06
   }
  ],
  "numbers": {
@@ -99,7 +99,7 @@
   "abinit.exMD.output.vibr.err.dat": "80ccd38a8dc5369fe5f3c5f33f2f9969366b286f8323bde56ff674e665630f6a",
   "abinit.exMD.output.diffusion.dat": "ff0f2309cbd850e4715a8997d7fdd8ec020934feb7dd332daac3db5d6a3ee8c1",
   "abinit.exMD.output.vibr.dat": "ec8f3cd309af44ecf4d6ab0fa1cc8ee968a1b4bb2c9dfe5d7b6d2dea528e909a",
-  "umd_workflow.summary.dat": "1282c4084528156a08d95d91f6be4bf301379ea6c299bfba5a85b87bf22e9a62",
+  "umd_workflow.summary.dat": "efb302e300b007c4765df11c5a44ab73bbdf82d27c186b0751a259cba4a5520c",
   "abinit.exMD.output.r0.stat.dat": "b8bbcc8d9adf097d1fd1b7baa07449002edaeed1d40c0122cdbd512c4d8e39f3",
   "abinit.exMD.output.r1.stat.dat": "7d6f99ca8f1a0081452f204b0d39db2a78c71e37cdc4b61c21a0843791bea37d",
   "umd_workflow.log": "not compared",

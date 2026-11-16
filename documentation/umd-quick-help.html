@@ -32,9 +32,9 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <code>&lt;base&gt;</code> = the UMD file without <code>.umd.dat</code>. All the options of a script: <code>-h</code>. <code>-f all</code>: every <code>*.umd.dat</code> of the folder, one after the other. A compressed run <code>run.umd.dat.gz</code> is read as it is. Run them from <code>src/</code> after compiling the C libraries (<code>README.txt</code>).</p>
 
 <div class="wf">
-<span class="name">umd_workflow.py</span> <span class="what">&mdash; runs all the analyses of the panels below on UMD files, check first, and summarizes the results; a rerun continues where it stopped and redoes only the steps whose options changed.</span>
+<span class="name">umd_workflow.py</span> <span class="what">&mdash; runs all the analyses of the panels below on UMD files (exchange_umd.py only for runs with a gas phase), check first, and summarizes the results; a rerun continues where it stopped and redoes only the steps whose options changed.</span>
 <span class="cmd">umd_workflow.py -f a.umd.dat,b.umd.dat [-g structural] [-t transport] [-d thermodynamics] (none = all) -i 1000 -s 1 -c Si,Mg -a O -o</span>
-<span class="io"><b>out:</b> all the files of the scripts, <code>umd_workflow.summary.dat</code> (one line per run: P, T, &rho;, E, Cv, D, &eta;, S<sub>2PT</sub>, CN, species, with errors), <code>umd_workflow.log</code></span>
+<span class="io"><b>out:</b> all the files of the scripts, <code>umd_workflow.summary.dat</code> (one line per run: P, T, &rho;, E, Cv, D, &eta;, S<sub>2PT</sub>, CN, species, void fraction, gas T and P, with errors), <code>umd_workflow.log</code></span>
 </div>
 
 <div class="cols">
