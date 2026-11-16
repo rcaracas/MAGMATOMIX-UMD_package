@@ -12,6 +12,7 @@ translation and rotation by 2PT, with the volume of a unit from Bader analyses.
 v3.2 (November 2026): an example run with its tutorial (examples/), averages.py without grep (towards Windows).
 v3.3 (November 2026): composition_umd.py (compositional fluctuations, voids, droplets, segregation), exchange_umd.py
 (exchange of atoms between a condensed phase and its gas through their interface), compressed runs (.umd.dat.gz).
+v3.3.1 (November 2026): umd_workflow.py -t runs composition_umd.py, and exchange_umd.py for runs with a gas phase.
 
 MAJOR AIMS for the v2.0:
 speciation: chemical (pair) bonds

@@ -255,5 +255,5 @@ v 3.3, November 2026 - compositional fluctuations, exchange between a melt and i
 - liquid_and_vapor_speciation.py merged into exchange_umd.py: exchange_umd.py -P <popul file> -S <r0 step file> -l <length> writes the same files (byte-identical on glycine); lifetimes.py -l uses it
 - ROADMAP: the large-system steps renumbered v3.4 to v3.8
 
-Since v 3.3 (not yet released):
+v 3.3.1, November 2026 - the workflow runs the compositional fluctuations and the melt-gas exchange:
 - umd_workflow.py: the transport panel (-t) also runs composition_umd.py (sub-cells of about 5 A; not for cells narrower than 7.5 A), and exchange_umd.py when the run has a gas phase (mean void fraction of composition_umd.py at least 0.1) and a condensed phase (at least 10 atoms of the elements that are not volatile), with the molecules of the bonding file when there is one. The summary has the void fraction, and for runs with a gas the interface area, gas volume fraction, gas temperature and the pressures of the atoms and of the molecules in the gas
