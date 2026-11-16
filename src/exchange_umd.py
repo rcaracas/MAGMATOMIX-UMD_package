@@ -22,6 +22,13 @@ from composition_umd import statistics, VOLATILES
 from vibrations_umd import KB, AMU_A2FS2                          #Boltzmann constant (eV/K), 1 amu (A/fs)^2 in eV
 
 EV_A3_GPA = 160.21766208                #1 eV/A^3 in GPa
+NA = 6.02214076e23                      #Avogadro constant, 1/mol
+#Van der Waals a of gases, L^2 bar/mol^2 (CRC Handbook of Chemistry and Physics), by composition ; 1 L^2 bar/mol^2 = 0.1 Pa m^6/mol^2. Used in the
+#modified Van der Waals law of the gas, P = N k T/V - a N^2/(NA^2 V^2) (no excluded volume ; Davis and Caracas 2024, Commun. Earth Environ.
+#5, 344, eq. 1), for a mixture with a N^2 = (sum_i N_i a_i^1/2)^2 ; other species : a = 0 (ideal), or -A
+VDW_A = {'H2':0.2476,'He':0.0346,'Ne':0.2135,'Ar':1.355,'Kr':2.349,'Xe':4.250,'N2':1.370,'O2':1.382,'CO':1.505,'CO2':3.640,'H2O':5.536,'CH4':2.283,
+         'NH3':4.225,'H2S':4.490,'SO2':6.803,'HCl':3.716,'Cl2':6.579,'F2':1.171,'NO':1.358,'N2O':3.832,'NO2':5.354,'HF':9.565,'HCN':11.29,'C2H6':5.562,
+         'SiH4':4.377,'Hg':8.200}
 
 
 GAS, INTERFACE, CONDENSED = 0, 1, 2
@@ -157,6 +164,22 @@ def read_molecules(bondfile,natom):#Molecules of every step of a bonding file of
     return first, timestep, labels, sizes
 
 
+def composition(formula):#Composition of a formula, UMD style (O_1H_2) or chemical (H2O) : sorted tuple of (element, number)
+    parts = re.findall(r'([A-Z][a-z]?)_(\d+)',formula) if '_' in formula else [(el,n or '1') for el, n in re.findall(r'([A-Z][a-z]?)(\d*)',formula)]
+    comp = {}
+    for el, n in parts:
+        comp[el] = comp.get(el,0)+int(n)
+    return tuple(sorted(comp.items()))
+
+
+def vdw_table(extra):#Van der Waals a (L^2 bar/mol^2) by composition : the table VDW_A, and -A (formula:a, separated by commas) over it
+    table = {composition(f):a for f, a in VDW_A.items()}
+    for item in extra:
+        f, a = item.rsplit(':',1)
+        table[composition(f.strip())] = float(a)
+    return table
+
+
 def formula_of(atoms,typat,elements):#Name of a molecule from its atoms : El_n in the order of the elements of the UMD file, as speciation_and_angles.py
     counts = np.bincount(typat[atoms],minlength=len(elements))
     return ''.join(el+'_'+str(c) for el, c in zip(elements,counts) if c)
@@ -232,6 +255,8 @@ def state_batch(task,umdfile,offsets,natom,sampling,cells,melt,shape,sigma,rhob,
     a, b = task
     X = umdpf.read_atoms_at(umdfile,offsets[a],natom,b-a,sampling,0,12)  #reduced, Cartesian, unwrapped, velocity
     states = np.empty((b-a,natom),dtype=np.int8)
+    outside = np.empty((b-a,natom),dtype=bool)                         #below the half-density surface (the density of the others at the atom)
+    mv2s = np.empty((b-a,natom),dtype=np.float32)                       #m v^2 of each atom (amu A^2/fs^2 ; temperature of the gas molecules)
     area, gasvol = np.empty(b-a), np.empty(b-a)
     zones = np.empty((b-a,2))                                           #volumes of the gas zone and of the condensed zone (the atoms of G and L live there)
     kin = np.zeros((b-a,nel,3,2))
@@ -247,17 +272,19 @@ def state_batch(task,umdfile,offsets,natom,sampling,cells,melt,shape,sigma,rhob,
         lo_at = ndimage.map_coordinates(lo,coords,order=1,mode='grid-wrap')
         hi_at = ndimage.map_coordinates(hi,coords,order=1,mode='grid-wrap')
         states[t] = np.where(lo_at >= level,CONDENSED,np.where(hi_at < level,GAS,INTERFACE))
+        outside[t] = ndimage.map_coordinates(dens,coords,order=1,mode='grid-wrap')-selfval*melt < level
         voxel = abs(np.linalg.det(cell))/dens.size
         zones[t] = np.count_nonzero(hi < level)*voxel, np.count_nonzero(lo >= level)*voxel
         gnorm = np.sqrt(grad[0]**2+grad[1]**2+grad[2]**2)
         area[t] = (gnorm*np.exp(-0.5*((dens-level)/width)**2)).sum()*voxel/(width*np.sqrt(2.0*np.pi))   #coarea, a smooth delta
         gasvol[t] = np.count_nonzero(dens < level)*voxel
         mv2 = masses[typat]*(X[t,:,9:12]**2).sum(axis=1)
+        mv2s[t] = mv2
         for st in (GAS,INTERFACE,CONDENSED):
             sel = states[t] == st
             kin[t,:,st,0] = np.bincount(typat[sel],minlength=nel)
             kin[t,:,st,1] = np.bincount(typat[sel],weights=mv2[sel],minlength=nel)
-    return states, area, gasvol, zones, kin
+    return states, outside, mv2s, area, gasvol, zones, kin
 
 
 def bulk_density(umdfile,offsets,natom,cells,melt,shape,sigma,delta,selfval,nsample=40):#Density of the bulk of the condensed phase, on a sample of
@@ -362,16 +389,17 @@ def main(argv):
     rhob = None
     delta = None
     Tuser = None
+    vdwextra = []
     bondfile = None
     mode = 'field'
     length = 12
     populfile = None
     stepfile = None
-    usage = 'exchange_umd.py -f <umdfile> -g <volatile elements> -q <sigma> -p <grid spacing> -r <bulk density> -x <interface half-width> -t <transient> -w <window> -T <temperature> -b <bonding file> -m <field|clusters> -l <length> -i <InitialStep> -s <Sampling> -k <nCores>\n'+\
+    usage = 'exchange_umd.py -f <umdfile> -g <volatile elements> -q <sigma> -p <grid spacing> -r <bulk density> -x <interface half-width> -t <transient> -w <window> -T <temperature> -A <vdW a> -b <bonding file> -m <field|clusters> -l <length> -i <InitialStep> -s <Sampling> -k <nCores>\n'+\
             '       exchange_umd.py -P <popul file> -S <r0 step file> -l <length>   (liquid and vapor species)'
     try:
-        opts, arg = getopt.getopt(argv,"hf:g:q:p:r:x:t:w:i:s:k:T:b:m:l:P:S:",["fumdfile","gvolatiles","qsigma","pspacing","rbulk","xdelta","ttransient","wwindow","iInitialStep","sSampling","knCores","Temperature",
-                                                         "bbonding","mmode","llength","Ppopul","Sstep"])
+        opts, arg = getopt.getopt(argv,"hf:g:q:p:r:x:t:w:i:s:k:T:b:m:l:P:S:A:",["fumdfile","gvolatiles","qsigma","pspacing","rbulk","xdelta","ttransient","wwindow","iInitialStep","sSampling","knCores","Temperature",
+                                                         "bbonding","mmode","llength","Ppopul","Sstep","Avdw"])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -396,8 +424,14 @@ def main(argv):
             print('-w : length of the time windows of the fluxes, fs. Default : a tenth of the run.')
             print('-T : temperature of the gas, K. Default : from the velocities of the atoms in the gas (kinetic) ; without velocities, the mean')
             print('     Temperature of the run.')
+            print('-A : Van der Waals a of gas species, L^2 bar/mol^2, formula:a separated by commas (UMD formulas as in molecules.dat, O_1H_1, or')
+            print('     chemical, OH), added to or replacing those of the CRC Handbook (H2, He, Ne, Ar, Kr, Xe, N2, O2, CO, CO2, H2O, CH4, NH3, H2S, SO2,')
+            print('     HCl, Cl2, F2, NO, N2O, NO2, HF, HCN, C2H6, SiH4, Hg). Species without a count as ideal (listed in the summary).')
             print('-b : bonding file of bonding_umd.py (default <base>.bonding.dat when it exists) : the molecules (connected bonds) of every step ;')
-            print('     the gas by molecule (composition, partial pressures) and the evaporations and condensations by molecule (molecules.dat).')
+            print('     the gas by molecule (composition, partial pressures) and the evaporations and condensations by molecule (molecules.dat). An atom')
+            print('     in the gas zone whose molecule has atoms that are not (bonded to the condensed phase, even by one atom) is adsorbed : it counts')
+            print('     in the interface for everything (time in each state, paths, evaporations, gas, temperature) : an atom evaporates when its')
+            print('     molecule detaches.')
             print('-m : definition of the condensed phase : field (default : the smoothed density, with the interface) or clusters (with -b : an atom is')
             print('     condensed when its molecule has at least -l atoms, as the r0 clusters of speciation_and_angles.py ; no interface).')
             print('-l : smallest molecule of the condensed phase with -m clusters, and of the liquid with -P. Default 12.')
@@ -426,7 +460,14 @@ def main(argv):
             print('     n k T in the gas zone ; atoms counted as independent particles : for molecules an upper bound), the partition coefficients')
             print('     between the condensed phase and the gas (densities, and mole fractions), and the Hertz-Knudsen flux with which the gas hits the')
             print('     interface, n (k T / 2 pi m)^1/2, against the arrivals of gas atoms counted at the interface and the condensation coefficient')
-            print('  molecules.dat (with a bonding file) : per molecule, its number in the gas, partial pressure, evaporations and condensations, fluxes')
+            print('  pressure.dat : the gas by molecules (with a bonding file ; else every atom its own particle), two definitions : zone (all the atoms')
+            print('     of a molecule in the gas zone ; its volume) and surface (all below the half-density surface ; the volume below it) ; atoms outside')
+            print('     whose molecule is not all outside (bonded to the condensed phase) are adsorbed, not gas. Per sample : gas volume, molecules,')
+            print('     adsorbed atoms, pressure ideal N k T/V and modified Van der Waals N k T/V - a N^2/(NA^2 V^2) (Davis and Caracas 2024, Commun. Earth')
+            print('     Environ. 5, 344 ; mixture : a N^2 = (sum N_i a_i^1/2)^2), T the kinetic temperature of the atoms of the gas molecules ; means')
+            print('     with errors over the run in the summary')
+            print('  molecules.dat (with a bonding file) : per molecule, its number in the gas, partial pressure, evaporations and condensations, fluxes,')
+            print('     its number in the gas below the half-density surface and its Van der Waals a')
             print('  stays.dat : distribution of the durations of the stays in the gas and in the condensed phase')
             print('  atoms.dat : per atom, the fractions of the time in the gas and the interface, its evaporations and condensations')
             sys.exit()
@@ -465,6 +506,8 @@ def main(argv):
             length = int(arg)
         elif opt in ("-P","--Ppopul"):
             populfile = arg
+        elif opt in ("-A","--Avdw"):
+            vdwextra = [x for x in arg.split(',') if x.strip()]
         elif opt in ("-S","--Sstep"):
             stepfile = arg
     if populfile is not None:#liquid and vapor species of a popul file (formerly liquid_and_vapor_speciation.py) : no UMD file needed
@@ -515,8 +558,8 @@ def main(argv):
     if np.isnan(cells).any():
         print('ERROR : snapshots of',umdfile,'without rprimd or acell lines')
         sys.exit()
-    if nsnap*natom > 4*2**30:
-        print('the state of every atom at every snapshot needs','%.1f' % (nsnap*natom/2**30),'GB (more than 4 GB) : use -s or -i for fewer snapshots')
+    if 6*nsnap*natom > 4*2**30:
+        print('the state, side and kinetic energy of every atom at every snapshot need','%.1f' % (6*nsnap*natom/2**30),'GB (more than 4 GB) : use -s or -i for fewer snapshots')
         sys.exit()
     base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
     outdir = base+'.exchange'+('.clusters' if mode == 'clusters' else '')     #the two definitions of the condensed phase side by side
@@ -524,7 +567,7 @@ def main(argv):
         print(outdir,'is a file, not a folder : remove or rename it')
         sys.exit(2)
     os.makedirs(outdir,exist_ok=True)
-    names = {kind:os.path.join(outdir,kind+'.dat') for kind in ('summary','states','gas','paths','stays','atoms','fluxes','molecules')}
+    names = {kind:os.path.join(outdir,kind+'.dat') for kind in ('summary','states','gas','pressure','paths','stays','atoms','fluxes','molecules')}
     umdpf.remove_former_outputs(list(names.values()))
     dt = (TimeStep if TimeStep > 0 else 1.0)*Nsteps
     if TimeStep <= 0:
@@ -546,11 +589,13 @@ def main(argv):
     worker = partial(state_batch,umdfile=umdfile,offsets=offsets,natom=natom,sampling=Nsteps,cells=cells,melt=melt,shape=shape,sigma=sigma,rhob=rhob,
                      delta=delta,selfval=selfval,masses=masses,typat=typat,nel=nel,foot=ball(cells[0],shape,delta) if constant else None)
     states = np.empty((nsnap,natom),dtype=np.int8)
+    outside = np.empty((nsnap,natom),dtype=bool)
+    mv2s = np.empty((nsnap,natom),dtype=np.float32)
     area, gasvol = np.empty(nsnap), np.empty(nsnap)
     zones = np.empty((nsnap,2))
     kin = np.empty((nsnap,nel,3,2))
     for (a,b), result in zip(tasks,umdpf.ordered_map(worker,tasks,nworkers)):
-        states[a:b], area[a:b], gasvol[a:b], zones[a:b], kin[a:b] = result
+        states[a:b], outside[a:b], mv2s[a:b], area[a:b], gasvol[a:b], zones[a:b], kin[a:b] = result
     volumes = np.abs(np.linalg.det(cells))
     #Molecules of the bonding file, matched to the snapshots analyzed : bonding step k is the UMD snapshot first + k sb
     if bondfile is None and os.path.isfile(base+'.bonding.dat'):
@@ -577,6 +622,27 @@ def main(argv):
                 k = kof[t]
                 states[t] = np.where(msizes[k][mlabels[k]] >= length,CONDENSED,GAS)
             print('condensed phase : the atoms of molecules of at least',length,'atoms (-m clusters)')
+    #Adsorbed atoms : in the gas zone, but their molecule (bonding step nearest to the snapshot) has atoms that are not : bonded to the condensed phase,
+    #even by one atom, they are not gas. They count as interface (I) for everything that follows (paths, exchanges, gas, temperature) : an atom
+    #evaporates when its molecule detaches. Not with -m clusters (there a small molecule is gas by definition)
+    adsorbed = np.zeros((nsnap,nel))                                    #per snapshot, adsorbed atoms of each element (zone definition)
+    if stepof is not None and mode != 'clusters':
+        for t in range(nsnap):
+            k = stepof[t]
+            lab = mlabels[k]
+            isgas = states[t] == GAS
+            notgas = np.bincount(lab,weights=(~isgas).astype(float),minlength=len(msizes[k]))
+            ads_ = isgas&(notgas[lab] > 0)
+            if ads_.any():
+                states[t][ads_] = INTERFACE
+                adsorbed[t] = np.bincount(typat[ads_],minlength=nel)
+        for t in range(nsnap):                                          #atoms and m v^2 per element and state, with the adsorbed atoms in I
+            for st in (GAS,INTERFACE,CONDENSED):
+                sel = states[t] == st
+                kin[t,:,st,0] = np.bincount(typat[sel],minlength=nel)
+                kin[t,:,st,1] = np.bincount(typat[sel],weights=mv2s[t][sel].astype(float),minlength=nel)
+        print('adsorbed atoms (in the gas zone, bonded to atoms that are not : counted in the interface), mean per snapshot :',
+              ' '.join(el+' %.3g' % adsorbed[:,e].mean() for e, el in enumerate(elements) if adsorbed[:,e].any()) or 'none')
     with open(names['states'],'w') as f:
         f.write('# '+umdfile+' : per snapshot, the area of the interface (the surface where the smoothed density of the melt elements is half that of\n')
         f.write('# the bulk, '+'%.5f' % rhob+' atoms/A^3), the volume of the gas (below half), and the atoms of each element in the condensed phase (L),\n')
@@ -721,38 +787,96 @@ def main(argv):
         f.write(''.join('%.2f\t%.2f\t%.2f\t%.6g\t' % (timesall[t],VG[t],VL[t],np.nansum(Pel[t]))+'\t'.join('%d' % v for v in NG[t])+'\t'
                         +'\t'.join('%.6g' % v for v in Pel[t])+'\n' for t in range(nsnap)))
 
-    #Molecules in the gas : at each bonding step (its nearest snapshot analyzed), the molecules whose atoms are all in the gas ; partial pressures
-    #n k T in the gas zone
-    molrows = []
+    #The gas by molecules, two definitions : zone (all the atoms of the molecule in the gas zone, G ; volume : the gas zone) and surface (all its atoms
+    #below the half-density surface ; volume : below the surface). An atom outside whose molecule is not all outside is adsorbed : not gas. Molecules
+    #from the bonding file at each of its steps (the nearest snapshot analyzed), else every atom its own molecule at every snapshot. Pressure : ideal
+    #N k T/V and modified Van der Waals N k T/V - (sum N_i a_i^1/2)^2/(NA^2 V^2), T the kinetic temperature of the atoms of the gas molecules (pooled
+    #over the run, snapshots with faulty velocities left out ; -T)
+    DEFS = ('zone','surface')
+    vdw = vdw_table(vdwextra)
     if stepof is not None:
         steps = sorted(set(stepof.tolist()))
         tof = {k:int(np.nonzero(stepof == k)[0][np.argmin(np.abs(InitialStep+np.nonzero(stepof == k)[0]*Nsteps-(firstb+k*sb)))]) for k in steps}
-        gascount = {}
-        for i, k in enumerate(steps):
-            t = tof[k]
-            lab = mlabels[k]
-            notgas = np.bincount(lab,weights=(states[t] != GAS).astype(float),minlength=len(msizes[k]))
-            for m in np.nonzero(notgas == 0)[0]:
-                f_ = formula_of(np.nonzero(lab == m)[0],typat,elements)
-                gascount.setdefault(f_,np.zeros(len(steps)))[i] += 1
+        samples = [(tof[k],mlabels[k],msizes[k],k) for k in steps]
+    else:
+        single = np.arange(natom)
+        samples = [(t,single,np.ones(natom,dtype=np.int32),None) for t in range(nsnap)]
+    ns = len(samples)
+    formcache = {}
+    def formula(k,lab,m):
+        if k is None:
+            return elements[typat[m]]+'_1'
+        if (k,m) not in formcache:
+            formcache[(k,m)] = formula_of(np.nonzero(lab == m)[0],typat,elements)
+        return formcache[(k,m)]
+    gascount = {d:{} for d in DEFS}                                     #formula : number in the gas at each sample
+    Ngas = {d:np.zeros(ns) for d in DEFS}
+    Sa = {d:np.zeros(ns) for d in DEFS}                                 #sum of N_i a_i^1/2 (L bar^1/2/mol)
+    Nnoa = {d:np.zeros(ns) for d in DEFS}                               #gas molecules without a
+    ads = {d:np.zeros((ns,nel)) for d in DEFS}                          #adsorbed atoms of each element
+    mv2gas, ngasat = {d:0.0 for d in DEFS}, {d:0 for d in DEFS}
+    Vs = {'zone':np.array([zones[t,0] for t, *_ in samples]),'surface':np.array([gasvol[t] for t, *_ in samples])}
+    tsample = np.array([t for t, *_ in samples])
+    for i, (t,lab,sizes,k) in enumerate(samples):
+        for d, flag in (('zone',states[t] == GAS),('surface',outside[t])):
+            nout = np.bincount(lab,weights=flag.astype(float),minlength=len(sizes))
+            gasm = (nout == sizes)&(sizes > 0)
+            ingas = gasm[lab]
+            ads[d][i] = adsorbed[t] if d == 'zone' and stepof is not None and mode != 'clusters' else np.bincount(typat[flag&~ingas],minlength=nel)
+            if goodv[t]:
+                mv2gas[d] += float(mv2s[t][ingas].sum())
+                ngasat[d] += int(ingas.sum())
+            for m in np.nonzero(gasm)[0]:
+                f_ = formula(k,lab,m)
+                gascount[d].setdefault(f_,np.zeros(ns))[i] += 1
+                a_ = vdw.get(composition(f_))
+                if a_ is None:
+                    Nnoa[d][i] += 1
+                else:
+                    Sa[d][i] += np.sqrt(a_)
+            Ngas[d][i] = gasm.sum()
+    Tdef, Pid, Pvdw = {}, {}, {}
+    for d in DEFS:
+        if Tuser is not None or not Tsource.startswith('kinetic') or ngasat[d] == 0:
+            Tdef[d] = Tgas
+        else:
+            Tdef[d] = mv2gas[d]*AMU_A2FS2/(3.0*KB*ngasat[d])
+        with np.errstate(invalid='ignore',divide='ignore'):
+            Pid[d] = Ngas[d]*KB*Tdef[d]/Vs[d]*EV_A3_GPA
+            Pvdw[d] = Pid[d]-0.1*Sa[d]**2/(NA**2*(Vs[d]*1e-30)**2)*1e-9
+    with open(names['pressure'],'w') as f:
+        f.write('# '+umdfile+' : the gas by molecules'+(' (connected bonds of '+bondfile+', at each of its steps)' if stepof is not None else ' (no bonding file : every atom')
+                +('' if stepof is not None else ' its own particle, every snapshot)')+', two definitions : zone (all the atoms of the molecule in the gas zone,\n')
+        f.write('# the density within '+'%.2f' % delta+' A all below half the bulk ; volume of that zone) and surface (all its atoms below the half-density surface ;\n')
+        f.write('# volume below it) ; adsorbed : atoms outside whose molecule is not all outside ; pressures ideal N k T/V and modified Van der Waals\n')
+        f.write('# N k T/V - (sum N_i a_i^1/2)^2/(NA^2 V^2) (T = '+', '.join(d+' '+'%.1f' % Tdef[d] for d in DEFS)+' K)\n')
+        f.write('time_(fs)\t'+'\t'.join('\t'.join(c+'_'+d for c in ('V_gas_(A3)','molecules','adsorbed_atoms','P_ideal_(GPa)','P_vdW_(GPa)')) for d in DEFS)+'\n')
+        f.write(''.join('%.2f\t' % timesall[tsample[i]]+'\t'.join('%.2f\t%d\t%d\t%.6g\t%.6g' % (Vs[d][i],Ngas[d][i],ads[d][i].sum(),Pid[d][i],Pvdw[d][i]) for d in DEFS)+'\n'
+                        for i in range(ns)))
+
+    #Molecules in the gas (zone definition, as before ; also the surface count) : partial pressures n k T in the gas zone, events
+    molrows = []
+    if stepof is not None:
         Tps = nsnap*dt/1000.0
-        VGs = np.array([zones[tof[k],0] for k in steps])
-        allforms = sorted(set(gascount)|set(molevap)|set(molcond),key=lambda f_: (-(gascount.get(f_,np.zeros(1)).mean()),f_))   #ties : by formula (a set has no fixed order)
-        totalgas = sum(c for c in gascount.values()) if gascount else np.zeros(len(steps))
+        VGs = Vs['zone']
+        allforms = sorted(set(gascount['zone'])|set(molevap)|set(molcond),key=lambda f_: (-(gascount['zone'].get(f_,np.zeros(1)).mean()),f_))
+        totalgas = sum(c for c in gascount['zone'].values()) if gascount['zone'] else np.zeros(ns)
         for f_ in allforms:
-            c = gascount.get(f_,np.zeros(len(steps)))
+            c = gascount['zone'].get(f_,np.zeros(ns))
             with np.errstate(invalid='ignore',divide='ignore'):
                 P = c*KB*Tgas/VGs*EV_A3_GPA
             sP = statistics(P) if len(P) >= 8 and np.isfinite(P).all() else (np.nanmean(P),np.nan,np.nan,False,0.0)
             ne, nc = molevap.get(f_,0.0), molcond.get(f_,0.0)
+            a_ = vdw.get(composition(f_))
             molrows.append((f_,c.mean(),c.sum()/totalgas.sum() if totalgas.sum() > 0 else np.nan,sP[0],sP[2],ne,nc,ne/Tps,nc/Tps,
-                            (ne-nc)/np.sqrt(ne+nc) if ne+nc > 0 else 0.0))
+                            (ne-nc)/np.sqrt(ne+nc) if ne+nc > 0 else 0.0,gascount['surface'].get(f_,np.zeros(ns)).mean(),a_ if a_ is not None else np.nan))
         with open(names['molecules'],'w') as f:
             f.write('# '+umdfile+' : molecules (connected bonds of '+bondfile+') : mean number in the gas (all their atoms in the gas), fraction of the gas\n')
             f.write('# molecules, partial pressure n k T in the gas zone (T = '+'%.1f' % Tgas+' K), evaporations and condensations (each atom event counted 1/(atoms of\n')
-            f.write('# its molecule) : molecules), fluxes per ps, net = (evaporations - condensations)/sqrt(sum)\n')
-            f.write('molecule\tin_gas\tgas_fraction\tP_(GPa)\tP_err\tevaporations\tcondensations\tevaporation_(1/ps)\tcondensation_(1/ps)\tnet\n')
-            f.write(''.join('%s\t%.5g\t%.5g\t%.5g\t%.2g\t%.4g\t%.4g\t%.4g\t%.4g\t%.1f\n' % r for r in molrows))
+            f.write('# its molecule) : molecules), fluxes per ps, net = (evaporations - condensations)/sqrt(sum) ; mean number in the gas below the half-density\n')
+            f.write('# surface ; Van der Waals a (L^2 bar/mol^2 ; nan : none, ideal)\n')
+            f.write('molecule\tin_gas\tgas_fraction\tP_(GPa)\tP_err\tevaporations\tcondensations\tevaporation_(1/ps)\tcondensation_(1/ps)\tnet\tin_gas_surface\ta_vdW\n')
+            f.write(''.join('%s\t%.5g\t%.5g\t%.5g\t%.2g\t%.4g\t%.4g\t%.4g\t%.4g\t%.1f\t%.5g\t%.4g\n' % r for r in molrows))
 
     #Summary
     g = lambda v, f: (f % v) if np.isfinite(v) else 'nan'
@@ -864,14 +988,37 @@ def main(argv):
         out.append('pressure n k T in the gas zone (GPa, error from the autocorrelation time), evaporations and condensations of molecules (each atom event')
         out.append('counted 1/(atoms of its molecule)), fluxes per ps, net = (evaporations - condensations)/sqrt(sum) ; the 10 most abundant in the gas')
         out.append('molecule\tin_gas\tgas_fraction\tP_(GPa)\tP_err\tevaporations\tcondensations\tevaporation_(1/ps)\tcondensation_(1/ps)\tnet')
-        out += ['%s\t%.5g\t%.5g\t%.5g\t%.2g\t%.4g\t%.4g\t%.4g\t%.4g\t%.1f' % r for r in molrows[:10]]
+        out += ['%s\t%.5g\t%.5g\t%.5g\t%.2g\t%.4g\t%.4g\t%.4g\t%.4g\t%.1f' % r[:10] for r in molrows[:10]]
         out.append('total_molecules_in_gas\t'+'%.5g' % sum(r[1] for r in molrows)+'\tpressure_of_the_molecules_(GPa)\t'+'%.5g' % sum(r[3] for r in molrows if np.isfinite(r[3])))
         out.append('')
+    out.append('Gas pressure by molecules ('+('connected bonds of '+bondfile if stepof is not None else 'no bonding file : every atom its own particle')+', '+str(ns)
+               +' samples), modified Van der Waals law P = N k T/V - a N^2/(NA^2 V^2) (Davis and Caracas 2024, Commun. Earth Environ. 5, 344),')
+    out.append('a N^2 = (sum_i N_i a_i^1/2)^2 with a_i of the CRC Handbook (-A for others ; without a : ideal) ; two definitions of the gas : zone (all the')
+    out.append('atoms of a molecule in the gas zone ; its volume) and surface (all its atoms below the half-density surface ; the volume below it) ; adsorbed :')
+    out.append('atoms outside whose molecule is not all outside (molecules bonded to the condensed phase, and with the surface definition also the outermost')
+    out.append('atoms of the condensed phase itself), not gas ; T : kinetic, of the atoms of the gas molecules ; errors of the means from the autocorrelation time')
+    out.append('definition\tV_gas_(A3)\tV_err\tmolecules\tmolecules_err\tadsorbed_atoms\tT_gas_(K)\tP_ideal_(GPa)\tP_ideal_err\tP_vdW_(GPa)\tP_vdW_err\twithout_a')
+    for d in DEFS:
+        sV, sN, sI, sW = stv(Vs[d]), stv(Ngas[d]), stv(Pid[d]), stv(Pvdw[d])
+        out.append(d+'\t'+g(sV[0],'%.5g')+'\t'+g(sV[2],'%.2g')+'\t'+g(sN[0],'%.5g')+'\t'+g(sN[2],'%.2g')+'\t'+'%.4g' % ads[d].sum(axis=1).mean()+'\t'
+                   +g(Tdef[d],'%.1f')+'\t'+g(sI[0],'%.5g')+'\t'+g(sI[2],'%.2g')+'\t'+g(sW[0],'%.5g')+'\t'+g(sW[2],'%.2g')+'\t'
+                   +g(Nnoa[d].sum()/Ngas[d].sum() if Ngas[d].sum() > 0 else np.nan,'%.3f'))
+    out.append('adsorbed atoms per element (means) : '+' ; '.join(d+' '+' '.join(el+' %.3g' % ads[d][:,e].mean() for e, el in enumerate(elements) if ads[d][:,e].any())
+               for d in DEFS))
+    noa = {}
+    for d in DEFS:
+        for f_, c in gascount[d].items():
+            if composition(f_) not in vdw:
+                noa[f_] = max(noa.get(f_,0.0),c.mean())
+    if noa:
+        out.append('gas species without a (ideal) : '+' '.join(f_+' %.3g' % n for f_, n in sorted(noa.items(),key=lambda x: (-x[1],x[0]))[:10]))
+    out.append('')
     with open(names['summary'],'w') as f:
         f.write('\n'.join(out)+'\n')
     print()
     print('interface :','%.4g' % sta[0],'nm^2 ; gas','%.3f' % stg[0],'of the volume ; gas temperature','%.1f' % Tgas,'K ('+Tsource+') ; pressure of the gas atoms',
           '%.4g' % stP[0],'GPa')
+    print('gas pressure (modified Van der Waals, molecules) :',' ; '.join(d+' '+'%.4g' % stv(Pvdw[d])[0]+' +/- '+'%.2g' % stv(Pvdw[d])[2]+' GPa' for d in DEFS))
     print('evaporations / condensations :','  '.join(elements[e]+' %d/%d' % (exch[e]['evap'],exch[e]['cond']) for e in moving) or 'none')
     print('Files',', '.join(os.path.basename(n) for n in names.values()),'written in the folder',outdir)
     print('runtime : ','%.1f' % (time.time()-start),' s')

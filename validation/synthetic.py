@@ -893,12 +893,17 @@ def interface(rng):#He atoms scripted through the four paths of the interface, i
 def molecules(rng):#20 H2 (0.74 A) and 20 He jumping between the depths of the Ar slab and of the gas (Markov chain, 0.05 out, 0.10 back), the molecules
     #kept apart (centres more than 2.5 A apart) ; velocities at 1000 K ; the cutoffs for bonding_umd.py : Ar-Ar 3.3 A (the slab one molecule), H-H 0.9 A
     #(the H2), nothing else bound. Exact : the H2 evaporations and condensations are half those of the H atoms, those of He equal the atoms ; in the gas
-    #half as many H2 as H atoms, their pressure half ; with -m clusters the slab is condensed, H2 and He always gas (no exchange)
+    #half as many H2 as H atoms, their pressure half ; with -m clusters the slab is condensed, H2 and He always gas (no exchange). One Xe deep in the
+    #gas (x = 30 A) bonded to the slab (cutoff Ar-Xe 12 A ; volatile with -g, so it adds no density) : adsorbed, never gas. The gas of every snapshot
+    #(H2 and He in their gas zone) and the kinetic temperature of their atoms, exact : the gas molecules and the modified Van der Waals pressure of
+    #exchange_umd.py (pressure.dat) follow from them and the gas volume
     nsnap, nmol, nhe, pe, pc, T = 600, 20, 20, 0.05, 0.10, 1000.0
     cell, nar = slab_cell()
-    natom = nar+2*nmol+nhe
-    sv = np.sqrt(KB*T/(np.array([MASS['Ar']]*nar+[MASS['H']]*(2*nmol)+[MASS['He']]*nhe)*AMU_A2FS2))
-    umd = UMD('molecules.umd.dat',['Ar','H','He'],[nar,2*nmol,nhe])
+    natom = nar+2*nmol+nhe+1
+    masses = np.array([MASS['Ar']]*nar+[MASS['H']]*(2*nmol)+[MASS['He']]*nhe+[MASS['Xe']])
+    sv = np.sqrt(KB*T/(masses*AMU_A2FS2))
+    umd = UMD('molecules.umd.dat',['Ar','H','He','Xe'],[nar,2*nmol,nhe,1])
+    counts, mv2, nat = [], 0.0, 0
     q = pe/(pe+pc)
     gasmol, gashe = rng.random(nmol) < q, rng.random(nhe) < q
     def apart(n,kinds):#centres in their zones, more than 2.5 A apart (rejection)
@@ -919,13 +924,17 @@ def molecules(rng):#20 H2 (0.74 A) and 20 He jumping between the depths of the A
         axis /= np.linalg.norm(axis,axis=1)[:,None]
         h = np.vstack([centres[:nmol]+0.37*axis,centres[:nmol]-0.37*axis])
         h = h.reshape(2,nmol,3).transpose(1,0,2).reshape(2*nmol,3)       #the two H of a molecule next to each other
-        x = np.vstack([slab_frame(rng,nar),h,centres[nmol:]])
+        x = np.vstack([slab_frame(rng,nar),h,centres[nmol:],[[30.0,10.0,10.0]]])
         v = rng.normal(size=(natom,3))*sv[:,None]
         umd.snapshot(float(s),1.0,cell,x,x,v)
+        gas = np.concatenate([np.zeros(nar,bool),np.repeat(gasmol,2),gashe,[False]])
+        counts.append([int(gasmol.sum()),int(gashe.sum())])
+        mv2 += float((masses[gas]*(v[gas]**2).sum(axis=1)).sum())
+        nat += int(gas.sum())
     umd.close()
     with open('molecules.cutoffs.inp','w') as f:
-        f.write('Ar Ar 3.3\nH H 0.9\n')
-    write_truth('molecules',{'H2_per_H':0.5,'He_per_He':1.0})
+        f.write('Ar Ar 3.3\nH H 0.9\nAr Xe 12.0\n')
+    write_truth('molecules',{'H2_per_H':0.5,'He_per_He':1.0,'gas_H2_He':counts,'T_gas_molecules':mv2*AMU_A2FS2/(3.0*KB*nat),'adsorbed_Xe':1})
 
 
 def idealgas_gz(rng):#the ideal gas, compressed : idealgas.umd.dat.gz (the scripts decompress it into a temporary file), same truth

@@ -23,7 +23,7 @@ SUBCELL = 5.0                                                                   
 GAS = 0.1                                                                       #mean void fraction of composition_umd.py from which the run has a gas phase
 CONDENSED = 10                                                                  #and the least number of atoms of the condensed elements (not volatile)
 COMP_FILES = ['summary.dat','dist.dat','density.dat','voids.dat','time.dat','fluctuations.dat','episodes.dat','regions.dat']
-EXCHANGE_FILES = ['summary.dat','states.dat','gas.dat','paths.dat','stays.dat','atoms.dat','fluxes.dat']
+EXCHANGE_FILES = ['summary.dat','states.dat','gas.dat','pressure.dat','paths.dat','stays.dat','atoms.dat','fluxes.dat']
 
 
 class Step:#One script run : command line, input files it needs, output files it writes (names relative to the folder ; pattern :
@@ -237,8 +237,9 @@ def summary_row(folder,umd,central,adjacent):#Main results of one UMD file, from
                 pressure = re.search(r'total pressure of the atoms in the gas (\S+) \+/- (\S+)',line)
                 if pressure:
                     row['P_gas_atoms(GPa)'], row['P_gas_atoms_err'] = pressure.group(1), pressure.group(2)
-                if line.startswith('total_molecules_in_gas'):
-                    row['P_gas_molecules(GPa)'] = line.split('\t')[3].strip()
+                entry = line.rstrip('\n').split('\t')
+                if entry[0] in ('zone','surface') and len(entry) >= 11:     #gas pressure by molecules, modified Van der Waals, two definitions
+                    row['P_gas_vdW_'+entry[0]+'(GPa)'], row['P_gas_vdW_'+entry[0]+'_err'] = entry[9], entry[10]
     if row and os.path.isfile(base+'.check.dat'):
         with open(base+'.check.dat') as f:
             row['check_warnings'] = str(sum('WARNING' in line for line in f))
@@ -250,7 +251,7 @@ def write_summary(folder,rows,umds):#One line per UMD file, the columns of all t
     for row in rows.values():
         columns += [c for c in row if c not in columns]
     groups = ('nsteps','check_warnings','density','P(','P_err','T(','T_err','E(','E_err','Cv','D_','eta','S_2PT','dE','dS','dCv','CN_','main',
-              'void','interface','gas_volume','T_gas','P_gas_atoms','P_gas_molecules')
+              'void','interface','gas_volume','T_gas','P_gas_atoms','P_gas_vdW_zone','P_gas_vdW_surface')
     columns.sort(key=lambda c: [c.startswith(g) for g in groups].index(True))  #by quantity, the elements in their order of appearance
     with open(os.path.join(folder,SUMMARY),'w') as f:
         f.write('# umd_workflow.py summary, '+time.strftime('%Y-%m-%d %H:%M')+' : main results of the UMD files of this folder, from the files of the scripts\n')
@@ -259,8 +260,9 @@ def write_summary(folder,rows,umds):#One line per UMD file, the columns of all t
         f.write('# <base>.vdos.thermo.dat (vdos_thermo.py) ; CN : <base>.coordinations.inp (analyze_gofr.py), central - adjacent elements ;\n')
         f.write('# species : <base>.r1.stat.dat (speciation_and_angles.py -r 1), the 5 most frequent, % of the species time ; check_warnings :\n')
         f.write('# number of warnings of check_umd.py (<base>.check.dat) ; void_fraction : <base>.comp.<grid>/summary.dat (composition_umd.py) ;\n')
-        f.write('# interface, gas (temperature, pressure of the atoms and of the molecules) : <base>.exchange/summary.dat (exchange_umd.py, runs with\n')
-        f.write('# a gas phase) ; errors : _err columns (errors of the mean or of the blocks)\n')
+        f.write('# interface, gas (temperature, ideal pressure of the atoms, pressure of the molecules by the modified Van der Waals law, gas zone\n')
+        f.write('# and below the half-density surface) : <base>.exchange/summary.dat (exchange_umd.py, runs with a gas phase) ; errors : _err columns\n')
+        f.write('# (errors of the mean or of the blocks)\n')
         if os.path.isfile(os.path.join(folder,'thermo_integration.dat')):
             f.write('# free energy and entropy by thermodynamic integration of the runs at several lambda : thermo_integration.dat\n')
         f.write('\t'.join(['file']+columns)+'\n')
@@ -320,7 +322,8 @@ def main(argv):
             print('Output : umd_workflow.summary.dat in each folder, one line per UMD file of the folder with results : number of snapshots,')
             print('warnings of check_umd.py, density, P, T, E, Cv (with errors), D of each element, viscosity, S_2PT, quantum corrections,')
             print('coordination numbers of the central - adjacent pairs, the 5 most frequent r1 species, void fraction, and for runs with a gas')
-            print('phase the interface area, gas volume fraction, gas temperature and pressure ; nan where a result is missing.')
+            print('phase the interface area, gas volume fraction, gas temperature, ideal pressure of the gas atoms and pressure of the gas')
+            print('molecules (modified Van der Waals, gas zone and below the half-density surface) ; nan where a result is missing.')
             sys.exit()
         elif opt == '-f':
             files = [x.strip() for x in arg.split(',') if x.strip()]

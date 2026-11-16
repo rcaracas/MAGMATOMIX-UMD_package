@@ -13,6 +13,7 @@ v3.2 (November 2026): an example run with its tutorial (examples/), averages.py 
 v3.3 (November 2026): composition_umd.py (compositional fluctuations, voids, droplets, segregation), exchange_umd.py
 (exchange of atoms between a condensed phase and its gas through their interface), compressed runs (.umd.dat.gz).
 v3.3.1 (November 2026): umd_workflow.py -t runs composition_umd.py, and exchange_umd.py for runs with a gas phase.
+v3.3.2 (November 2026): exchange_umd.py, pressure of the gas molecules by the modified Van der Waals law (two gas volumes), adsorbed atoms.
 
 MAJOR AIMS for the v2.0:
 speciation: chemical (pair) bonds

@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, glycine crystal, cubic, 100 atoms, 10000 snapshots",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f glycine.umd.dat",
    "code": 0,
-   "time": 20.52
+   "time": 21.43
   }
  ],
  "numbers": {
@@ -185,7 +185,7 @@
   "glycine.vdos.thermo.dat": "db5fc50f32c88a0dd374b462e9dc8ea48752a513582678995e762a73f6695569",
   "glycine.2pt.dat": "954fc91d6bc907ae90caaf7d485d200f736a0a8f2c62c127fb7d019fff9edbb9",
   "glycine.r1.popul.dat": "daa7b7f5cccdae4ec33b1810cb8a50f67fc0e2df41e366a4bb5e2f8558df460c",
-  "umd_workflow.summary.dat": "46d57172a6af255f1a0c13f21495814042ce3741e36d4f009e02a3770598b74a",
+  "umd_workflow.summary.dat": "ae6dc9a167a2eb7584463200b6febf81f20434e7cfdb2e1795a639bba2640795",
   "umd_workflow.log": "not compared",
   "glycine.vels.scf.dat": "bc87031597cb92fd10159ce8fe204796908e6bdbaa33872e161500c706b00a9c",
   "glycine.r1__O_1H_1.msd.dat": "dd24a9b689a12428019bfc66b0f8007f68bd0304cfb7c470bdd98a697235a404",

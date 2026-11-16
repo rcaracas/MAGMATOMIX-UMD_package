@@ -1,7 +1,7 @@
 {
  "about": "synthetic He scripted through the interface of an Ar slab : bounces, condensations, visits, evaporations, times in the interface, sticking and escape exact",
  "environment": {
-  "commit": "3.1-3-ge64242e-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "@synthetic.py interface",
    "code": 0,
-   "time": 1.54
+   "time": 2.46
   },
   {
    "command": "exchange_umd.py -f interface.umd.dat -g He -t 0",
    "code": 0,
-   "time": 5.6
+   "time": 13.4
   }
  ],
  "numbers": {
@@ -39,10 +39,11 @@
   "interface.umd.dat": "3ad9a0b9c4343f55aa4f9dfd21646de9c733f6142de8177134a0491e100bb534",
   "interface.exchange/states.dat": "d9aedcc1791d45b42de01e2bf0f9c6e4b55dd00593c5833dd9d1a68ba15089c8",
   "interface.exchange/fluxes.dat": "fc1eb0213cafe1608335ecc0b4a21f0ec8c0c8cff354d80e551c2f3d47619e83",
+  "interface.exchange/pressure.dat": "754378c78781d1a2241ad43ac4b9c3cfc9b2b5c4a2c493ad3eab1ddf800c2c22",
   "interface.exchange/paths.dat": "25a0d9623bc7cdeb725993503ac7aa20b9ebde56f86c1274cf8e997ec1564d4e",
   "interface.exchange/stays.dat": "3fa0046a5a48159a8675f04b2902b74fcd04a2c758bfcd31992e2cda393fa6fa",
   "interface.exchange/gas.dat": "e0ff5c8fd21d6e0b6337d905d72b2063513ebf9c68bcb87836014d0a8743dfdd",
   "interface.exchange/atoms.dat": "08d0ac3f911aa20228449f50ffe2a28c0b8113288dfa99ce73f636ec244c031e",
-  "interface.exchange/summary.dat": "e22c5a2d898f556b33d59ba12f0cd76a9e960d544a559aeca7d94f527dc58492"
+  "interface.exchange/summary.dat": "f0dce57a5478c082146c3a39c48ef3596875f944f0f215058650f9be38e4c6d6"
  }
 }

@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, hexagonal corundum + 1 He",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f al2o3.new.umd.dat",
    "code": 0,
-   "time": 47.14
+   "time": 34.85
   }
  ],
  "numbers": {
@@ -147,7 +147,7 @@
   "al2o3.new.angles.dat": "6f2fda139f54a88b676f3ad65c2d0b47ec58473ac23b27c1dbb91723b5bf2529",
   "al2o3.new.r0.stat.dat": "5aa3d1020ca4a24a3d429de3df5afa20a6fa5290bca9f9c367758b14b9ad60ed",
   "al2o3.new.r1.stat.dat": "40d50498e367fb2de0fff801589f06be414885f61b87011b49935eeab607c42e",
-  "umd_workflow.summary.dat": "1e18a017e297b6d10a8f50ddb5a5fd8d8277a3bec28498b929b76cfd20db8551",
+  "umd_workflow.summary.dat": "f71ac80e2cb3cc44c18881c7be419915d0f2085ead487f4acf63c5ff2aebb84c",
   "al2o3.new.gofr.dat": "0580633228fcbe27d78c116ba556151929180468846129718c091cfceb5a47fb",
   "al2o3.new.r1__Al_1O_6.msd.dat": "7bbc2c3f724d48a285345422fa4a1842d265aae97e75b4377405fd67299bb3bd",
   "al2o3.new.coordinations.inp": "96ae01c9d111cf1c6445f83d582baf5b361ba2377f52a4a3b03efc9d3ec9ff3a",

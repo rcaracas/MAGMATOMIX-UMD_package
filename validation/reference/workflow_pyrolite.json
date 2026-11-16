@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, pyrolite melt 3000 K",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat",
    "code": 0,
-   "time": 16.06
+   "time": 16.55
   }
  ],
  "numbers": {
@@ -346,7 +346,7 @@
   "pyrolite.a13.T3000K.outcar.average_bonds.inp": "cc661818d43a526db3a0654dc7f14ba251425d70004539cd1dd5ffda236b73b2",
   "pyrolite.a13.T3000K.outcar.maximum_bonds.inp": "8404a651745b608b801fe062bc1e0d53aec944d62b4f419f4cf144a269c8a189",
   "pyrolite.a13.T3000K.outcar.r1__Na_1O_9.msd.dat": "af89018e6f7153fdafefcf528d569af0f7e902a5397d3db67e362896ae6ff9ff",
-  "umd_workflow.summary.dat": "661474ab0a9cfd0439724fcc2da5eaa8e3a9786aa1972449a237402d6f07f8c6",
+  "umd_workflow.summary.dat": "10c8f5ea639954d32079b4d75e860ec27beb18f02a4c88997e237fdcbd614e30",
   "pyrolite.a13.T3000K.outcar.r1__Fe_1O_2.msd.dat": "068f55b8f6bb170d0c3207b341306624dbacb53b86469b0d91923d4506b661b0",
   "umd_workflow.log": "not compared",
   "pyrolite.a13.T3000K.outcar.visc.dat": "9e54cb11eb1aaa1c799ff555c40600a6fa5732932c365814efa4f6544c75a168",

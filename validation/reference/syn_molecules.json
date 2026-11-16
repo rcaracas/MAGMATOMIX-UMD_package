@@ -1,7 +1,7 @@
 {
- "about": "synthetic H2 and He jumping between an Ar slab and the gas, bonds from bonding_umd.py : molecular events, gas and pressure ; -m clusters",
+ "about": "synthetic H2 and He jumping between an Ar slab and the gas, a Xe in the gas bonded to the slab, bonds from bonding_umd.py : molecular events, gas and pressure, adsorbed Xe, modified Van der Waals pressure of every snapshot ; -m clusters",
  "environment": {
-  "commit": "3.1-3-ge64242e-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,56 +12,65 @@
   {
    "command": "@synthetic.py molecules",
    "code": 0,
-   "time": 3.65
+   "time": 93.12
   },
   {
    "command": "bonding_umd.py -f molecules.umd.dat -c molecules.cutoffs.inp",
    "code": 0,
-   "time": 0.37
+   "time": 0.54
   },
   {
-   "command": "exchange_umd.py -f molecules.umd.dat -g H,He -t 0",
+   "command": "exchange_umd.py -f molecules.umd.dat -g H,He,Xe -t 0",
    "code": 0,
-   "time": 5.79
+   "time": 6.52
   },
   {
-   "command": "exchange_umd.py -f molecules.umd.dat -g H,He -t 0 -m clusters",
+   "command": "exchange_umd.py -f molecules.umd.dat -g H,He,Xe -t 0 -m clusters",
    "code": 0,
-   "time": 6.15
+   "time": 6.74
   }
  ],
  "numbers": {
-  "molecules H2 evaporations = H / 2": 369.0,
-  "molecules H2 condensations = H / 2": 373.0,
-  "molecules He evaporations = He": 386.0,
-  "molecules H2 in the gas = H / 2": 6.57,
-  "molecules H2 pressure = H / 2": 0.016124,
+  "molecules H2 evaporations = H / 2": 404.0,
+  "molecules H2 condensations = H / 2": 405.0,
+  "molecules He evaporations = He": 402.0,
+  "molecules H2 in the gas = H / 2": 6.5667,
+  "molecules H2 pressure = H / 2": 0.016057,
   "molecules some exchange": 1.0,
+  "pressure : gas molecules of every snapshot = H2 + He of the gas": 0.0,
+  "pressure : the Xe adsorbed in every snapshot": 0.0,
+  "pressure : Van der Waals P of every snapshot (largest relative deviation)": 3.1487822012010724e-06,
+  "pressure : the attraction lowers P (mean P_vdW/P_ideal < 1)": 1.0,
+  "adsorbed : the Xe bonded to the slab never gas": 0.0,
+  "adsorbed : the Xe in the interface all the time": 1.0,
+  "adsorbed : the Xe never evaporates": 0.0,
   "molecules clusters : Ar condensed": 1.0,
   "molecules clusters : H gas": 1.0,
   "molecules clusters : He gas": 1.0,
   "molecules clusters : no exchange of H": 0.0
  },
  "files": {
-  "molecules.truth.json": "fd1b77c82e78b3378d02f6e3983a45ae7b6b41ed22c47cc30e05870d4db59ec8",
-  "molecules.bonding.dat": "2d51be3f46e8bbb76c8bfc7e84e6bb84625a3a4d1276917a9cb22fc901428e30",
-  "molecules.umd.dat": "0906c8224c1f043acbc796ac9af7640210e88306da4e2738cfe8195b2deae245",
-  "molecules.cutoffs.inp": "7a638ab74d4f8bb4b74c7b7b477c7c93ff3de06482a8849cf517cbc132a2a9f4",
-  "molecules.exchange/states.dat": "3d13fb31d9777bf1c9217f4bc069aa0fe96ec7487a272d5dd68104976e812488",
-  "molecules.exchange/fluxes.dat": "403c9aa38e5594393d2ab1ab01033e21913d996ea3ee0e14c1686587ff028097",
+  "molecules.truth.json": "9cd22c475843a4d659b9b8fae25fbf35975c13e67c09edbe96500bc757b07148",
+  "molecules.bonding.dat": "5f3cad5aa7032198a841b7c4cad6e329966351f2f0339aa1d231636ccd59276d",
+  "molecules.umd.dat": "6e01868d35fb6dff318a54e4ef55724abc206dab7602fdbc4eb007497e6cccc3",
+  "molecules.cutoffs.inp": "795e9b82cf2bb87a408414eb893fe3f2e04f6d707a19cbca19c23e796dd4dd96",
+  "molecules.exchange/states.dat": "ead843363760c36a68c9af55506f4c8a5bfd8f31953b944a8278915e21f246a6",
+  "molecules.exchange/fluxes.dat": "99baa936042de92997944fbe1a45f84a942f1029d3e49e6250889083346d089e",
+  "molecules.exchange/pressure.dat": "9096d5891e20c83e8284e254b6cea207ed4e8152effb83c9435d4cd72e815790",
   "molecules.exchange/paths.dat": "15c510a9f7ea1c1def099c4ffde1e014864035780bf0d96f677f3ec2471c6569",
-  "molecules.exchange/stays.dat": "77b47d15deb74292a24cf08771d80508157211d73652544c6f064f41f1e37bf0",
-  "molecules.exchange/gas.dat": "bfaf25854652681b2fa5300d8a3beff08607afa3ff9fffc2b900521844ef39fe",
-  "molecules.exchange/molecules.dat": "1402a28ecb43ef6cd50bb4313e3f7d0f9fa1b16adbed6929ec1806c153f88638",
-  "molecules.exchange/atoms.dat": "dd57f6db091ae3cfdf34094d17abb8ab7d58d43ed2f4eab8c28433bb008aff3b",
-  "molecules.exchange/summary.dat": "9f4d51961df1b8e0f4d82f77669f04875635ccbed92659061d850a91f075e76b",
-  "molecules.exchange.clusters/states.dat": "3d13fb31d9777bf1c9217f4bc069aa0fe96ec7487a272d5dd68104976e812488",
-  "molecules.exchange.clusters/fluxes.dat": "ce35de2d8919f25d6bdad805d9c96d39f4b3a941e0407314d132e4141fd3da8e",
+  "molecules.exchange/stays.dat": "ae8da3c0e5624ca22eed5eba71041d2f84e6276a7b7d31e46925e464f2881a70",
+  "molecules.exchange/gas.dat": "87402148c415fa7e07bca87084148a79bc012f845ef9ca73094b2fd885fead36",
+  "molecules.exchange/molecules.dat": "6b866179951c023f71edb89be08e46291430f35fa0a2b0fe6d13e120dc240190",
+  "molecules.exchange/atoms.dat": "79012f421de28e9527463a2553d905c1f5d6e38993565288b24faacdc4e1ba81",
+  "molecules.exchange/summary.dat": "de8722946e734e57d7467f24b0763753fb807ddda961af606ebba107a49b8b2b",
+  "molecules.exchange.clusters/states.dat": "064e27745645bafb5e200493dac88d61f53ecd3ccb4fbc7a24a9c96285ba4f8f",
+  "molecules.exchange.clusters/fluxes.dat": "47ca9f49c3f390285aeb2c9652607c6c4cd6a20aa72184e33a464f4761de4b9c",
+  "molecules.exchange.clusters/pressure.dat": "a98a00740bef9ebc49a915c8db9d8cabba81efda6ffe3b84b7354b08ceb965db",
   "molecules.exchange.clusters/paths.dat": "15c510a9f7ea1c1def099c4ffde1e014864035780bf0d96f677f3ec2471c6569",
   "molecules.exchange.clusters/stays.dat": "ed93f1daab6c7e910e994aa94bd6c13cbaa3411f1d7ae4189159cc04410663c6",
-  "molecules.exchange.clusters/gas.dat": "bfaf25854652681b2fa5300d8a3beff08607afa3ff9fffc2b900521844ef39fe",
-  "molecules.exchange.clusters/molecules.dat": "b41deb51565d3f8db690d7b3f80631cd18fbe3359f27439a1f4cb37912f104d0",
-  "molecules.exchange.clusters/atoms.dat": "7cebcd2e93787f9b88775f8576c0d939a7799f07017d40a9ff504951bb027c11",
-  "molecules.exchange.clusters/summary.dat": "5b38743c226a75646bce3df9e6ce683342bfbb6e3815e526588415a8a7d14939"
+  "molecules.exchange.clusters/gas.dat": "5ea4c0c5f9fd01d2d97c205b6a4f455e8d2a5c2ee2d1ae430bb22f986d532856",
+  "molecules.exchange.clusters/molecules.dat": "18c5dfcee8ef514d0e3a61bc0d40697f592a7f0a581397b74b6ce34eadcb4d0b",
+  "molecules.exchange.clusters/atoms.dat": "01b2f71ffe4dc5deab10ead0099fa4e48b8aaacaaa1b816a7eec1caa08262510",
+  "molecules.exchange.clusters/summary.dat": "990b454dd1cb889ff635af0982a9d6d1d8cd9d41ef9915e329de02cde822f4e2"
  }
 }

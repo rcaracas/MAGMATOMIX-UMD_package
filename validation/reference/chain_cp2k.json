@@ -1,7 +1,7 @@
 {
  "about": "CP2K run parsed, then the workflow",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "CP2KParser.py -f position.xyz -v velocity.xyz -r force.xyz -e log.out -a stress.out -c main_2.out",
    "code": 0,
-   "time": 4.44
+   "time": 4.43
   },
   {
    "command": "umd_workflow.py -f position.xyz.umd.dat",
    "code": 0,
-   "time": 12.61
+   "time": 12.84
   }
  ],
  "numbers": {
@@ -91,7 +91,7 @@
  "files": {
   "position.xyz.vibr.err.dat": "8607454a4afa6c851402d1de4c9dfd7225bcc5308459930d08806494328fd1ec",
   "position.xyz.coordinations.inp": "152efe163ebea372caa6fe729226a829b6fdde4d2e257755aaac2d57c4c836cf",
-  "umd_workflow.summary.dat": "7129e46fe82c2ef8e733ef9870da6db0e20d763007653f5c810a3e6286d626e1",
+  "umd_workflow.summary.dat": "2530de0d98a7f12263e33464b447ad3d34a9f12a1a1f5eaa1b3daea1e937dde7",
   "umd_workflow.log": "not compared",
   "position.xyz.r1.lifetimes.pdf": "not compared",
   "position.xyz.bondslives.dat": "b55956457954d252bbf189f95881cdbeb0b3e970fb779b5227548ea7dd453790",

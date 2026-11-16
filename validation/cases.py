@@ -801,9 +801,28 @@ def t_molecules(folder,outs):#exchange_umd.py -g H,He -t 0 on H2 and He jumping 
     out = [('molecules H2 evaporations = H / 2',m['H_2']['evaporations'],n['evaporations H']/2,1e-9),
            ('molecules H2 condensations = H / 2',m['H_2']['condensations'],n['condensations H']/2,1e-9),
            ('molecules He evaporations = He',m['He_1']['evaporations'],n['evaporations He'],1e-9),
-           ('molecules H2 in the gas = H / 2',m['H_2']['in_gas'],n['N_gas H']/2,1e-3),
+           ('molecules H2 in the gas = H / 2',m['H_2']['in_gas'],n['N_gas H']/2,3e-3),          #N_gas is printed with 4 digits
            ('molecules H2 pressure = H / 2',m['H_2']['P_(GPa)'],n['P_(GPa) H']/2,1e-4*n['P_(GPa) H']),
            ('molecules some exchange',float(n['evaporations H'] > 100),1.0,0)]
+    #pressure.dat, zone definition : the gas molecules of every snapshot = the H2 and He of the gas (the Xe adsorbed : 1 atom), T the kinetic
+    #temperature of their atoms, P = N k T/V - (N_H2 a_H2^1/2 + N_He a_He^1/2)^2/(NA^2 V^2), a of the CRC Handbook (L^2 bar/mol^2 = 0.1 Pa m^6/mol^2)
+    truth = json.load(open(os.path.join(folder,'molecules.truth.json')))
+    rows = [l.rstrip('\n').split('\t') for l in open(os.path.join(folder,'molecules.exchange','pressure.dat')) if not l.startswith('#')]
+    head, data = rows[0], np.array([[float(v) for v in r] for r in rows[1:]])
+    col = {h:k for k, h in enumerate(head)}
+    counts = np.array(truth['gas_H2_He'],dtype=float)
+    T = truth['T_gas_molecules']
+    V = data[:,col['V_gas_(A3)_zone']]
+    kB, NA, aH2, aHe = 8.617333262e-5, 6.02214076e23, 0.2476, 0.0346
+    P = counts.sum(axis=1)*kB*T/V*160.21766208-0.1*(counts[:,0]*np.sqrt(aH2)+counts[:,1]*np.sqrt(aHe))**2/(NA**2*(V*1e-30)**2)*1e-9
+    attraction = P/(counts.sum(axis=1)*kB*T/V*160.21766208)
+    out += [('pressure : gas molecules of every snapshot = H2 + He of the gas',float(np.abs(data[:,col['molecules_zone']]-counts.sum(axis=1)).max()),0.0,0),
+            ('pressure : the Xe adsorbed in every snapshot',float(np.abs(data[:,col['adsorbed_atoms_zone']]-truth['adsorbed_Xe']).max()),0.0,0),
+            ('pressure : Van der Waals P of every snapshot (largest relative deviation)',float(np.abs(data[:,col['P_vdW_(GPa)_zone']]/P-1.0).max()),0.0,1e-4),
+            ('pressure : the attraction lowers P (mean P_vdW/P_ideal < 1)',float(attraction.mean() < 1.0),1.0,0),
+            ('adsorbed : the Xe bonded to the slab never gas',n['gas Xe'],0.0,0),
+            ('adsorbed : the Xe in the interface all the time',n['interface Xe'],1.0,0),
+            ('adsorbed : the Xe never evaporates',n['evaporations Xe'],0.0,0)]
     c = exch_numbers(os.path.join(folder,'molecules.exchange.clusters','summary.dat'))
     out += [('molecules clusters : Ar condensed',c['condensed Ar'],1.0,0),('molecules clusters : H gas',c['gas H'],1.0,0),
             ('molecules clusters : He gas',c['gas He'],1.0,0),('molecules clusters : no exchange of H',c['evaporations H'],0.0,0)]
@@ -884,9 +903,10 @@ CASES += [
     Case('syn_degassing',[],[('@synthetic.py',['degassing']),('exchange_umd.py',['-f','degassing.umd.dat','-g','He','-t','0','-w','150'])],
          truth=[t_degassing],about='synthetic He degassing from an Ar slab (Markov chain) : evaporation and condensation fluxes of every window exact, equilibrium found'),
     Case('syn_molecules',[],[('@synthetic.py',['molecules']),('bonding_umd.py',['-f','molecules.umd.dat','-c','molecules.cutoffs.inp']),
-                             ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He','-t','0']),
-                             ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He','-t','0','-m','clusters'])],truth=[t_molecules],
-         about='synthetic H2 and He jumping between an Ar slab and the gas, bonds from bonding_umd.py : molecular events, gas and pressure ; -m clusters'),
+                             ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He,Xe','-t','0']),
+                             ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He,Xe','-t','0','-m','clusters'])],truth=[t_molecules],
+         about='synthetic H2 and He jumping between an Ar slab and the gas, a Xe in the gas bonded to the slab, bonds from bonding_umd.py : molecular '
+               'events, gas and pressure, adsorbed Xe, modified Van der Waals pressure of every snapshot ; -m clusters'),
     Case('syn_blink',[],[('@synthetic.py',['blink']),('composition_umd.py',['-f','blink.umd.dat','-n','4','-g','He'])],truth=[t_blink],
          about='synthetic hole opening for 30 fs and closing for 20 fs, ten times : periods of the void and dense states exact'),
     Case('syn_composition',[],[('@synthetic.py',['composition'])]+[('composition_umd.py',['-f',f+'.umd.dat','-n','4']+o) for f, o in

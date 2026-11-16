@@ -1,7 +1,7 @@
 {
  "about": "the workflow on small and odd files (1 snapshot, 2 steps, 5 atoms...) ; umd_clean listing",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py",
    "code": 0,
-   "time": 95.11
+   "time": 96.06
   },
   {
    "command": "umd_clean.py",
@@ -437,7 +437,7 @@
   "short.at1.gofr.dat": "83f9084af9cc6cf694197d7f6af6ca71562890658205a588d56870b16e77ed95",
   "outcar.2pt.dat": "d6d978edea581ba2f7965a942997b917d5ec7b0ed37a4c18a498daaa172c9468",
   "short.at6.diffusion.dat": "3f811f651c1191135062f63ecdfff08dbc5dbb3dd567972a0c6a2bb118382ce5",
-  "umd_workflow.summary.dat": "40a58c69d0463221e7e7aa5d9a3c99f38cb4f16f04ee9d9802113571cbdcfc9f",
+  "umd_workflow.summary.dat": "2f2489145884300542bc1e2ac092f39d76c021f88c03e4934b0f498c592e271c",
   "test.2pt.dat": "465adbcd89e32e688be0f89bd16858c376544d570ca1df0f52016e13cb6fcb9f",
   "test.msd.blocks.dat": "7e18cacfb2d18d6b2b1d1b43cf99c18e9ea3a2c3677c5673f1878d4254470ec5",
   "test.8atoms10stepa.coordinations.inp": "1898fcd84a96f8a74d538d37b4a5b44ac35fdd9aa4441496d4e45b6d1ee80e1e",

@@ -1,7 +1,7 @@
 {
  "about": "LAMMPS water parsed, then the workflow",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "LAMMPSParser2umd.py -f test.dump -l log.lammps",
    "code": 0,
-   "time": 2.48
+   "time": 2.46
   },
   {
    "command": "umd_workflow.py -f test.dump.umd.dat",
    "code": 0,
-   "time": 11.58
+   "time": 11.73
   }
  ],
  "numbers": {
@@ -86,7 +86,7 @@
   "test.dump.r0.step.dat": "57d87dccb168b98cde8f6bf41dd36c8c639f891364ecc4ee48b26f5491e91ea8",
   "test.dump.r1.step.dat": "ae54416a0fbbaa7688f05fff8d2f1cfe6452568467f92c51a8b70451bef501e2",
   "test.dump.r1.popul.dat": "a059c07b73700f1e7ccc9f758b176779dc9169df4b0e11f36f560a076cbaa1a9",
-  "umd_workflow.summary.dat": "d988e5d670313497ae3d877ad74f8b89cdc43bab16c71272297e02ab1374d6e6",
+  "umd_workflow.summary.dat": "41f9d70d1fa1fe09b2943223bbed9589c51b63aa9c16684374094d6491bfe37b",
   "umd_workflow.log": "not compared",
   "test.dump.vels.scf.dat": "7d157788d70f660297db3141fda1db2f3350d6aeaf30345fd1ee65c755e742cc",
   "test.dump.umd.dat": "4355fab80895e00386eba920125a9f4c1dec2b8217de2523f9af2634cea50c76",

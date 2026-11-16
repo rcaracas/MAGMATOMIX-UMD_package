@@ -479,7 +479,7 @@ def headerumd():#once per run, also when a script runs on several files (-f all)
         return
     _headerdone = True
     print ('\n * * * * * ')
-    print ('    UMD package for analyzing Molecular Dynamics simulations, version 3.3.1')
+    print ('    UMD package for analyzing Molecular Dynamics simulations, version 3.3.2')
     print ('distributed under GNU General Public License 3 and CeCILL v2')
     print ('https://github.com/rcaracas/MAGMATOMIX-UMD_package')
     print ('please cite as: Caracas, R. et al. Analyzing Melts and Fluids from Ab Initio Molecular Dynamics Simulations')
@@ -547,7 +547,7 @@ RUN_OUTPUTS = [r'\.check\.dat', r'\.overlap\.dat',                              
                r'(?:\.\d+)?\.xyz', r'(?:\.\d+)?\.lammpstrj', r'\._\d+_\.POSCAR\.vasp', r'\._\d+_\.lammps\.data']#umd2out.py
 DEEPMD_FILES = [r'type\.raw', r'type_map\.raw', r'set\.\d{3}/(?:box|coord|energy|force|virial)\.npy']
 COMP_FILES = [r'(?:summary|dist|density|voids|time|fluctuations|episodes|exchange|exchange_atoms|fluxes|regions|subcells)\.dat', r'subcell_\d+_\d+_\d+\.dat']
-EXCHANGE_FILES = [r'(?:summary|stays|atoms|fluxes|states|interface|paths|gas|molecules)\.dat']   #exchange_umd.py
+EXCHANGE_FILES = [r'(?:summary|stays|atoms|fluxes|states|interface|paths|gas|pressure|molecules)\.dat']   #exchange_umd.py
 RUN_FOLDERS = [(r'(?:\.\d+)?\.deepmd',DEEPMD_FILES),                             #umd2out.py : <base>.deepmd and the files it writes inside
                (r'\.comp\.\d+x\d+x\d+',COMP_FILES),                                 #composition_umd.py : <base>.comp.<grid>
                (r'\.exchange(?:\.clusters)?',EXCHANGE_FILES)]                                         #exchange_umd.py : <base>.exchange

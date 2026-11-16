@@ -1,7 +1,7 @@
 {
  "about": "the workflow with -i -s -c -a, run again (done before), then -g with other elements (reruns)",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,17 +12,17 @@
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -c Si,Al -a O",
    "code": 0,
-   "time": 13.73
+   "time": 14.4
   },
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -c Si,Al -a O",
    "code": 0,
-   "time": 0.69
+   "time": 0.67
   },
   {
    "command": "umd_workflow.py -f pyrolite.a13.T3000K.outcar.umd.dat -i 500 -s 2 -g",
    "code": 0,
-   "time": 4.32
+   "time": 4.53
   }
  ],
  "numbers": {
@@ -119,7 +119,7 @@
   "pyrolite.a13.T3000K.outcar.r1__Al_1O_5.msd.dat": "7fa53762007f08935e4b6ce55258810519ac41e252872a02d5416e10676f160a",
   "pyrolite.a13.T3000K.outcar.average_bonds.inp": "1aa5f492a97cffb5603dc5f0249943d1a1bff7a8ad5d414932ed7135a7af2f22",
   "pyrolite.a13.T3000K.outcar.maximum_bonds.inp": "4c8bbeb62c6c01fd8a43287ea9749c6557822cbd523bcc3b9cfb7b456f4cb2f6",
-  "umd_workflow.summary.dat": "058e68b5693b8ebe3f050cb3e29c51fadc30da4aa72b606eaaa186f82f39ed8f",
+  "umd_workflow.summary.dat": "7cebd199b9cb9b7d60ca8464151f1a66f61c8784f89a7a0fcac5d74fd2fc3b59",
   "umd_workflow.log": "not compared",
   "pyrolite.a13.T3000K.outcar.visc.dat": "48cda46bac5e3d45a6959f73c762253072d85fbb0fc61a992db223a69036cae0",
   "pyrolite.a13.T3000K.outcar.angles.dat": "b6cac7ad88ac8d1750727490e85e38e87d5a042eeb51c4587c95ad46d88f9058",

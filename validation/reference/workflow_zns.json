@@ -1,7 +1,7 @@
 {
  "about": "umd_workflow.py, ZnS 1000 K, on-the-fly ML",
  "environment": {
-  "commit": "3.3-dirty",
+  "commit": "3.3.1-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,7 +12,7 @@
   {
    "command": "umd_workflow.py -f zns.T1000K.prod.outcar.umd.dat",
    "code": 0,
-   "time": 31.82
+   "time": 33.02
   }
  ],
  "numbers": {
@@ -119,7 +119,7 @@
   "zns.T1000K.prod.outcar.r1.popul.dat": "7388e5523a8c28a3404cd97eae3b82c2f607bcbbb550259161c795404b4ba27d",
   "zns.T1000K.prod.outcar.visc.dat": "ca02e85346e4f63f88e8c14ca7e2f5ec3f59ec51de11d4dc2b93e9288f5c9f59",
   "zns.T1000K.prod.outcar.vels.scf.dat": "21ef4a02bfe3d91608522e49422a700677f2f66ab52d8bd10249cafd0f590103",
-  "umd_workflow.summary.dat": "c634805acf67a4e7d1e96bde1e589199a77ea6b3f991a0cbf201599d3d52df36",
+  "umd_workflow.summary.dat": "b8d3bf8c61653c68bf4c3a51cd0c5adb5e409def99cdd0a8800d819537bd493c",
   "umd_workflow.log": "not compared",
   "zns.T1000K.prod.outcar.2pt.dat": "4c8b8a4ef1444441e7f9a71b83cd1dc13d5f5d5b9da8ab5c643f4321a8bc3f27",
   "zns.T1000K.prod.outcar.r0.popul.dat": "9003c9f52c0d5be38f5349697a8ad56789d849b9c1e14d8fc90f994bdba213cc",
