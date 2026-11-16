@@ -45,7 +45,7 @@ def workflow(index=0,prefix=''):#status of every step of umd_workflow.py (output
                 break
             head = HEADER.match(line)
             if head:
-                current = 'folder' if head.group(1).startswith('/') else head.group(1)
+                current = 'folder' if os.path.isabs(head.group(1)) else head.group(1)      #the folder : / or, on Windows, D:\\
             found = STEP.match(line)
             if found:
                 out[prefix+'step '+current+' '+found.group(2).strip()] = found.group(1)
@@ -907,6 +907,9 @@ CASES += [
                              ('exchange_umd.py',['-f','molecules.umd.dat','-g','H,He,Xe','-t','0','-m','clusters'])],truth=[t_molecules],
          about='synthetic H2 and He jumping between an Ar slab and the gas, a Xe in the gas bonded to the slab, bonds from bonding_umd.py : molecular '
                'events, gas and pressure, adsorbed Xe, modified Van der Waals pressure of every snapshot ; -m clusters'),
+    Case('syn_workflow',[],[('@synthetic.py',['exchange']),('umd_workflow.py',['-f','exchange.umd.dat'])],[workflow(1)],
+         about='the whole workflow on the synthetic Ar slab with He in the gas (no data needed : run on every system by the tests on GitHub) ; '
+               'viscosity FAILED (no stress tensor in the synthetic run)'),
     Case('syn_blink',[],[('@synthetic.py',['blink']),('composition_umd.py',['-f','blink.umd.dat','-n','4','-g','He'])],truth=[t_blink],
          about='synthetic hole opening for 30 fs and closing for 20 fs, ten times : periods of the void and dense states exact'),
     Case('syn_composition',[],[('@synthetic.py',['composition'])]+[('composition_umd.py',['-f',f+'.umd.dat','-n','4']+o) for f, o in

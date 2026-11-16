@@ -26,16 +26,8 @@ elif OS == "Windows":
 elif OS == "Darwin":
     LibraryName = 'c_bonds_full.dylib'
     
-current_path=os.path.abspath(__file__)
-path_split=current_path.split('/')
-path_red=path_split[1:-1]
-path_new=''
-for u in path_red:
-    path_new+='/'+u
-
-
-#Definition of the library and the functions
-fullbond_lib = ctypes.cdll.LoadLibrary(join(path_new, LibraryName))
+#Definition of the library and the functions : in the folder of this script (os.path : the path was split on '/', which failed on Windows)
+fullbond_lib = ctypes.cdll.LoadLibrary(join(os.path.dirname(os.path.abspath(__file__)),LibraryName))
 
 
 fullbond_lib.compute_Bonds_full.argtypes = [ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_double),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_double),ctypes.c_int]
