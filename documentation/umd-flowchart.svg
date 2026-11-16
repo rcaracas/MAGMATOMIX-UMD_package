@@ -56,6 +56,10 @@
 <path d="M 640 445 L 646.5 429 L 640 433 L 633.5 429 Z" fill="#231F20"/>
 <path d="M 540 204 L 540 735 L 563 735" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 563 735 L 547 728.5 L 551 735 L 547 741.5 Z" fill="#231F20"/>
+<path d="M 528 204 L 528 1239 L 563 1239" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 563 1239 L 547 1232.5 L 551 1239 L 547 1245.5 Z" fill="#231F20"/>
+<path d="M 528 1139 L 563 1139" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 563 1139 L 547 1132.5 L 551 1139 L 547 1145.5 Z" fill="#231F20"/>
 <path d="M 680 196 L 1030 415" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 1030 415 L 1019.88 401.003 L 1019.83 408.635 L 1012.99 412.023 Z" fill="#231F20"/>
 <path d="M 680 188 L 1340 280 L 1340 637 L 1148 637" fill="none" stroke="#231F20" stroke-width="2"/>
@@ -135,16 +139,28 @@
 <text x="776" y="750" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">(and tensor)</tspan></text>
 <text x="585" y="810" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="585" dy="0">analyze_msd.py</tspan></text>
 <path d="M 640 780 L 640 795" fill="none" stroke="#231F20" stroke-width="2"/>
-<path d="M 166 830 L 470 830 L 470 900 L 640 900 L 640 960" fill="none" stroke="#231F20" stroke-width="2"/>
-<path d="M 640 960 L 646.5 944 L 640 948 L 633.5 944 Z" fill="#231F20"/>
-<text x="650" y="946" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="650" dy="0">msd_clusters_umd.py -f -p</tspan></text>
-<rect x="565" y="962" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
-<text x="640" y="998.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msd.</tspan></text>
-<path d="M 717 992 L 741.2 992" stroke="#231F20" stroke-width="3"/>
-<path d="M 770 992 L 730 975 L 741.2 992 L 730 1009 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
-<text x="776" y="980" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">DIFFUSION OF</tspan><tspan x="776" dy="19.6">CHEMICAL</tspan><tspan x="776" dy="19.6">SPECIES</tspan></text>
-<text x="565" y="1060" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">analyze_msd_clusters.py</tspan></text>
-<path d="M 640 1022 L 640 1042" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 166 830 L 470 830 L 470 850 L 640 850 L 640 900" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 640 900 L 646.5 884 L 640 888 L 633.5 884 Z" fill="#231F20"/>
+<text x="650" y="886" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="650" dy="0">msd_clusters_umd.py -f -p</tspan></text>
+<rect x="565" y="902" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="938.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msd.</tspan></text>
+<path d="M 717 932 L 741.2 932" stroke="#231F20" stroke-width="3"/>
+<path d="M 770 932 L 730 915 L 741.2 932 L 730 949 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="776" y="920" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">DIFFUSION OF</tspan><tspan x="776" dy="19.6">CHEMICAL</tspan><tspan x="776" dy="19.6">SPECIES</tspan></text>
+<text x="565" y="1000" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">analyze_msd_clusters.py</tspan></text>
+<path d="M 640 962 L 640 982" fill="none" stroke="#231F20" stroke-width="2"/>
+<text x="565" y="1058" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">composition_umd.py -f -n -l -c -e -v</tspan></text>
+<rect x="565" y="1068" width="150" height="52" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="1100.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.comp.</tspan></text>
+<path d="M 717 1094 L 741.2 1094" stroke="#231F20" stroke-width="3"/>
+<path d="M 770 1094 L 730 1077 L 741.2 1094 L 730 1111 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="776" y="1080" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">COMPOSITION,</tspan><tspan x="776" dy="18.48">VOIDS, DROPLETS</tspan></text>
+<text x="565" y="1158" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">exchange_umd.py -f -b -g -m</tspan></text>
+<rect x="565" y="1168" width="150" height="52" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<text x="640" y="1200.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.exchange.</tspan></text>
+<path d="M 717 1194 L 741.2 1194" stroke="#231F20" stroke-width="3"/>
+<path d="M 770 1194 L 730 1177 L 741.2 1194 L 730 1211 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="776" y="1180" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">MELT / GAS</tspan><tspan x="776" dy="18.48">EXCHANGE</tspan></text>
 <text x="1030" y="330" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="1030" dy="0">averages.py -f -p -a</tspan></text>
 <rect x="966" y="372" width="170" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="1051" y="410.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1051" dy="0">fullthermo.</tspan></text>
