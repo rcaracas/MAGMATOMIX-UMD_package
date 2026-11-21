@@ -734,6 +734,39 @@ def t_exchange(folder,outs):#exchange_umd.py -g He -t 0 on He jumping between th
     return out
 
 
+def t_twophase(folder,outs):#exchange_umd.py -c Fe -t 0 on He jumping between an Fe slab and a Si-O slab of the same density : rates and stays within 5
+    #of their errors, D within 5 errors and 2 % (the zones of the rough surfaces), K and D_mass exact from the zone contents, the dissolved atoms in
+    #their host ; without -c (-g He) everything condensed
+    t = truth_of(folder,'twophase')
+    n = exch_numbers(os.path.join(folder,'twophase.exchange.Fe','summary.dat'))
+    out = [('twophase He '+k,n[c+' He'],t[k],5*n[e+' He']) for k, c, e in (('k_A_to_B','k_A_to_B_(1/ps)','error'),('stay_A','mean_stay_A_(fs)','error'))]
+    rows = [l.rstrip('\n').split('\t') for l in open(os.path.join(folder,'twophase.exchange.Fe','summary.dat'))]
+    head = next(r for r in rows if r[0] == 'element' and 'A_to_B' in r)
+    he = dict(zip(head[1:],[float(v) for v in next(r for r in rows[rows.index(head):] if r[0] == 'He')[1:]]))
+    errs = [float(v) for v in next(r for r in rows[rows.index(head):] if r[0] == 'He')[1:]]
+    out.append(('twophase He k_B_to_A',he['k_B_to_A_(1/ps)'],t['k_B_to_A'],5*errs[5]))
+    out.append(('twophase He stay_B',he['mean_stay_B_(fs)'],t['stay_B'],5*errs[9]))
+    out.append(('twophase He fraction of the time in B',n['B He'],t['B_fraction'],0.02))
+    out.append(('twophase Fe dissolved in B',n['B Fe'],t['B_fraction_Fe'],1e-4))
+    out.append(('twophase O dissolved in A',n['A O'],t['A_fraction_O'],1e-4))
+    out.append(('twophase Fe never changes phase',n['A_to_B Fe']+n['B_to_A Fe'],0.0,0))
+    out.append(('twophase O never changes phase',n['A_to_B O']+n['B_to_A O'],0.0,0))
+    out.append(('twophase interface area (nm2)',n['area_(nm2)'],t['area_nm2'],0.02*t['area_nm2']))
+    out.append(('twophase B volume fraction',n['B_volume_fraction'],t['B_volume_fraction'],0.01))
+    out.append(('twophase bulk density of A',n['bulk_density_A_(atoms/A3)'],t['bulk_density'],0.01*t['bulk_density']))
+    out.append(('twophase zone of A (A3)',n['A_zone_(A3)'],t['zone'],0.02*t['zone']))
+    out.append(('twophase zone of B (A3)',n['B_zone_(A3)'],t['zone'],0.02*t['zone']))
+    out.append(('twophase He in A',n['N_A He'],t['N_A_He'],0.01))
+    out.append(('twophase He in B',n['N_B He'],t['N_B_He'],0.01))
+    out.append(('twophase D of He',n['D He'],t['D_He'],5*n['D_err He']+0.02*t['D_He']))
+    for e in ('Fe','O','He'):
+        out.append(('twophase K of '+e,n['K '+e],t['K_'+e],1e-3*t['K_'+e]))
+        out.append(('twophase D_mass of '+e,n['D_mass '+e],t['D_mass_'+e],1e-3*t['D_mass_'+e]))
+    m = exch_numbers(os.path.join(folder,'twophase.exchange','summary.dat'))
+    out.append(('twophase without -c : He never leaves the condensed phase',m['condensed He'],1.0,0))
+    return out
+
+
 def t_interface(folder,outs):#exchange_umd.py -g He -t 0 on He scripted through the interface of the slab : passages and times exact
     t = truth_of(folder,'interface')
     n = exch_numbers(os.path.join(folder,'interface.exchange','summary.dat'))
@@ -894,6 +927,10 @@ CASES += [
          about='synthetic Fe-Ni on a lattice : random alloy (concentration ratio 1, Fe-Ni correlation -1, enriched fraction hypergeometric) and Ni segregating in the second half (quarters exact, change detected)'),
     Case('syn_exchange',[],[('@synthetic.py',['exchange']),('exchange_umd.py',['-f','exchange.umd.dat','-g','He','-t','0'])],truth=[t_exchange],
          about='synthetic He jumping between the depths of an Ar slab and of the gas (Markov chain) : rates, stays, gas fraction ; interface area, gas volume, bulk density'),
+    Case('syn_twophase',[],[('@synthetic.py',['twophase']),('exchange_umd.py',['-f','twophase.umd.dat','-c','Fe','-t','0']),
+                            ('exchange_umd.py',['-f','twophase.umd.dat','-g','He','-t','0'])],truth=[t_twophase],
+         about='synthetic He jumping between an Fe slab and a Si-O slab of the same density (two condensed phases, -c Fe), O dissolved in the Fe and Fe in the '
+               'Si-O : rates, stays, D, K, D_mass exact, the dissolved atoms in their host ; without -c everything condensed'),
     Case('syn_interface',[],[('@synthetic.py',['interface']),('exchange_umd.py',['-f','interface.umd.dat','-g','He','-t','0'])],truth=[t_interface],
          about='synthetic He scripted through the interface of an Ar slab : bounces, condensations, visits, evaporations, times in the interface, sticking and escape exact'),
     Case('syn_persist',[],[('@synthetic.py',['persist']),('composition_umd.py',['-f','persist.umd.dat','-n','4','-g','none'])],truth=[t_persist],

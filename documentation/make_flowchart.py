@@ -2,7 +2,7 @@
 #UMD flowchart as an SVG with editable text, in the style of Figure-umd-flowchart.ai (2021) : python3 make_flowchart.py umd-flowchart.svg
 import sys, math
 
-W, H = 1381, 1420
+W, H = 1381, 1520
 PURPLE, MAGENTA, BLACK, BROWN = '#782F9A', '#ED127B', '#231F20', '#6F4324'
 FONT = "Helvetica, 'Helvetica Neue', Arial, sans-serif"
 CMDFONT = "'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -80,7 +80,9 @@ for x,flag in ((22,'-g'),(506,'-t'),(964,'-d')):           #the automated workfl
 md = box(6,6,236,140,None,sw=4.5)
 text(124,52,['ab initio /','classical MD'],32,BLACK,'middle',spacing=1.1)
 text(124,116,['VASP, ABINIT, CP2K,','QBox, LAMMPS'],15,BLACK,'middle')
-umd = box(500,140,180,64,'.umd.',24)
+umd = box(500,140,180,64,None)
+text(590,180,'.umd.',24,BLACK,'middle')
+text(590,198,'(.umd.dat or .umd.dat.gz)',11.5,BLACK,'middle')
 line([(242,112),(498,164)])
 cmd(274,22,['VaspParser.py, AbinitParser.py,','CP2KParser.py, QBoxParser.py,','LAMMPSParser2umd.py -f -i -s'])   #two per line : the label of repair_umd.py is below
 #repair of old VASP files
@@ -91,6 +93,8 @@ new = box(300,212,150,58,['new','structures'],18)
 line([(500,198),(452,230)])
 line([(300,241),(124,241),(124,148)])
 cmd(286,288,['build_umd.py -f -i -s -a --scale','--supercell --shuffle --insert','--vacuum --replace --remove'],size=15)
+#removal of the outputs of the package
+cmd(14,296,['umd_clean.py -r -y :','removes the outputs'],size=15)
 #conversion to other formats
 line([(680,172),(858,172)])
 cmd(688,163,'umd2out.py -f -r -s -i',size=15.5)
@@ -144,6 +148,12 @@ prop(208,1110,['LIFETIMES','OF SPECIES'])
 cmd(30,1160,['exchange_umd.py -P','stat-concentrate.py'],size=16)
 gray(262,1186,312,1186)
 prop(320,1180,['LIQUID / VAPOR','PARTITIONING'])
+#orientations of the molecular units, from the .bonding. file (velocities of the .umd. file for the entropy)
+line([(30,679),(10,679),(10,1291),(38,1291)])
+cmd(30,1246,'rotations_umd.py -f -b -c -a -x -V',size=16)
+rot = box(40,1262,124,58,'.rot.')
+gray(166,1291,222,1291)
+prop(230,1270,['ORIENTATIONS,','ROTATIONS,','ROTATIONAL ENTROPY'],size=16.5)
 
 #---------------------------------------------------------------- transport
 cmd(652,330,['viscosity_umd.py','-f -i -n -c -v'])
@@ -171,10 +181,10 @@ cmd(565,1058,'composition_umd.py -f -n -l -c -e -v',size=16)
 comp = box(565,1068,150,52,'.comp.',19)
 gray(717,1094,770,1094)
 prop(776,1080,['COMPOSITION,','VOIDS, DROPLETS'],size=16.5)
-cmd(565,1158,'exchange_umd.py -f -b -g -m',size=16)
+cmd(565,1158,'exchange_umd.py -f -b -g -m -A',size=16)
 exch = box(565,1168,150,52,'.exchange.',19)
 gray(717,1194,770,1194)
-prop(776,1180,['MELT / GAS','EXCHANGE'],size=16.5)
+prop(776,1187,['MELT / GAS','EXCHANGE,','GAS PRESSURE'],size=16.5)
 
 #---------------------------------------------------------------- thermodynamic
 cmd(1030,330,['averages.py -f -p -a'])

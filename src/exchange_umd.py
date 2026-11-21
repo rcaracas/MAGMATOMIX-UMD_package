@@ -8,6 +8,9 @@
 ### the interface (I : within delta of the surface) or the gas (G), by its distance to the surface ; the paths through the interface (bounces,
 ### condensations, visits, evaporations) and the time spent in it ; the exchanges, their rates, the fluxes in both directions in time and the
 ### equilibrium between them. Moved from composition_umd.py (2026-11-16), where the phase came from a grid of sub-cells
+### Two condensed phases (-c, 2026-11-21 ; e.g. He between liquid iron and a silicate melt) : the field is the smoothed density of the elements of
+### phase A only (-c Fe), phase A where it is above half its bulk, phase B the rest, dense or not ; the same states, paths, exchanges and fluxes,
+### the partition between the two zones (D by number density, molar K, D by mass) instead of the gas (temperature, pressures, molecules)
 
 
 import sys, getopt, os.path, re
@@ -209,8 +212,8 @@ def smoothed_density(red,cell,shape,sigma):#Number density of the atoms of reduc
     n2 = np.fft.rfftfreq(shape[2])*shape[2]
     kx = [n0[:,None,None]*rec[0][c]+n1[None,:,None]*rec[1][c]+n2[None,None,:]*rec[2][c] for c in range(3)]
     F = np.fft.rfftn(rho)*np.exp(-0.5*sigma**2*(kx[0]**2+kx[1]**2+kx[2]**2))
-    dens = np.fft.irfftn(F,s=tuple(shape))
-    grad = [np.fft.irfftn(1j*kx[c]*F,s=tuple(shape)) for c in range(3)]
+    dens = np.fft.irfftn(F,s=tuple(shape),axes=(0,1,2))
+    grad = [np.fft.irfftn(1j*kx[c]*F,s=tuple(shape),axes=(0,1,2)) for c in range(3)]
     return dens, grad
 
 
@@ -395,10 +398,11 @@ def main(argv):
     length = 12
     populfile = None
     stepfile = None
-    usage = 'exchange_umd.py -f <umdfile> -g <volatile elements> -q <sigma> -p <grid spacing> -r <bulk density> -x <interface half-width> -t <transient> -w <window> -T <temperature> -A <vdW a> -b <bonding file> -m <field|clusters> -l <length> -i <InitialStep> -s <Sampling> -k <nCores>\n'+\
+    phaseA = None
+    usage = 'exchange_umd.py -f <umdfile> -g <volatile elements> | -c <elements of phase A> -q <sigma> -p <grid spacing> -r <bulk density> -x <interface half-width> -t <transient> -w <window> -T <temperature> -A <vdW a> -b <bonding file> -m <field|clusters> -l <length> -i <InitialStep> -s <Sampling> -k <nCores>\n'+\
             '       exchange_umd.py -P <popul file> -S <r0 step file> -l <length>   (liquid and vapor species)'
     try:
-        opts, arg = getopt.getopt(argv,"hf:g:q:p:r:x:t:w:i:s:k:T:b:m:l:P:S:A:",["fumdfile","gvolatiles","qsigma","pspacing","rbulk","xdelta","ttransient","wwindow","iInitialStep","sSampling","knCores","Temperature",
+        opts, arg = getopt.getopt(argv,"hf:g:c:q:p:r:x:t:w:i:s:k:T:b:m:l:P:S:A:",["fumdfile","gvolatiles","cphaseA","qsigma","pspacing","rbulk","xdelta","ttransient","wwindow","iInitialStep","sSampling","knCores","Temperature",
                                                          "bbonding","mmode","llength","Ppopul","Sstep","Avdw"])
     except getopt.GetoptError:
         print(usage)
@@ -410,6 +414,12 @@ def main(argv):
             print('-f : UMD file. -f all : every *.umd.dat file of the current folder, one after the other.')
             print('-g : volatile elements, separated by commas, or none. Default : those of '+','.join(VOLATILES)+' present in the run. The condensed')
             print('     phase is defined by the density of the other elements (the melt) : a gas bubble full of volatiles inside the melt is gas.')
+            print('-c : elements of phase A, separated by commas : exchange between two condensed phases (e.g. -c Fe : He between liquid iron and a')
+            print('     silicate melt). The field is the smoothed density of these elements only : phase A where it is above half its bulk, phase B the')
+            print('     rest (any density) ; atoms of other elements dissolved in A are in A, atoms of A dissolved in B (isolated) in B. Same states,')
+            print('     paths, exchanges and fluxes, labelled A and B (A-I-B : a passage from A to B) ; instead of the gas, the partition between the')
+            print('     zones of A and B : number densities (D), mole fractions (K) and mass fractions (D_mass, the metal/silicate partition coefficient)')
+            print('     of each element. Not with -g, -b, -m clusters, -T, -A (gas only). Outputs in the folder <base>.exchange.<elements of A>')
             print('-q : width of the Gaussians of the smoothed density, A. Default 2.4 (Willard and Chandler 2010).')
             print('-p : spacing of the density grid, A. Default 1.0.')
             print('-r : density of the bulk of the condensed phase, atoms of the melt elements per A^3. Default : the mean smoothed density at the grid')
@@ -475,6 +485,8 @@ def main(argv):
             umdfile = str(arg)
         elif opt in ("-g","--gvolatiles"):
             volatiles = [] if arg.strip().lower() == 'none' else [el.strip() for el in arg.split(',') if el.strip()]
+        elif opt in ("-c","--cphaseA"):
+            phaseA = [el.strip() for el in arg.split(',') if el.strip()]
         elif opt in ("-q","--qsigma"):
             sigma = float(arg)
         elif opt in ("-p","--pspacing"):
@@ -537,6 +549,21 @@ def main(argv):
     typat = np.array(MyCrystal.typat,dtype=np.int64)
     N = np.bincount(typat,minlength=nel)
     masses = np.array(MyCrystal.masses,dtype=float)
+    twophase = phaseA is not None
+    if twophase:#two condensed phases : the field of the elements of A ; the others take the place of the volatiles
+        gasonly = [o for o, v in (('-g',volatiles is not None),('-b',bondfile is not None),('-m clusters',mode == 'clusters'),('-T',Tuser is not None),
+                                  ('-A',bool(vdwextra))) if v]
+        if gasonly:
+            print('-c (two condensed phases) : not with',', '.join(gasonly),'(options of the gas)')
+            sys.exit(2)
+        unknown = [el for el in phaseA if el not in elements]
+        if not phaseA or unknown:
+            print('-c : the elements of phase A',','.join(unknown),'are not in the UMD file, whose elements are',','.join(elements))
+            sys.exit(2)
+        if all(el in phaseA for el in elements):
+            print('-c : every element is in phase A : no phase B')
+            sys.exit(2)
+        volatiles = [el for el in elements if el not in phaseA]
     if volatiles is None:
         volatiles = [el for el in elements if el in VOLATILES]
     unknown = [el for el in volatiles if el not in elements]
@@ -562,12 +589,13 @@ def main(argv):
         print('the state, side and kinetic energy of every atom at every snapshot need','%.1f' % (6*nsnap*natom/2**30),'GB (more than 4 GB) : use -s or -i for fewer snapshots')
         sys.exit()
     base = umdfile[:-8] if umdfile.endswith('.umd.dat') else os.path.splitext(umdfile)[0]
-    outdir = base+'.exchange'+('.clusters' if mode == 'clusters' else '')     #the two definitions of the condensed phase side by side
+    outdir = base+'.exchange'+('.clusters' if mode == 'clusters' else '')+('.'+''.join(phaseA) if twophase else '')     #the definitions side by side
     if os.path.exists(outdir) and not os.path.isdir(outdir):
         print(outdir,'is a file, not a folder : remove or rename it')
         sys.exit(2)
     os.makedirs(outdir,exist_ok=True)
-    names = {kind:os.path.join(outdir,kind+'.dat') for kind in ('summary','states','gas','pressure','paths','stays','atoms','fluxes','molecules')}
+    names = {kind:os.path.join(outdir,kind+'.dat') for kind in (('summary','states','paths','stays','atoms','fluxes') if twophase else
+                                                                ('summary','states','gas','pressure','paths','stays','atoms','fluxes','molecules'))}
     umdpf.remove_former_outputs(list(names.values()))
     dt = (TimeStep if TimeStep > 0 else 1.0)*Nsteps
     if TimeStep <= 0:
@@ -577,9 +605,13 @@ def main(argv):
     selfval = self_density(cells[0],shape,sigma)
     if rhob is None:
         rhob, ndeep = bulk_density(umdfile,offsets,natom,cells,melt,shape,sigma,delta,selfval)
-        print('bulk density of the condensed phase :','%.5f' % rhob,'atoms/A^3 (mean at',ndeep,'grid points deep inside, on','%d' % min(40,nsnap),'snapshots)')
-    print(nsnap,'snapshots ; density grid','%dx%dx%d' % tuple(shape),'; sigma','%g' % sigma,'A ; interface half-width','%.2f' % delta,'A ; volatile elements :',
-          ','.join(volatiles) if isvol.any() else 'none')
+        print('bulk density of the '+('phase A ('+','.join(phaseA)+')' if twophase else 'condensed phase')+' :','%.5f' % rhob,'atoms/A^3 (mean at',ndeep,
+              'grid points deep inside, on','%d' % min(40,nsnap),'snapshots)')
+    print(nsnap,'snapshots ; density grid','%dx%dx%d' % tuple(shape),'; sigma','%g' % sigma,'A ; interface half-width','%.2f' % delta,'A ; '
+          +('two condensed phases : A the elements '+','.join(phaseA)+', B the rest' if twophase else 'volatile elements : '+(','.join(volatiles) if isvol.any() else 'none')))
+    #Labels of the outputs : L (condensed) and G (gas), or A and B (two condensed phases, -c)
+    LA, LB = ('A','B') if twophase else ('L','G')
+    plabel = (lambda p: p.translate(str.maketrans({'L':'A','G':'B'}))) if twophase else (lambda p: p)
 
     #States of the atoms, interface, gas, kinetic energies : in batches by worker processes (as gofr_umd.py)
     nworkers = max(1,min(nCores if nCores is not None else (os.cpu_count() or 1),nsnap))
@@ -598,7 +630,7 @@ def main(argv):
         states[a:b], outside[a:b], mv2s[a:b], area[a:b], gasvol[a:b], zones[a:b], kin[a:b] = result
     volumes = np.abs(np.linalg.det(cells))
     #Molecules of the bonding file, matched to the snapshots analyzed : bonding step k is the UMD snapshot first + k sb
-    if bondfile is None and os.path.isfile(base+'.bonding.dat'):
+    if bondfile is None and not twophase and os.path.isfile(base+'.bonding.dat'):
         bondfile = base+'.bonding.dat'
     if mode == 'clusters' and (bondfile is None or not os.path.isfile(bondfile)):
         print('-m clusters needs a bonding file (-b, or <base>.bonding.dat)')
@@ -644,10 +676,16 @@ def main(argv):
         print('adsorbed atoms (in the gas zone, bonded to atoms that are not : counted in the interface), mean per snapshot :',
               ' '.join(el+' %.3g' % adsorbed[:,e].mean() for e, el in enumerate(elements) if adsorbed[:,e].any()) or 'none')
     with open(names['states'],'w') as f:
-        f.write('# '+umdfile+' : per snapshot, the area of the interface (the surface where the smoothed density of the melt elements is half that of\n')
-        f.write('# the bulk, '+'%.5f' % rhob+' atoms/A^3), the volume of the gas (below half), and the atoms of each element in the condensed phase (L),\n')
-        f.write('# the interface (I, within '+'%.2f' % delta+' A of the surface) and the gas (G)\n')
-        f.write('time_(fs)\tinterface_(nm2)\tgas_volume_(A3)\tgas_fraction\t'+'\t'.join(st+'_'+el for el in elements for st in ('L','I','G'))+'\n')
+        if twophase:
+            f.write('# '+umdfile+' : per snapshot, the area of the interface (the surface where the smoothed density of the elements of phase A,\n')
+            f.write('# '+','.join(phaseA)+', is half that of its bulk, '+'%.5f' % rhob+' atoms/A^3), the volume of phase B (below half), and the atoms of each element\n')
+            f.write('# in phase A, the interface (I, within '+'%.2f' % delta+' A of the surface) and phase B\n')
+            f.write('time_(fs)\tinterface_(nm2)\tB_volume_(A3)\tB_fraction\t'+'\t'.join(st+'_'+el for el in elements for st in ('A','I','B'))+'\n')
+        else:
+            f.write('# '+umdfile+' : per snapshot, the area of the interface (the surface where the smoothed density of the melt elements is half that of\n')
+            f.write('# the bulk, '+'%.5f' % rhob+' atoms/A^3), the volume of the gas (below half), and the atoms of each element in the condensed phase (L),\n')
+            f.write('# the interface (I, within '+'%.2f' % delta+' A of the surface) and the gas (G)\n')
+            f.write('time_(fs)\tinterface_(nm2)\tgas_volume_(A3)\tgas_fraction\t'+'\t'.join(st+'_'+el for el in elements for st in ('L','I','G'))+'\n')
         f.write(''.join('%.2f\t%.4f\t%.2f\t%.5f\t' % (timesall[t],area[t]/100.0,gasvol[t],gasvol[t]/volumes[t])
                         +'\t'.join('%d' % kin[t,e,st,0] for e in range(nel) for st in (CONDENSED,INTERFACE,GAS))+'\n' for t in range(nsnap)))
 
@@ -700,27 +738,41 @@ def main(argv):
             paths[e][p].append(l)
         nI = sum(l for s, l in runs if s == INTERFACE)
         nG = sum(l for (s, l), c in zip(runs,committed) if c == GAS)
-        atomrows.append((a,elements[e],nG/nsnap,nI/nsnap,len(ev),len(co),'LIG'[[CONDENSED,INTERFACE,GAS].index(runs[0][0])],'LIG'[[CONDENSED,INTERFACE,GAS].index(runs[-1][0])]))
+        letters = LA+'I'+LB
+        atomrows.append((a,elements[e],nG/nsnap,nI/nsnap,len(ev),len(co),letters[[CONDENSED,INTERFACE,GAS].index(runs[0][0])],letters[[CONDENSED,INTERFACE,GAS].index(runs[-1][0])]))
     moving = [e for e in range(nel) if exch[e]['evap']+exch[e]['cond'] > 0]
     maxlen = max([max(x['pgas']+x['pcond']) for x in exch.values() if x['pgas'] or x['pcond']]+[0])
     with open(names['stays'],'w') as f:
-        f.write('# '+umdfile+' : number of complete stays (not cut by the start or the end of the run) of the atoms of each element in the gas and in\n')
-        f.write('# the condensed phase (a passage through the interface belongs to the phase before it), against their duration\n')
-        f.write('duration_(fs)\t'+'\t'.join('gas_'+elements[e]+'\tcondensed_'+elements[e] for e in moving)+'\n')
+        if twophase:
+            f.write('# '+umdfile+' : number of complete stays (not cut by the start or the end of the run) of the atoms of each element in phase B and in\n')
+            f.write('# phase A (a passage through the interface belongs to the phase before it), against their duration\n')
+        else:
+            f.write('# '+umdfile+' : number of complete stays (not cut by the start or the end of the run) of the atoms of each element in the gas and in\n')
+            f.write('# the condensed phase (a passage through the interface belongs to the phase before it), against their duration\n')
+        f.write('duration_(fs)\t'+'\t'.join(('B_' if twophase else 'gas_')+elements[e]+('\tA_' if twophase else '\tcondensed_')+elements[e] for e in moving)+'\n')
         hists = [(np.bincount(exch[e]['pgas'],minlength=maxlen+1),np.bincount(exch[e]['pcond'],minlength=maxlen+1)) for e in moving]
         f.write(''.join('%.2f\t' % (k*dt)+'\t'.join(str(int(g[k]))+'\t'+str(int(c[k])) for g, c in hists)+'\n' for k in range(1,maxlen+1)
                         if any(g[k] or c[k] for g, c in hists)))
     with open(names['atoms'],'w') as f:
-        f.write('# '+umdfile+' : per atom (index from 0, in the order of the UMD file) : fraction of the time in the gas (its committed phase) and in the\n')
-        f.write('# interface, evaporations and condensations, its state at the start and at the end (L condensed, I interface, G gas)\n')
-        f.write('atom\telement\tgas_fraction\tinterface_fraction\tevaporations\tcondensations\tfirst\tlast\n')
+        if twophase:
+            f.write('# '+umdfile+' : per atom (index from 0, in the order of the UMD file) : fraction of the time in phase B (its committed phase) and in the\n')
+            f.write('# interface, passages from A to B and from B to A, its state at the start and at the end (A, I interface, B)\n')
+            f.write('atom\telement\tB_fraction\tinterface_fraction\tA_to_B\tB_to_A\tfirst\tlast\n')
+        else:
+            f.write('# '+umdfile+' : per atom (index from 0, in the order of the UMD file) : fraction of the time in the gas (its committed phase) and in the\n')
+            f.write('# interface, evaporations and condensations, its state at the start and at the end (L condensed, I interface, G gas)\n')
+            f.write('atom\telement\tgas_fraction\tinterface_fraction\tevaporations\tcondensations\tfirst\tlast\n')
         f.write(''.join('%d\t%s\t%.4f\t%.4f\t%d\t%d\t%s\t%s\n' % r for r in atomrows))
     pathmax = max([max(v) for pe in paths.values() for k, v in pe.items() if k in PATHS and v]+[0])
     withpaths = [e for e in range(nel) if any(paths[e][p] for p in PATHS)]
     with open(names['paths'],'w') as f:
-        f.write('# '+umdfile+' : number of passages through the interface against the time spent in it, per path and element : G-I-G a gas atom\n')
-        f.write('# bouncing back, G-I-L a condensation, L-I-L a melt atom visiting the surface, L-I-G an evaporation\n')
-        f.write('time_in_interface_(fs)\t'+'\t'.join(p+'_'+elements[e] for e in withpaths for p in PATHS)+'\n')
+        if twophase:
+            f.write('# '+umdfile+' : number of passages through the interface against the time spent in it, per path and element : B-I-B an atom of B\n')
+            f.write('# going back to B, B-I-A a passage from B to A, A-I-A an atom of A going back to A, A-I-B a passage from A to B\n')
+        else:
+            f.write('# '+umdfile+' : number of passages through the interface against the time spent in it, per path and element : G-I-G a gas atom\n')
+            f.write('# bouncing back, G-I-L a condensation, L-I-L a melt atom visiting the surface, L-I-G an evaporation\n')
+        f.write('time_in_interface_(fs)\t'+'\t'.join(plabel(p)+'_'+elements[e] for e in withpaths for p in PATHS)+'\n')
         hp = [np.bincount(paths[e][p],minlength=pathmax+1) for e in withpaths for p in PATHS]
         f.write(''.join('%.2f\t' % (k*dt)+'\t'.join(str(int(h[k])) for h in hp)+'\n' for k in range(1,pathmax+1) if any(h[k] for h in hp)))
 
@@ -743,17 +795,157 @@ def main(argv):
         ok = np.abs(net) <= 2.0*np.maximum(err,1e-300)
         equil[e] = next((j for j in range(len(wins)) if ok[j:].all()),None)
     with open(names['fluxes'],'w') as f:
-        f.write('# '+umdfile+' : fluxes between the condensed phase and the gas per time window : evaporation (condensed -> gas) and condensation\n')
-        f.write('# (gas -> condensed), events per ps with Poisson errors ; net = evaporation - condensation (> 0 : the gas gains atoms ; 0 within its\n')
-        f.write('# error : equilibrium) ; atoms in the gas (mean over the window) ; area of the interface (mean, nm^2)\n')
-        f.write('window_start_(fs)\twindow_end_(fs)\tinterface_(nm2)\t'+'\t'.join('\t'.join(c+'_'+elements[e] for c in ('evaporation_(1/ps)','evaporation_err',
-                'condensation_(1/ps)','condensation_err','net_(1/ps)','net_err','in_gas')) for e in moving)+'\n')
+        if twophase:
+            f.write('# '+umdfile+' : fluxes between phase A and phase B per time window : A -> B and B -> A, events per ps with Poisson errors ; net =\n')
+            f.write('# A_to_B - B_to_A (> 0 : B gains atoms ; 0 within its error : equilibrium) ; atoms in B (mean over the window) ; area of the interface\n')
+            f.write('# (mean, nm^2)\n')
+            cols = ('A_to_B_(1/ps)','A_to_B_err','B_to_A_(1/ps)','B_to_A_err','net_(1/ps)','net_err','in_B')
+        else:
+            f.write('# '+umdfile+' : fluxes between the condensed phase and the gas per time window : evaporation (condensed -> gas) and condensation\n')
+            f.write('# (gas -> condensed), events per ps with Poisson errors ; net = evaporation - condensation (> 0 : the gas gains atoms ; 0 within its\n')
+            f.write('# error : equilibrium) ; atoms in the gas (mean over the window) ; area of the interface (mean, nm^2)\n')
+            cols = ('evaporation_(1/ps)','evaporation_err','condensation_(1/ps)','condensation_err','net_(1/ps)','net_err','in_gas')
+        f.write('window_start_(fs)\twindow_end_(fs)\tinterface_(nm2)\t'+'\t'.join('\t'.join(c+'_'+elements[e] for c in cols) for e in moving)+'\n')
         f.write(''.join('\t'.join('%.6g' % v for v in r)+'\n' for r in fluxrows))
+
+    #Summary
+    g = lambda v, f: (f % v) if np.isfinite(v) else 'nan'
+    sta = statistics(area/100.0)
+    stg = statistics(gasvol/volumes)
+    stv = lambda x: statistics(x[np.isfinite(x)]) if np.isfinite(x).sum() >= 8 else (np.nan,np.nan,np.nan,False,0.0)
+    VG, VL = zones[:,0], zones[:,1]
+    out = []
+    out.append('# '+umdfile+' : '+str(nsnap)+' snapshots from '+str(InitialStep)+' every '+str(Nsteps)+' ; '+'%.2f' % dt+' fs between them')
+    if twophase:
+        out.append('# two condensed phases : A = smoothed density of the elements '+','.join(phaseA)+' (Gaussians of '+'%g' % sigma+' A, grid '+'%dx%dx%d' % tuple(shape)
+                   +') above half its bulk '+'%.5f' % rhob+' atoms/A^3, B = the rest ; interface : within '+'%.2f' % delta+' A of the surface')
+    else:
+        out.append('# condensed phase : smoothed density of the elements '+','.join(el for el, v in zip(elements,isvol) if not v)+' (Gaussians of '+'%g' % sigma+' A, grid '
+                   +'%dx%dx%d' % tuple(shape)+') ; surface at half the bulk density '+'%.5f' % rhob+' atoms/A^3 ; interface : within '+'%.2f' % delta+' A of it')
+    out.append('# stays shorter than '+'%g' % transient+' fs between two stays in the same state merged ; errors of the means from their autocorrelation time')
+    out.append('')
+    out.append('Interface (means over the run ; the area from the gradient of the density at the surface)')
+    out.append('area_(nm2)\t'+'%.5g' % sta[0]+'\t'+('>' if sta[3] else '')+'%.2g' % sta[2])
+    if twophase:
+        sA, sB = stv(VL), stv(VG)
+        out.append('B_volume_fraction\t'+'%.5g' % stg[0]+'\t'+('>' if stg[3] else '')+'%.2g' % stg[2])
+        out.append('bulk_density_A_(atoms/A3)\t'+'%.6g' % rhob)
+        out.append('A_zone_(A3)\t'+g(sA[0],'%.6g')+'\t'+('>' if sA[3] else '')+g(sA[2],'%.2g'))
+        out.append('B_zone_(A3)\t'+g(sB[0],'%.6g')+'\t'+('>' if sB[3] else '')+g(sB[2],'%.2g'))
+        out.append('')
+        out.append('Fraction of the time of the atoms of each element in phase A, the interface (I) and phase B')
+        out.append('element\tA\tinterface\tB')
+    else:
+        out.append('gas_volume_fraction\t'+'%.5g' % stg[0]+'\t'+('>' if stg[3] else '')+'%.2g' % stg[2])
+        out.append('bulk_density_(atoms/A3)\t'+'%.6g' % rhob)
+        out.append('')
+        out.append('Fraction of the time of the atoms of each element in the condensed phase (L), the interface (I) and the gas (G)')
+        out.append('element\tcondensed\tinterface\tgas')
+    for e, el in enumerate(elements):
+        tot = timeinstate[e].sum()
+        out.append(el+'\t'+'%.4f\t%.4f\t%.4f' % (timeinstate[e,CONDENSED]/tot,timeinstate[e,INTERFACE]/tot,timeinstate[e,GAS]/tot))
+    out.append('')
+    if twophase:
+        out.append('Paths through the interface (complete passages) : number, mean time in the interface (fs, error std/sqrt(n)) ; B-I-B an atom of B going')
+        out.append('back to B, B-I-A a passage from B to A, A-I-A an atom of A going back to A, A-I-B a passage from A to B ; direct : a change of phase between')
+        out.append('two snapshots without a stay in the interface (sampling too coarse) ; transfer_B_to_A = B-I-A/(B-I-A + B-I-B), the probability that an')
+        out.append('atom of B reaching the interface goes into A ; transfer_A_to_B = A-I-B/(A-I-B + A-I-A), the reverse (binomial errors)')
+        out.append('element\t'+'\t'.join(plabel(p)+'\t'+plabel(p)+'_time_(fs)\t'+plabel(p)+'_time_err' for p in PATHS)
+                   +'\tdirect_A-B\tdirect_B-A\ttransfer_B_to_A\ttransfer_B_to_A_err\ttransfer_A_to_B\ttransfer_A_to_B_err')
+    else:
+        out.append('Paths through the interface (complete passages) : number, mean time in the interface (fs, error std/sqrt(n)) ; G-I-G a gas atom bouncing')
+        out.append('back, G-I-L a condensation, L-I-L a melt atom visiting the surface, L-I-G an evaporation ; direct : a change of phase between two snapshots')
+        out.append('without a stay in the interface (sampling too coarse) ; sticking = G-I-L/(G-I-L + G-I-G), the probability that a gas atom reaching the')
+        out.append('interface condenses ; escape = L-I-G/(L-I-G + L-I-L), the probability that a melt atom reaching it evaporates (binomial errors)')
+        out.append('element\t'+'\t'.join(p+'\t'+p+'_time_(fs)\t'+p+'_time_err' for p in PATHS)+'\tdirect_L-G\tdirect_G-L\tsticking\tsticking_err\tescape\tescape_err')
+    for e, el in enumerate(elements):
+        row = el
+        for p in PATHS:
+            v = np.array(paths[e][p])*dt
+            row += '\t%d\t%s\t%s' % (len(v),g(v.mean(),'%.4g') if len(v) else 'nan',g(v.std()/np.sqrt(len(v)),'%.2g') if len(v) > 1 else 'nan')
+        row += '\t%d\t%d' % (len(paths[e]['direct L-G']),len(paths[e]['direct G-L']))
+        for a_, b_ in (('G-I-L','G-I-G'),('L-I-G','L-I-L')):
+            na, nb = len(paths[e][a_]), len(paths[e][b_])
+            pr = na/(na+nb) if na+nb > 0 else np.nan
+            row += '\t'+g(pr,'%.4f')+'\t'+(g(np.sqrt(pr*(1-pr)/(na+nb)),'%.2g') if na+nb > 0 else 'nan')
+        out.append(row)
+    out.append('')
+    if twophase:
+        out.append('Exchange between phase A and phase B (an atom changes phase when it goes from one to the other, through the interface or not ; stays')
+        out.append('shorter than '+'%g' % transient+' fs merged) : passages A -> B and B -> A, rate constants k = passages / time the atoms of the element spent in the')
+        out.append('phase they leave (per ps, Poisson errors), mean stays (complete ones, errors std / sqrt(stays)), fraction of the time in B ; net =')
+        out.append('(A_to_B - B_to_A) in their combined error (|net| > 3 : the partition is still changing)')
+        out.append('element\tA_to_B\tB_to_A\tk_A_to_B_(1/ps)\terror\tk_B_to_A_(1/ps)\terror\tmean_stay_A_(fs)\terror\tmean_stay_B_(fs)\terror\tB_fraction\tnet')
+    else:
+        out.append('Exchange between the gas and the condensed phase (an atom changes phase when it goes from one to the other, through the interface or')
+        out.append('not ; stays shorter than '+'%g' % transient+' fs merged) : evaporations (condensed -> gas) and condensations, rate constants')
+        out.append('k = events / time the atoms of the element spent in the phase they leave (per ps, Poisson errors), mean stays (complete ones, errors')
+        out.append('std / sqrt(stays)), fraction of the time in the gas ; net = evaporations - condensations in their combined error (|net| > 3 : the')
+        out.append('partition is still changing)')
+        out.append('element\tevaporations\tcondensations\tk_evaporation_(1/ps)\terror\tk_condensation_(1/ps)\terror\tmean_stay_condensed_(fs)\terror'
+                   '\tmean_stay_gas_(fs)\terror\tgas_fraction\tnet')
+    for e, el in enumerate(elements):
+        x = exch[e]
+        tc, tg = x['tcond']*dt/1000.0, x['tgas']*dt/1000.0              #ps
+        ke = x['evap']/tc if tc > 0 else np.nan
+        kc = x['cond']/tg if tg > 0 else np.nan
+        pc, pg = np.array(x['pcond'])*dt, np.array(x['pgas'])*dt
+        net = (x['evap']-x['cond'])/np.sqrt(x['evap']+x['cond']) if x['evap']+x['cond'] > 0 else 0.0
+        out.append(el+'\t%d\t%d\t' % (x['evap'],x['cond'])+'%.4g\t%.2g\t%.4g\t%.2g\t' % (ke,np.sqrt(x['evap'])/tc if tc > 0 else np.nan,kc,np.sqrt(x['cond'])/tg if tg > 0 else np.nan)
+                   +('%.4g\t%.2g\t' % (pc.mean(),pc.std()/np.sqrt(len(pc)) if len(pc) > 1 else np.nan) if len(pc) else 'nan\tnan\t')
+                   +('%.4g\t%.2g\t' % (pg.mean(),pg.std()/np.sqrt(len(pg)) if len(pg) > 1 else np.nan) if len(pg) else 'nan\tnan\t')
+                   +'%.4f\t%.1f' % (tg/(tc+tg) if tc+tg > 0 else np.nan,net))
+    out.append('')
+    if twophase:
+        out.append('Fluxes in time (fluxes.dat, '+str(len(wins))+' windows of '+'%.4g' % (nsnap*dt/len(wins))+' fs) : fluxes A -> B and B -> A over the run (events per ps,')
+        out.append('and per ps and nm^2 of interface, mean '+'%.4g' % sta[0]+' nm^2), and the time from which the two are equal : every window from then on has')
+        out.append('a net flux within 2 errors of 0 (equilibrium) ; not reached : the last window still has a net flux')
+        out.append('element\tA_to_B_(1/ps)\tB_to_A_(1/ps)\tA_to_B_(1/ps/nm2)\tB_to_A_(1/ps/nm2)\tequilibrium_from_(fs)')
+    else:
+        out.append('Fluxes in time (fluxes.dat, '+str(len(wins))+' windows of '+'%.4g' % (nsnap*dt/len(wins))+' fs) : evaporation and condensation fluxes over the run (events per ps,')
+        out.append('and per ps and nm^2 of interface, mean '+'%.4g' % sta[0]+' nm^2), and the time from which the two are equal : every window from then on has')
+        out.append('a net flux within 2 errors of 0 (equilibrium) ; not reached : the last window still has a net flux')
+        out.append('element\tevaporation_(1/ps)\tcondensation_(1/ps)\tevaporation_(1/ps/nm2)\tcondensation_(1/ps/nm2)\tequilibrium_from_(fs)')
+    T = nsnap*dt/1000.0
+    for e in moving:
+        x = exch[e]
+        when = equil[e]
+        out.append(elements[e]+'\t%.4g\t%.4g\t%.4g\t%.4g\t' % (x['evap']/T,x['cond']/T,x['evap']/T/sta[0] if sta[0] > 0 else np.nan,
+                   x['cond']/T/sta[0] if sta[0] > 0 else np.nan)+('%.2f' % fluxrows[when][0] if when is not None else 'not reached'))
+    out.append('')
+    NG = kin[:,:,GAS,0]                                                 #snapshot x element : atoms in the gas (in B)
+    NL = kin[:,:,CONDENSED,0]                                           #in the condensed phase (in A)
+
+    if twophase:#Partition between the zones of A and B (the atoms of the interface left out) : number densities, mole and mass fractions
+        def ratio(a,b):#ratio of the means of two series, and its error (the errors of the means combined as independent)
+            sa, sb = stv(a), stv(b)
+            r = sa[0]/sb[0] if sb[0] > 0 else np.nan
+            return sa, sb, r, (r*np.hypot(sa[2]/sa[0] if sa[0] > 0 else 0.0,sb[2]/sb[0] if sb[0] > 0 else 0.0) if np.isfinite(r) else np.nan)
+        MA, MB = NL @ masses, NG @ masses                               #mass of the atoms in each zone, per snapshot (amu)
+        out.append('Partition between the phases (the atoms in the zone of A : all the density within '+'%.2f' % delta+' A above half the bulk ; in the zone of B :')
+        out.append('all below ; the atoms of the interface left out) : mean atoms per snapshot, mole fractions x, mass fractions w, number densities c in the')
+        out.append('zones (volumes above) ; D = c_A/c_B, K = x_A/x_B (molar), D_mass = w_A/w_B (mass : the metal/silicate partition coefficient when A is the')
+        out.append('metal) ; errors of the means from their autocorrelation time, the ratios with the errors of both means')
+        out.append('element\tN_A\tN_B\tx_A\tx_B\tw_A\tw_B\tc_A_(1/A3)\tc_B_(1/A3)\tD\tD_err\tK\tK_err\tD_mass\tD_mass_err')
+        with np.errstate(invalid='ignore',divide='ignore'):
+            for e, el in enumerate(elements):
+                sL, sG, D, Derr = ratio(NL[:,e]/VL,NG[:,e]/VG)
+                sxl, sxg, K, Kerr = ratio(NL[:,e]/NL.sum(axis=1),NG[:,e]/NG.sum(axis=1))
+                swl, swg, Dm, Dmerr = ratio(NL[:,e]*masses[e]/MA,NG[:,e]*masses[e]/MB)
+                out.append(el+'\t'+'%.4g\t%.4g\t' % (NL[:,e].mean(),NG[:,e].mean())+'\t'.join(g(v,'%.5g') for v in (sxl[0],sxg[0],swl[0],swg[0],sL[0],sG[0]))
+                           +'\t'+'\t'.join(g(v,'%.4g')+'\t'+g(w,'%.2g') for v, w in ((D,Derr),(K,Kerr),(Dm,Dmerr))))
+        out.append('')
+        with open(names['summary'],'w') as f:
+            f.write('\n'.join(out)+'\n')
+        print()
+        print('interface :','%.4g' % sta[0],'nm^2 ; phase B','%.3f' % stg[0],'of the volume')
+        print('passages A -> B / B -> A :','  '.join(elements[e]+' %d/%d' % (exch[e]['evap'],exch[e]['cond']) for e in moving) or 'none')
+        print('Files',', '.join(os.path.basename(n) for n in names.values()),'written in the folder',outdir)
+        print('runtime : ','%.1f' % (time.time()-start),' s')
+        return
 
     #Gas : temperature (kinetic, of the atoms in the gas ; else -T or the Temperature of the run), partial pressures n k T in the gas zone, partition
     #coefficients between the condensed zone and the gas zone, Hertz-Knudsen flux on the interface
-    NG = kin[:,:,GAS,0]                                                 #snapshot x element : atoms in the gas
-    NL = kin[:,:,CONDENSED,0]
     #snapshots whose velocities are 0 or off by more than a factor 2 (kinetic temperature of all the atoms against the median : first snapshots of
     #the parsers, learning steps of ML runs, a faulty snapshot) are left out of the temperature : one of them dominates a sum of v^2
     Tall = kin[:,:,:,1].sum(axis=(1,2))*AMU_A2FS2/(3.0*KB*natom)
@@ -775,7 +967,6 @@ def main(argv):
         temps = temps[InitialStep::Nsteps]
         Tgas, Tsource = (float(np.mean(temps)) if temps else np.nan), 'Temperature of the run (no velocities)'
     Tel = np.where(NG[goodv].sum(axis=0) > 0,mv2G*AMU_A2FS2/(3.0*KB*np.maximum(NG[goodv].sum(axis=0),1)),np.nan) if Tsource.startswith('kinetic') else np.full(nel,np.nan)
-    VG, VL = zones[:,0], zones[:,1]
     with np.errstate(invalid='ignore',divide='ignore'):
         Pel = NG*KB*Tgas/VG[:,None]*EV_A3_GPA                           #GPa, snapshot x element
         cG = NG/VG[:,None]
@@ -878,75 +1069,6 @@ def main(argv):
             f.write('molecule\tin_gas\tgas_fraction\tP_(GPa)\tP_err\tevaporations\tcondensations\tevaporation_(1/ps)\tcondensation_(1/ps)\tnet\tin_gas_surface\ta_vdW\n')
             f.write(''.join('%s\t%.5g\t%.5g\t%.5g\t%.2g\t%.4g\t%.4g\t%.4g\t%.4g\t%.1f\t%.5g\t%.4g\n' % r for r in molrows))
 
-    #Summary
-    g = lambda v, f: (f % v) if np.isfinite(v) else 'nan'
-    sta = statistics(area/100.0)
-    stg = statistics(gasvol/volumes)
-    out = []
-    out.append('# '+umdfile+' : '+str(nsnap)+' snapshots from '+str(InitialStep)+' every '+str(Nsteps)+' ; '+'%.2f' % dt+' fs between them')
-    out.append('# condensed phase : smoothed density of the elements '+','.join(el for el, v in zip(elements,isvol) if not v)+' (Gaussians of '+'%g' % sigma+' A, grid '
-               +'%dx%dx%d' % tuple(shape)+') ; surface at half the bulk density '+'%.5f' % rhob+' atoms/A^3 ; interface : within '+'%.2f' % delta+' A of it')
-    out.append('# stays shorter than '+'%g' % transient+' fs between two stays in the same state merged ; errors of the means from their autocorrelation time')
-    out.append('')
-    out.append('Interface (means over the run ; the area from the gradient of the density at the surface)')
-    out.append('area_(nm2)\t'+'%.5g' % sta[0]+'\t'+('>' if sta[3] else '')+'%.2g' % sta[2])
-    out.append('gas_volume_fraction\t'+'%.5g' % stg[0]+'\t'+('>' if stg[3] else '')+'%.2g' % stg[2])
-    out.append('bulk_density_(atoms/A3)\t'+'%.6g' % rhob)
-    out.append('')
-    out.append('Fraction of the time of the atoms of each element in the condensed phase (L), the interface (I) and the gas (G)')
-    out.append('element\tcondensed\tinterface\tgas')
-    for e, el in enumerate(elements):
-        tot = timeinstate[e].sum()
-        out.append(el+'\t'+'%.4f\t%.4f\t%.4f' % (timeinstate[e,CONDENSED]/tot,timeinstate[e,INTERFACE]/tot,timeinstate[e,GAS]/tot))
-    out.append('')
-    out.append('Paths through the interface (complete passages) : number, mean time in the interface (fs, error std/sqrt(n)) ; G-I-G a gas atom bouncing')
-    out.append('back, G-I-L a condensation, L-I-L a melt atom visiting the surface, L-I-G an evaporation ; direct : a change of phase between two snapshots')
-    out.append('without a stay in the interface (sampling too coarse) ; sticking = G-I-L/(G-I-L + G-I-G), the probability that a gas atom reaching the')
-    out.append('interface condenses ; escape = L-I-G/(L-I-G + L-I-L), the probability that a melt atom reaching it evaporates (binomial errors)')
-    out.append('element\t'+'\t'.join(p+'\t'+p+'_time_(fs)\t'+p+'_time_err' for p in PATHS)+'\tdirect_L-G\tdirect_G-L\tsticking\tsticking_err\tescape\tescape_err')
-    for e, el in enumerate(elements):
-        row = el
-        for p in PATHS:
-            v = np.array(paths[e][p])*dt
-            row += '\t%d\t%s\t%s' % (len(v),g(v.mean(),'%.4g') if len(v) else 'nan',g(v.std()/np.sqrt(len(v)),'%.2g') if len(v) > 1 else 'nan')
-        row += '\t%d\t%d' % (len(paths[e]['direct L-G']),len(paths[e]['direct G-L']))
-        for a_, b_ in (('G-I-L','G-I-G'),('L-I-G','L-I-L')):
-            na, nb = len(paths[e][a_]), len(paths[e][b_])
-            pr = na/(na+nb) if na+nb > 0 else np.nan
-            row += '\t'+g(pr,'%.4f')+'\t'+(g(np.sqrt(pr*(1-pr)/(na+nb)),'%.2g') if na+nb > 0 else 'nan')
-        out.append(row)
-    out.append('')
-    out.append('Exchange between the gas and the condensed phase (an atom changes phase when it goes from one to the other, through the interface or')
-    out.append('not ; stays shorter than '+'%g' % transient+' fs merged) : evaporations (condensed -> gas) and condensations, rate constants')
-    out.append('k = events / time the atoms of the element spent in the phase they leave (per ps, Poisson errors), mean stays (complete ones, errors')
-    out.append('std / sqrt(stays)), fraction of the time in the gas ; net = evaporations - condensations in their combined error (|net| > 3 : the')
-    out.append('partition is still changing)')
-    out.append('element\tevaporations\tcondensations\tk_evaporation_(1/ps)\terror\tk_condensation_(1/ps)\terror\tmean_stay_condensed_(fs)\terror'
-               '\tmean_stay_gas_(fs)\terror\tgas_fraction\tnet')
-    for e, el in enumerate(elements):
-        x = exch[e]
-        tc, tg = x['tcond']*dt/1000.0, x['tgas']*dt/1000.0              #ps
-        ke = x['evap']/tc if tc > 0 else np.nan
-        kc = x['cond']/tg if tg > 0 else np.nan
-        pc, pg = np.array(x['pcond'])*dt, np.array(x['pgas'])*dt
-        net = (x['evap']-x['cond'])/np.sqrt(x['evap']+x['cond']) if x['evap']+x['cond'] > 0 else 0.0
-        out.append(el+'\t%d\t%d\t' % (x['evap'],x['cond'])+'%.4g\t%.2g\t%.4g\t%.2g\t' % (ke,np.sqrt(x['evap'])/tc if tc > 0 else np.nan,kc,np.sqrt(x['cond'])/tg if tg > 0 else np.nan)
-                   +('%.4g\t%.2g\t' % (pc.mean(),pc.std()/np.sqrt(len(pc)) if len(pc) > 1 else np.nan) if len(pc) else 'nan\tnan\t')
-                   +('%.4g\t%.2g\t' % (pg.mean(),pg.std()/np.sqrt(len(pg)) if len(pg) > 1 else np.nan) if len(pg) else 'nan\tnan\t')
-                   +'%.4f\t%.1f' % (tg/(tc+tg) if tc+tg > 0 else np.nan,net))
-    out.append('')
-    out.append('Fluxes in time (fluxes.dat, '+str(len(wins))+' windows of '+'%.4g' % (nsnap*dt/len(wins))+' fs) : evaporation and condensation fluxes over the run (events per ps,')
-    out.append('and per ps and nm^2 of interface, mean '+'%.4g' % sta[0]+' nm^2), and the time from which the two are equal : every window from then on has')
-    out.append('a net flux within 2 errors of 0 (equilibrium) ; not reached : the last window still has a net flux')
-    out.append('element\tevaporation_(1/ps)\tcondensation_(1/ps)\tevaporation_(1/ps/nm2)\tcondensation_(1/ps/nm2)\tequilibrium_from_(fs)')
-    T = nsnap*dt/1000.0
-    for e in moving:
-        x = exch[e]
-        when = equil[e]
-        out.append(elements[e]+'\t%.4g\t%.4g\t%.4g\t%.4g\t' % (x['evap']/T,x['cond']/T,x['evap']/T/sta[0] if sta[0] > 0 else np.nan,
-                   x['cond']/T/sta[0] if sta[0] > 0 else np.nan)+('%.2f' % fluxrows[when][0] if when is not None else 'not reached'))
-    out.append('')
-    stv = lambda x: statistics(x[np.isfinite(x)]) if np.isfinite(x).sum() >= 8 else (np.nan,np.nan,np.nan,False,0.0)
     Ptot = np.nansum(Pel,axis=1)
     stP = stv(Ptot)
     out.append('Gas : temperature '+g(Tgas,'%.1f')+' K ('+Tsource+') ; zones (means) : gas '+g(VG.mean(),'%.5g')+' A^3, condensed '+g(VL.mean(),'%.5g')+' A^3')

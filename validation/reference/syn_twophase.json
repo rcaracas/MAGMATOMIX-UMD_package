@@ -1,0 +1,72 @@
+{
+ "about": "synthetic He jumping between an Fe slab and a Si-O slab of the same density (two condensed phases, -c Fe), O dissolved in the Fe and Fe in the Si-O : rates, stays, D, K, D_mass exact, the dissolved atoms in their host ; without -c everything condensed",
+ "environment": {
+  "commit": "3.4b1-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "@synthetic.py twophase",
+   "code": 0,
+   "time": 7.75
+  },
+  {
+   "command": "exchange_umd.py -f twophase.umd.dat -c Fe -t 0",
+   "code": 0,
+   "time": 6.76
+  },
+  {
+   "command": "exchange_umd.py -f twophase.umd.dat -g He -t 0",
+   "code": 0,
+   "time": 6.95
+  }
+ ],
+ "numbers": {
+  "twophase He k_A_to_B": 19.25,
+  "twophase He stay_A": 49.89,
+  "twophase He k_B_to_A": 59.94,
+  "twophase He stay_B": 16.51,
+  "twophase He fraction of the time in B": 0.2442,
+  "twophase Fe dissolved in B": 0.0087,
+  "twophase O dissolved in A": 0.0129,
+  "twophase Fe never changes phase": 0.0,
+  "twophase O never changes phase": 0.0,
+  "twophase interface area (nm2)": 8.0181,
+  "twophase B volume fraction": 0.49979,
+  "twophase bulk density of A": 0.0428327,
+  "twophase zone of A (A3)": 5603.38,
+  "twophase zone of B (A3)": 5596.62,
+  "twophase He in A": 30.23,
+  "twophase He in B": 9.766,
+  "twophase D of He": 3.092,
+  "twophase K of Fe": 75.66,
+  "twophase D_mass of Fe": 30.39,
+  "twophase K of O": 0.01737,
+  "twophase D_mass of O": 0.006976,
+  "twophase K of He": 2.873,
+  "twophase D_mass of He": 1.152,
+  "twophase without -c : He never leaves the condensed phase": 1.0
+ },
+ "files": {
+  "twophase.truth.json": "26bed019cdcdb4fd245533c6b3d1b5b45d784cda4beae3f167244455329a64b7",
+  "twophase.umd.dat": "6342b2912cef2a85144ee7461b67e41eadef13ff207b6124d305b9cc276afb06",
+  "twophase.exchange.Fe/states.dat": "1ee5349c5d411b1e50b1880c5ebb0e3282bbd164382578b3f13862b01089d8a4",
+  "twophase.exchange.Fe/fluxes.dat": "f8827b0d0c98af809e1db9f766d09f915523729c24fef45d1716ad7c59aa1f42",
+  "twophase.exchange.Fe/paths.dat": "d835200d3769ecc0243bf02a23d8830e7389cf7bf18708d36bbcb3d83d0ec74d",
+  "twophase.exchange.Fe/stays.dat": "6a626f1d25c9de6c9f76b48b9f27c8516c81df6c56f57bea02dcfe6d44304ee4",
+  "twophase.exchange.Fe/atoms.dat": "0afffa29643554c5a6831194c4443936a57791459b767abffa988bc12ddb82a9",
+  "twophase.exchange.Fe/summary.dat": "aedfd2e94edc1063ad4a5487743511f9d852c081993c14c219cc765fbaec7892",
+  "twophase.exchange/states.dat": "17ec0ad844820fa3a414d11eba1e5a5224490ace65a07896cf74533c025a1061",
+  "twophase.exchange/fluxes.dat": "8f85fdb0e371b22f5544dd5d88239221f768d7314d00ff48fc33d0ebf75dd17e",
+  "twophase.exchange/pressure.dat": "d83dc166965b3726c4ae52601e5f1d795701cfcd9202f6860f96e7c37fa87f13",
+  "twophase.exchange/paths.dat": "f2ca93fe782bb70830d7723ff483ca8698035d02ebd656ce020c027d4d44a8f1",
+  "twophase.exchange/stays.dat": "edd3b2f96ca2ddaa4b6acc350579a2ba813d6d904a52d509090afb82e11024a8",
+  "twophase.exchange/gas.dat": "8a15004d83abdb6fb192a11276b152223ea2a29f051585f479dae84a4cc0d113",
+  "twophase.exchange/atoms.dat": "0cefdd1abeeec324e1187433995a61659eb978aca1fccd2e9d2230faa409e29d",
+  "twophase.exchange/summary.dat": "d90c5376625c1edc8007a986c3e0011f14d934d62df1137f39addba0a03b21a6"
+ }
+}

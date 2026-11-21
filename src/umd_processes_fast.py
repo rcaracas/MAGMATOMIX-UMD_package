@@ -550,7 +550,7 @@ COMP_FILES = [r'(?:summary|dist|density|voids|time|fluctuations|episodes|exchang
 EXCHANGE_FILES = [r'(?:summary|stays|atoms|fluxes|states|interface|paths|gas|pressure|molecules)\.dat']   #exchange_umd.py
 RUN_FOLDERS = [(r'(?:\.\d+)?\.deepmd',DEEPMD_FILES),                             #umd2out.py : <base>.deepmd and the files it writes inside
                (r'\.comp\.\d+x\d+x\d+',COMP_FILES),                                 #composition_umd.py : <base>.comp.<grid>
-               (r'\.exchange(?:\.clusters)?',EXCHANGE_FILES)]                                         #exchange_umd.py : <base>.exchange
+               (r'\.exchange(?:\.clusters|\.(?:[A-Z][a-z]?)+)?',EXCHANGE_FILES)]   #exchange_umd.py : <base>.exchange, .clusters, .<elements of A> (-c)
 FOLDER_OUTPUTS = [r'gofrs_summary\.txt',                                   #analyze_gofr.py
                   r'diffusivities\.txt', r'diffusivities_clusters\.txt',  #analyze_msd.py, analyze_msd_clusters.py
                   r'fullthermo\.dat',                                      #averages.py -a

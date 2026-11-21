@@ -52,6 +52,9 @@
 #               150 snapshots are exact (exchange_umd.py -g He -t 0 -w 150)
 #   molecules   20 H2 and 20 He jumping between the Ar slab and the gas, with cutoffs for bonding_umd.py : molecular events and gas half those of
 #               the H atoms, equal for He ; -m clusters : the slab condensed, H2 and He always gas (exchange_umd.py -g H,He -t 0)
+#   twophase    two condensed phases of the same number density, Fe (x < 20 A) and Si-O (x > 20 A), 3 O dissolved in the Fe and 3 Fe in the
+#               Si-O, 40 He jumping between their depths (A -> B 0.02 per step, back 0.06) : rates, stays, D = 3, K and D_mass exact from the
+#               zone contents, the dissolved atoms in their host (exchange_umd.py -c Fe -t 0) ; without -c everything condensed
 #   idealgas_gz the ideal gas written compressed (idealgas.umd.dat.gz), with the truth of idealgas : the reading of .gz runs
 #   composition grids of 4x4x4 sub-cells, in reduced coordinates of a triclinic cell (composition_umd.py -n 4) : comp_ideal (Ar, Ne uniform, 10 %
 #               of the atoms drawn again at every snapshot : variance / binomial 1, correlation 0, correlation in time 0.9^t), comp_segregated (Ar in
@@ -780,6 +783,54 @@ def exchange(rng):
                             'P_He_GPa':nG*KB*T*160.21766208,'D_He':2.0,'J_HK':nG*vth*1e5,'gas_zone':VG})
 
 
+def twophase(rng):#Two condensed phases of the same number density : Fe on the jittered lattice of the slab (0 <= x < 20 A) and Si, O on the same
+    #lattice shifted to 20 <= x < 40 (a third of the sites Si, at random, fixed) ; 3 O dissolved deep in the metal and 3 Fe deep in the silicate, drawn
+    #anew at every snapshot ; 40 He jumping between the depths of the two (Markov chain : A -> B with 0.02 per step, back with 0.06). The deep layers
+    #(1 to 5 of 0..6, more than 3.9 A from the surfaces at x = 0 and 20) are in the zones of A and B, the layers 0 and 6 in the interface. Truth : rates,
+    #stays, the fraction of He in B ; D = c_A/c_B = 3 (equal zones) ; K and D_mass from the exact zone contents of every snapshot ; the dissolved atoms
+    #never change phase ; without -c (field of all the dense atoms) everything is condensed
+    nsnap, nhe, pab, pba, T = 1500, 40, 0.02, 0.06, 3000.0
+    cell, nsite = slab_cell()
+    a = 20.0/7
+    layer = np.array([i for i in range(7) for j in range(7) for k in range(7)])
+    issi = np.zeros(nsite,dtype=bool)
+    issi[rng.permutation(nsite)[:nsite//3]] = True
+    deep = (layer >= 1)&(layer <= 5)
+    nfe, nsi, no = nsite+3, int(issi.sum()), int((~issi).sum())+3
+    umd = UMD('twophase.umd.dat',['Fe','Si','O','He'],[nfe,nsi,no,nhe])
+    m = np.array([MASS['Fe']]*nfe+[MASS['Si']]*nsi+[MASS['O']]*no+[MASS['He']]*nhe)
+    sv = np.sqrt(KB*T/(m*AMU_A2FS2))
+    inB = rng.random(nhe) < pab/(pab+pba)                               #stationary start
+    nB = []
+    for s in range(nsnap):
+        if s > 0:
+            u = rng.random(nhe)
+            inB = np.where(inB,u >= pba,u < pab)
+        fe = slab_frame(rng,nsite)
+        sil = slab_frame(rng,nsite)+np.array([20.0,0.0,0.0])
+        he = np.where(inB[:,None],zone(rng,'G',nhe),zone(rng,'L',nhe))
+        x = np.vstack([fe,zone(rng,'G',3),sil[issi],sil[~issi],zone(rng,'L',3),he])
+        umd.snapshot(float(s),1.0,cell,x,x,rng.normal(size=(len(x),3))*sv[:,None])
+        nB.append(int(inB.sum()))
+    umd.close()
+    nB = np.array(nB,dtype=float)
+    nA = nhe-nB
+    #exact contents of the zones : A = the deep Fe, the 3 O, He in A ; B = the deep Si and O, the 3 Fe, He in B
+    sideep, odeep = int((issi&deep).sum()), int((~issi&deep).sum())
+    fedeep = int(deep.sum())
+    cA = {'Fe':np.full(nsnap,fedeep),'Si':np.zeros(nsnap),'O':np.full(nsnap,3.0),'He':nA}
+    cB = {'Fe':np.full(nsnap,3.0),'Si':np.full(nsnap,sideep),'O':np.full(nsnap,odeep),'He':nB}
+    totA, totB = sum(cA.values()), sum(cB.values())
+    mA, mB = sum(MASS[e]*cA[e] for e in cA), sum(MASS[e]*cB[e] for e in cB)
+    truth = {'k_A_to_B':pab*1000.0,'k_B_to_A':pba*1000.0,'stay_A':1.0/pab,'stay_B':1.0/pba,'B_fraction':pab/(pab+pba),'D_He':(1-pab/(pab+pba))/(pab/(pab+pba)),
+             'area_nm2':8.0,'B_volume_fraction':0.5,'bulk_density':342/8000.0,'zone':(20.0-2*1.2816*2.4)*400.0,
+             'B_fraction_Fe':3.0/nfe,'A_fraction_O':3.0/no,'N_A_He':float(nA.mean()),'N_B_He':float(nB.mean())}
+    for e in ('Fe','O','He'):
+        truth['K_'+e] = float((cA[e]/totA).mean()/(cB[e]/totB).mean())
+        truth['D_mass_'+e] = float((MASS[e]*cA[e]/mA).mean()/(MASS[e]*cB[e]/mB).mean())
+    write_truth('twophase',truth)
+
+
 def persist(rng):
     n, natom, nsnap, r = 4, 400, 800, 0.1
     cell = cell_from(20.0,21.0,22.0,85.0,95.0,100.0)
@@ -996,7 +1047,7 @@ def composition(rng):
     write_truth('composition',truth)
 
 KINDS = {'idealgas':idealgas,'fcc':fcc,'water':water,'randomwalk':randomwalk,'ou':ou,'oscillators':oscillators,'stress':stress,'ti':ti,
-         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules}
+         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules,'twophase':twophase}
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] not in KINDS:

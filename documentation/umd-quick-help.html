@@ -93,9 +93,9 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">lifetimes.py -f &lt;base&gt;.r1.popul.dat -t min_life -x 3,9 -l 12 -m -v</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1.lifetimes.pdf</code> (with <code>-l</code>: liquid and vapor figures)</span></div>
 
-<div class="card"><span class="name">exchange_umd.py</span> <span class="what">&mdash; melt&ndash;gas exchange through the interface: paths, rates, fluxes, equilibrium, partition, molecules, adsorbed atoms; gas pressure of the molecules by the modified Van der Waals law (two gas volumes); liquid/vapor species (<code>-P</code>).</span>
+<div class="card"><span class="name">exchange_umd.py</span> <span class="what">&mdash; melt&ndash;gas exchange (or between two condensed phases, <code>-c Fe</code>: metal&ndash;silicate) through the interface: paths, rates, fluxes, equilibrium, partition, molecules, adsorbed atoms; gas pressure of the molecules by the modified Van der Waals law (two gas volumes); liquid/vapor species (<code>-P</code>).</span>
 <span class="cmd">exchange_umd.py -f run.umd.dat -g H -t 50 -w 500 -b &lt;base&gt;.bonding.dat -m field|clusters -A OH:3</span>
-<span class="io"><b>out:</b> folder <code>&lt;base&gt;.exchange/</code>: <code>summary.dat</code>, <code>pressure.dat</code>, <code>fluxes.dat</code>, <code>molecules.dat</code>&hellip;</span></div>
+<span class="io"><b>out:</b> folder <code>&lt;base&gt;.exchange/</code> (<code>-c</code>: <code>.exchange.Fe/</code>): <code>summary.dat</code>, <code>pressure.dat</code>, <code>fluxes.dat</code>, <code>molecules.dat</code>&hellip;</span></div>
 
 <div class="card"><span class="name">stat-concentrate.py</span> <span class="what">&mdash; gathers the <code>*.r0.stat.dat</code> of the runs of a folder (same P, T), with the liquid/vapor partitioning.</span>
 <span class="cmd">stat-concentrate.py -l max_vapor_size -t min_time_fs -c Na,K</span>
