@@ -14,8 +14,9 @@ v3.3 (November 2026): composition_umd.py (compositional fluctuations, voids, dro
 (exchange of atoms between a condensed phase and its gas through their interface), compressed runs (.umd.dat.gz).
 v3.3.1 (November 2026): umd_workflow.py -t runs composition_umd.py, and exchange_umd.py for runs with a gas phase.
 v3.3.2 (November 2026): exchange_umd.py, pressure of the gas molecules by the modified Van der Waals law (two gas volumes), adsorbed atoms.
-v3.4 (pre-release 3.4b1, November 2026): native Windows (WINDOWS.md), src/compile_libraries.py, tests on Linux, Windows and
-macOS at every change (GitHub Actions), the compiled C libraries attached to every release; for the UMD school (2027).
+v3.4 (November 2026; pre-release 3.4b1): native Windows (WINDOWS.md), src/compile_libraries.py, tests on Linux, Windows and
+macOS at every change (GitHub Actions), the compiled C libraries attached to every release; for the UMD school (2027);
+exchange_umd.py -c, exchange between two condensed phases (He between liquid iron and a silicate melt).
 
 MAJOR AIMS for the v2.0:
 speciation: chemical (pair) bonds
