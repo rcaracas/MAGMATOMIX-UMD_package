@@ -18,6 +18,7 @@ h2 { font-size:10.4pt; color:var(--magenta); text-transform:uppercase; letter-sp
 .card { break-inside:avoid; margin:0 0 2.5mm 0; }
 .name { font-family:Menlo, Consolas, monospace; font-weight:bold; color:var(--purple); font-size:9.6pt; }
 .what { color:var(--ink); }
+.adv { font-size:7.6pt; color:var(--magenta); border:1px dashed var(--magenta); border-radius:1mm; padding:0 1mm; margin-left:1mm; vertical-align:1px; }
 .cmd { font-family:Menlo, Consolas, monospace; font-size:8.2pt; background:var(--code); padding:.4mm 1.2mm; border-radius:1mm; display:block; margin:.5mm 0; white-space:normal; }
 .io { color:var(--muted); }
 .io b { color:var(--ink); font-weight:600; }
@@ -32,7 +33,7 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <code>&lt;base&gt;</code> = the UMD file without <code>.umd.dat</code>. All the options of a script: <code>-h</code>. <code>-f all</code>: every <code>*.umd.dat</code> of the folder, one after the other. A compressed run <code>run.umd.dat.gz</code> is read as it is. Run them from <code>src/</code> after compiling the C libraries (<code>README.txt</code>).</p>
 
 <div class="wf">
-<span class="name">umd_workflow.py</span> <span class="what">&mdash; runs all the analyses of the panels below on UMD files (exchange_umd.py only for runs with a gas phase), check first, and summarizes the results; a rerun continues where it stopped and redoes only the steps whose options changed.</span>
+<span class="name">umd_workflow.py</span> <span class="what">&mdash; runs the basic analyses of the panels below on UMD files (not those marked <span class="adv">advanced</span>, dashed in the flowchart: run them by hand) (exchange_umd.py only for runs with a gas phase), check first, and summarizes the results; a rerun continues where it stopped and redoes only the steps whose options changed.</span>
 <span class="cmd">umd_workflow.py -f a.umd.dat,b.umd.dat [-g structural] [-t transport] [-d thermodynamics] (none = all) -i 1000 -s 1 -c Si,Mg -a O -o</span>
 <span class="io"><b>out:</b> all the files of the scripts, <code>umd_workflow.summary.dat</code> (one line per run: P, T, &rho;, E, Cv, D, &eta;, S<sub>2PT</sub>, CN, species, void fraction, gas T and P, with errors), <code>umd_workflow.log</code></span>
 </div>
@@ -77,11 +78,11 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">bonding_umd.py -f run.umd.dat -c &lt;base&gt;.maximum_bonds.inp (or -l 2.2) -i skip -s sampling</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.bonding.dat</code></span></div>
 
-<div class="card"><span class="name">speciation_and_angles.py</span> <span class="what">&mdash; chemical species (r1: central atoms + neighbours; r0: polymers/molecules), angles, bond lifetimes.</span>
+<div class="card"><span class="name">speciation_and_angles.py</span> <span class="what">&mdash; chemical species (r1: central atoms + neighbours; r0: polymers/molecules, <span class="adv">advanced</span>, not in the workflow), angles, bond lifetimes.</span>
 <span class="cmd">speciation_and_angles.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c Si,Mg -a O -r 1 -t 1 -l 1 -m 1</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1.popul.dat</code>, <code>.r1.stat.dat</code>, <code>.r1.step.dat</code>, <code>.angles.dat</code>, <code>.bondslives.dat</code></span></div>
 
-<div class="card"><span class="name">rotations_umd.py</span> <span class="what">&mdash; orientations of molecular units (H<sub>2</sub>O, NH<sub>3</sub>, CH<sub>4</sub>, OH&hellip;): correlations between units and in time, Kirkwood factor, orientation map; entropy of translation, rotation and internal motions (2PT), unit volume from Bader <code>ACF.dat</code> files.</span>
+<div class="card"><span class="name">rotations_umd.py</span><span class="adv">advanced</span> <span class="what">&mdash; orientations of molecular units (H<sub>2</sub>O, NH<sub>3</sub>, CH<sub>4</sub>, OH&hellip;): correlations between units and in time, Kirkwood factor, orientation map; entropy of translation, rotation and internal motions (2PT), unit volume from Bader <code>ACF.dat</code> files.</span>
 <span class="cmd">rotations_umd.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c O -a H -x 2 -u dipole|bonds -g 50 -r shell -V bader/|O:16.5,H:4.2|25.3 -t T -y 2</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.OH2.rot.pair.dat</code>, <code>.rot.shell.dat</code>, <code>.rot.time.dat</code>, <code>.rot.map.dat</code>, <code>.rot.2pt.dat</code>, <code>.rot.dat</code></span></div>
 
@@ -97,7 +98,7 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">exchange_umd.py -f run.umd.dat -g H -t 50 -w 500 -b &lt;base&gt;.bonding.dat -m field|clusters -A OH:3</span>
 <span class="io"><b>out:</b> folder <code>&lt;base&gt;.exchange/</code> (<code>-c</code>: <code>.exchange.Fe/</code>): <code>summary.dat</code>, <code>pressure.dat</code>, <code>fluxes.dat</code>, <code>molecules.dat</code>&hellip;</span></div>
 
-<div class="card"><span class="name">stat-concentrate.py</span> <span class="what">&mdash; gathers the <code>*.r0.stat.dat</code> of the runs of a folder (same P, T), with the liquid/vapor partitioning.</span>
+<div class="card"><span class="name">stat-concentrate.py</span><span class="adv">advanced</span> <span class="what">&mdash; gathers the <code>*.r0.stat.dat</code> of the runs of a folder (same P, T), with the liquid/vapor partitioning.</span>
 <span class="cmd">stat-concentrate.py -l max_vapor_size -t min_time_fs -c Na,K</span>
 <span class="io"><b>out:</b> one table, its name records the options</span></div>
 
@@ -105,6 +106,10 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <div class="card"><span class="name">msd_umd.py</span> <span class="what">&mdash; mean square displacements (FFT, all time origins) and diffusion coefficients with errors; also along axes and the diffusion tensor.</span>
 <span class="cmd">msd_umd.py -f run.umd.dat -i skip -s sampling -m elements|atoms -a cart|cryst|tensor -n 5 -b -e</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.msd.dat</code>, <code>.msd.blocks.dat</code>, <code>.diffusion.dat</code> (+ <code>.diffusion.tensor.dat</code>)</span></div>
+
+<div class="card"><span class="name">msrd_umd.py</span><span class="adv">advanced</span> <span class="what">&mdash; mean square relative displacements of the bonds of coordination polyhedra (SiO<sub>4</sub>, MgO<sub>6</sub>&hellip;): along each bond and across it (bridging: Si&ndash;O&ndash;Si plane), in the frame of the cell and of the polyhedron (rotation removed); static EXAFS values (&sigma;&sup2;, &lt;r&gt;, R<sub>0</sub>).</span>
+<span class="cmd">msrd_umd.py -f run.umd.dat -b &lt;base&gt;.bonding.dat -c Si -a O -x 4 -g 50 -w window -v -p</span>
+<span class="io"><b>out:</b> <code>&lt;base&gt;.SiO4.msrd.time.dat</code> (MSRD(t), lab and body), <code>.msrd.dat</code> (summary), with <code>-p</code> <code>.msrd.pdf</code> (the plot of <code>-v</code>)</span></div>
 
 <div class="card"><span class="name">analyze_msd.py</span> <span class="what">&mdash; refits the D of all the MSD files below the folder, with another window; -v: plots, two clicks set the fit window.</span>
 <span class="cmd">analyze_msd.py -s start_fs -e end_fs -v</span>
@@ -114,11 +119,11 @@ code { font-family:Menlo, Consolas, monospace; font-size:8.3pt; white-space:nowr
 <span class="cmd">viscosity_umd.py -f run.umd.dat -i skip -n 4 -e end_steps -c all|offdiag -v</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.stress.scf.dat</code> (stress autocorrelations), <code>&lt;base&gt;.visc.dat</code> (running viscosity, &eta;)</span></div>
 
-<div class="card"><span class="name">msd_clusters_umd.py</span> <span class="what">&mdash; MSD of the centre of mass of every chemical species of a popul file.</span>
+<div class="card"><span class="name">msd_clusters_umd.py</span><span class="adv">advanced</span> <span class="what">&mdash; MSD of the centre of mass of every chemical species of a popul file.</span>
 <span class="cmd">msd_clusters_umd.py -f run.umd.dat -p &lt;base&gt;.r1.popul.dat -b min_life_steps -c max_size</span>
 <span class="io"><b>out:</b> <code>&lt;base&gt;.r1__&lt;species&gt;.msd.dat</code>, one per species</span></div>
 
-<div class="card"><span class="name">analyze_msd_clusters.py</span> <span class="what">&mdash; diffusion coefficients of the species, from the instances living through the fit window; -v: two clicks set it.</span>
+<div class="card"><span class="name">analyze_msd_clusters.py</span><span class="adv">advanced</span> <span class="what">&mdash; diffusion coefficients of the species, from the instances living through the fit window; -v: two clicks set it.</span>
 <span class="cmd">analyze_msd_clusters.py -s start_fs -e end_fs -v</span>
 <span class="io"><b>out:</b> <code>diffusivities_clusters.txt</code> per folder (check alpha: short-lived species stay ballistic)</span></div>
 

@@ -536,6 +536,7 @@ RUN_OUTPUTS = [r'\.check\.dat', r'\.overlap\.dat',                              
                r'\.bonding\.dat',                                                                         #bonding_umd.py
                r'\.r\d+\.(?:popul|stat|step)\.dat', r'\.angles\.dat', r'\.bondslives\.dat',               #speciation_and_angles.py
                r'\.[A-Z][A-Za-z0-9]*\.rot(?:\.(?:pair|shell|time|map|2pt))?\.dat',                             #rotations_umd.py : <base>.<unit>
+               r'\.[A-Z][A-Za-z0-9]*\.msrd(?:\.time\.dat|\.dat|\.pdf)',                                               #msrd_umd.py : <base>.<unit>
                r'\.comp\.\d+x\d+x\d+(?:\.(?:dist|density|voids|time|subcells|cell\d+_\d+_\d+|subcell_\d+_\d+_\d+))?\.dat',#composition_umd.py before its folder (2026-11-14, never released)
                r'\.r\d+\.(?:liquid|vapor)\.(?:popul|stat)\.dat',                                           #exchange_umd.py -P (formerly liquid_and_vapor_speciation.py)
                r'\.r\d+(?:\.(?:liquid|vapor))?(?:\.(?:liquid|vapor))?\.lifetimes\.pdf',                    #lifetimes.py

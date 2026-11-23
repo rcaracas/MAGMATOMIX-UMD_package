@@ -1,7 +1,7 @@
 {
  "about": "LAMMPS water parsed, then the workflow",
  "environment": {
-  "commit": "3.3.1-dirty",
+  "commit": "3.4-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "LAMMPSParser2umd.py -f test.dump -l log.lammps",
    "code": 0,
-   "time": 2.46
+   "time": 2.44
   },
   {
    "command": "umd_workflow.py -f test.dump.umd.dat",
    "code": 0,
-   "time": 11.73
+   "time": 9.18
   }
  ],
  "numbers": {
@@ -26,15 +26,12 @@
   "step test.dump.umd.dat analyze_gofr.py -f <base>.gofr.dat": "OK",
   "step test.dump.umd.dat bonding_umd.py -f <base>.umd.dat -c <base>.maximum_bonds.inp": "OK",
   "step test.dump.umd.dat speciation_and_angles.py -f <base>.umd.dat -b <base>.bonding.dat -c H -a O -r 1 -t 1 -l 1": "OK",
-  "step test.dump.umd.dat speciation_and_angles.py -f <base>.umd.dat -b <base>.bonding.dat -c all -a all -r 0": "OK",
   "step test.dump.umd.dat lifetimes.py -f <base>.r1.popul.dat": "OK",
   "step test.dump.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step test.dump.umd.dat viscosity_umd.py -f <base>.umd.dat": "OK",
-  "step test.dump.umd.dat msd_clusters_umd.py -f <base>.umd.dat -p <base>.r1.popul.dat": "OK",
   "step test.dump.umd.dat composition_umd.py -f <base>.umd.dat -n 3,3,3": "OK",
   "step test.dump.umd.dat vibrations_umd.py -f <base>.umd.dat": "OK",
   "step test.dump.umd.dat vdos_thermo.py -f <base>.umd.dat": "OK",
-  "step folder analyze_msd_clusters.py": "OK",
   "step folder averages.py -a -f test.dump.umd.dat": "OK",
   "test.dump.umd.dat nsteps": 401.0,
   "test.dump.umd.dat check_warnings": 3.0,
@@ -83,7 +80,6 @@
  "files": {
   "test.dump.msd.dat": "eaa55a652893f4c88040341de1d34a5e72c226188e7648fc64afb3761f128c71",
   "test.dump.r1.lifetimes.pdf": "not compared",
-  "test.dump.r0.step.dat": "57d87dccb168b98cde8f6bf41dd36c8c639f891364ecc4ee48b26f5491e91ea8",
   "test.dump.r1.step.dat": "ae54416a0fbbaa7688f05fff8d2f1cfe6452568467f92c51a8b70451bef501e2",
   "test.dump.r1.popul.dat": "a059c07b73700f1e7ccc9f758b176779dc9169df4b0e11f36f560a076cbaa1a9",
   "umd_workflow.summary.dat": "41f9d70d1fa1fe09b2943223bbed9589c51b63aa9c16684374094d6491bfe37b",
@@ -94,18 +90,15 @@
   "test.dump.msd.blocks.dat": "56d9f9cfa6b14fbaaa3aa5f43f03083328e2ab586ed0295f72a2a5fadff16105",
   "test.dump.stress.scf.dat": "cc869d065892d3e34dc5a9083ea9a3fa11c662cff4f38cd8b9ff75515708bb61",
   "test.dump.angles.dat": "c409336ff6684978f7d327609d4fd58af6e73cbcdc2dcb1ef46c589b789cb57b",
-  "test.dump.r0.popul.dat": "19edff605f9a8bf96318fc00a4df6e61ccb7287798ab518745a1c1d02015f35a",
   "test.dump.coordinations.inp": "2b788c973e117fac24921bfa2d3671310d50529ef2739ae2f340bc534ea38079",
   "test.dump.vdos.thermo.dat": "435d3b798dd03c15ef680acb6de3ed3e1ea4b92aae11192a2ff3b035a8c88b9d",
   "fullthermo.dat": "744629696216dc941015c78862b66d3863fe2840bd68f91239ad97b443e4182a",
   "test.dump.r1.stat.dat": "a9b6d7fbe7f5d17848045a4772fc39c9d80da52f9bdd06b72e6409213f52f8e5",
-  "test.dump.r0.stat.dat": "3252ad0161516063c1297852dd646d5733912b57c5ed646b46f9279d424c40f9",
   "gofrs_summary.txt": "80f3fe54f33fe181ebd0347f9805964ae4a1be65db8b7e143afb8964f26bd30f",
   "test.dump.diffusion.dat": "47fc6ea18690bdcf1b7d1c162fafb4259ac609d977bf4ec495d45c1f3941ad03",
   "test.dump.bondslives.dat": "a0ac5f02a5ad441570d4f914e0ad84566815a9e504997e72cc0f017da4fb6cbb",
   "test.dump.check.dat": "c80fd9c9d36af9ddf9c8becf454b9c13d31cf620f431081f098380422276e2ae",
   "umd_workflow.done": "not compared",
-  "diffusivities_clusters.txt": "c4dbdd273834800dfe54a330d365ec7619f27441c1e6ef9e6a47f04fb43d7c58",
   "test.dump.gofr.dat": "30276a86aca7be4ac3aa9144cf103575551c59e5708e82e75d77a927164b4d85",
   "test.dump.vibr.err.dat": "fa96c9aef1502253cb04503828ff1aba50ff62d34238e393be63fb320595c7b1",
   "test.dump.2pt.dat": "455517d35def12f22e43f67e341fac9b3a5743ad7378f12c2b61abad66200106",
@@ -113,7 +106,6 @@
   "test.dump.vacf.diffusion.dat": "7f7d4024c26beaffac85e06eeb024ba78dab47523a9a9931806716d1f73cc42c",
   "test.dump.maximum_bonds.inp": "4ff023939d94e80ab1a57ec160376d45c083b623da3474e76f1e0cf01be9fb9a",
   "test.dump.average_bonds.inp": "329ea1ee19083180d9a9f0e1ab4cf65df84129d30a6f3e4588915214f5d0e346",
-  "test.dump.r1__O_1H_1.msd.dat": "07c36f80984bfb617811f79aeb2b8dba9ef37e15b3736589544c789893b6f69f",
   "test.dump.vibr.dat": "634c44ff42dd97e79db658b290f55d98bcb1ecffaaf9f21601d4bd0ad94cfe75",
   "test.dump.comp.3x3x3/time.dat": "d20c499d791ef381b8a8de8b45a8ba5ef8cd01079ba316168344bf7459ce110e",
   "test.dump.comp.3x3x3/density.dat": "43db923df71dd765595f8c29b61b4b76302e9d1ab93bdbb5a4d51892ed9dbc03",

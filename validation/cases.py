@@ -178,7 +178,7 @@ for name, umd, full, about in (
     CASES.append(Case(name,[umd],[('umd_workflow.py',['-f',umd])],
                       [workflow(),checks(re.escape(base)+r'\.check\.dat'),inp(re.escape(base)+r'\.maximum_bonds\.inp'),
                        inp(re.escape(base)+r'\.coordinations\.inp'),tab(re.escape(base)+r'\.vacf\.diffusion\.dat','column'),
-                       tab(re.escape(base)+r'\.2pt\.dat','element'),tab(r'diffusivities_clusters\.txt','file',columns=['D(m2/s)','alpha'])],
+                       tab(re.escape(base)+r'\.2pt\.dat','element')],
                       full=full,about='umd_workflow.py, '+about))
 
 def comp_numbers(path):#numbers of the summary of composition_umd.py : ratio, error, fraction in voids of each element ; correlations ; voids ; 1/e times
@@ -552,6 +552,23 @@ def t_rotors2pt(folder,outs):#rotations_umd.py, entropy (2PT) of the synthetic r
     return out
 
 
+def t_msrd(folder,outs):#msrd_umd.py -c Si -a O -w 120 on the synthetic SiO4 and Si2O7 : every MSRD at the lags of the truth and the static values, computed
+    #there by brute force (body frame by Horn's quaternions) ; exact to the rounding of the UMD file
+    t = truth_of(folder,'msrd')
+    lines = [l for l in open(os.path.join(folder,'msrd.SiO4.msrd.time.dat')) if not l.startswith('#')]
+    head = lines[0].rstrip('\n').split('\t')
+    data = np.array([[float(x) for x in l.split('\t')] for l in lines[1:]])
+    out = []
+    for col,values in t['columns'].items():
+        for lag,exact in zip(t['lags'],values):
+            out.append(('msrd %s at %d fs' % (col,lag),data[lag,head.index(col)],exact,1e-6*abs(exact)+1e-9))
+    q = P.table(os.path.join(folder,'msrd.SiO4.msrd.dat'),'quantity',sep='\t')
+    for key,exact in t['summary'].items():
+        out.append(('msrd '+key,q[key]['value'],exact,1e-6*abs(exact)+1e-9))
+    out += [('msrd lives',q['lives']['value'],t['lives'],0),('msrd polyhedra per snapshot',q['polyhedra_per_snapshot']['value'],t['polyhedra_per_snapshot'],1e-12)]
+    return out
+
+
 def diffusion(folder,name):#{column : (D, error)} of a diffusion.dat or vacf.diffusion.dat file
     return {k:(r['D_(m2/s)'],r['D_error_(m2/s)']) for k,r in P.table(os.path.join(folder,name),'column',sep='\t').items()}
 
@@ -905,6 +922,9 @@ CASES += [
                                  ('rotations_umd.py',['-f','rotors2pt_ch4.umd.dat','-c','C','-a','H','-w','300','-t','300','-r','13','-V','C:20,H:5']),
                                  ('rotations_umd.py',['-f','rotors2pt_oh.umd.dat','-c','O','-a','H','-w','300','-t','300','-r','13','-V','25'])],
          truth=[t_rotors2pt],about='synthetic rigid rotors (H2O, CH4, OH) with Ornstein-Uhlenbeck translation and rotation : 2PT entropies, fluidicities, symmetry numbers, Bader volumes'),
+    Case('syn_msrd',[],[('@synthetic.py',['msrd']),('bonding_umd.py',['-f','msrd.umd.dat','-l','2.1']),
+                        ('msrd_umd.py',['-f','msrd.umd.dat','-c','Si','-a','O','-w','120','-p'])],truth=[t_msrd],
+         about='synthetic SiO4 and Si2O7 turning, drifting and vibrating in a deforming triclinic cell, with a bridged gap and a broken life : MSRD of the bonds (lab and body frames, bridging and non-bridging) and static values exact ; the plot (-p) written'),
     Case('syn_msd',[],[('@synthetic.py',['randomwalk']),('msd_umd.py',['-f','randomwalk.umd.dat','-a','tensor'])],truth=[t_randomwalk],
          about='synthetic random walks, isotropic and anisotropic : D, D tensor, principal values and directions'),
     Case('syn_vacf',[],[('@synthetic.py',['ou']),('vibrations_umd.py',['-f','ou.umd.dat']),('msd_umd.py',['-f','ou.umd.dat'])],

@@ -1,7 +1,7 @@
 {
  "about": "the whole workflow on the synthetic Ar slab with He in the gas (no data needed : run on every system by the tests on GitHub) ; viscosity FAILED (no stress tensor in the synthetic run)",
  "environment": {
-  "commit": "3.3.2-2-g47e8f4b-dirty",
+  "commit": "3.4-dirty",
   "python": "3.14.2",
   "numpy": "2.4.1",
   "scipy": "1.17.0",
@@ -12,12 +12,12 @@
   {
    "command": "@synthetic.py exchange",
    "code": 0,
-   "time": 4.06
+   "time": 4.08
   },
   {
    "command": "umd_workflow.py -f exchange.umd.dat",
    "code": 0,
-   "time": 18.36
+   "time": 17.41
   }
  ],
  "numbers": {
@@ -25,7 +25,6 @@
   "step exchange.umd.dat gofr_umd.py -f <base>.umd.dat": "OK",
   "step exchange.umd.dat analyze_gofr.py -f <base>.gofr.dat": "OK",
   "step exchange.umd.dat bonding_umd.py -f <base>.umd.dat -c <base>.maximum_bonds.inp": "OK",
-  "step exchange.umd.dat speciation_and_angles.py -f <base>.umd.dat -b <base>.bonding.dat -c all -a all -r 0": "OK",
   "step exchange.umd.dat msd_umd.py -f <base>.umd.dat": "OK",
   "step exchange.umd.dat viscosity_umd.py -f <base>.umd.dat": "FAILED",
   "step exchange.umd.dat composition_umd.py -f <base>.umd.dat -n 8,4,4": "OK",
@@ -71,7 +70,6 @@
   "exchange.diffusion.dat": "ede87f52cdaa2f90ffa4c59b86718f6805a4bfb9b0e76fa10c7a00bfe153ca36",
   "umd_workflow.summary.dat": "43fea9bbedd30559ee9db335dd493a1646a5a05edccfd02fd087b877143928e7",
   "umd_workflow.log": "not compared",
-  "exchange.r0.stat.dat": "869f51bb9d24e722307be718c0bd8c678f01928aa4a47ed4f0dbea55d9dd5234",
   "exchange.coordinations.inp": "6a635c2613f0cea31325a93fb199269ada8ca3e80c7adbb58a3400b67374f15a",
   "exchange.vibr.err.dat": "d2124cf3786b7ad5156dd84fbd083d03b8dfaec3f2364776e0212c11e8708a42",
   "exchange.gofr.dat": "e4cc81705ba032fc81b6ccc2f89a0c8b66ff5a4a056f841ca31db461851820df",
@@ -82,12 +80,10 @@
   "fullthermo.dat": "ad6afe740585db0f4c3859e2cdffa3e5da0af578f723f4a007b11458b9f2aae9",
   "exchange.2pt.dat": "02d2236ecb09cd883bd7606fa596a0d766d5a6f869c2e5fa0def6729230529dd",
   "gofrs_summary.txt": "a4205ce9f47b37d94d042d26f2ad444c02d061bf26d3ae64d0411feac9847fce",
-  "exchange.r0.popul.dat": "e5fa5c806184df7c9505dd31ce4ea2b04ed156fce0d4d02e4cb3e38d03eb8050",
   "exchange.vdos.thermo.dat": "850a025093e13a090ae07564e4f899439b3367aa8efc7a7f4958202af2932047",
   "umd_workflow.done": "not compared",
   "exchange.truth.json": "6e723295e49c30930a9708aeb5da707d7990aa84b722d3233fff97cce201d0d5",
   "exchange.vels.scf.dat": "0ddbc0dfa410bea5d32530cf77aafbb7b839abe413fb4563de03ff16eb3bd85e",
-  "exchange.r0.step.dat": "65d0f61b39aee19067425f42f9d6816ca38d216ed201175d9778573ead30b73e",
   "exchange.maximum_bonds.inp": "93931302715350380fe68efe19b999ff8823e667fb6b202242994ce4f7f23b67",
   "exchange.average_bonds.inp": "87f6745d709e26ab4aa454c57251bff4b9ea9c681dece286c4726e66063b6ac8",
   "exchange.comp.8x4x4/time.dat": "a8519f6521dfd23e1f397d958cbdf80887b2b7750976e92436060a898fafaa97",

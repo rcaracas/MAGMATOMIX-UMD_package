@@ -55,6 +55,9 @@
 #   twophase    two condensed phases of the same number density, Fe (x < 20 A) and Si-O (x > 20 A), 3 O dissolved in the Fe and 3 Fe in the
 #               Si-O, 40 He jumping between their depths (A -> B 0.02 per step, back 0.06) : rates, stays, D = 3, K and D_mass exact from the
 #               zone contents, the dissolved atoms in their host (exchange_umd.py -c Fe -t 0) ; without -c everything condensed
+#   msrd        SiO4 and Si2O7 (corner-sharing, Si-O-Si 140 deg) turning, drifting and vibrating in a triclinic cell deformed at every snapshot,
+#               a gap of 10 snapshots (bridged) and one of 100 (two lives) : the MSRD of every bond, lab and body frames, bridging and
+#               non-bridging, and the static values, computed by brute force (body frame by Horn's quaternions) (msrd_umd.py -c Si -a O -w 120)
 #   idealgas_gz the ideal gas written compressed (idealgas.umd.dat.gz), with the truth of idealgas : the reading of .gz runs
 #   composition grids of 4x4x4 sub-cells, in reduced coordinates of a triclinic cell (composition_umd.py -n 4) : comp_ideal (Ar, Ne uniform, 10 %
 #               of the atoms drawn again at every snapshot : variance / binomial 1, correlation 0, correlation in time 0.9^t), comp_segregated (Ar in
@@ -1046,8 +1049,199 @@ def composition(rng):
                           'in_voids':{'Ar':0.0,'He':1.0},'melt_density':10*MASS['Ar']/(volume/64)*G,'snapshots':nsnap//4}
     write_truth('composition',truth)
 
+def horn_rotation(P,Q,w):#Rotation R with Q_a ~ R P_a for the centred sets P, Q (k, 3), weights w : Horn's quaternion method (J. Opt. Soc. Am. A 4,
+    #629 (1987)), written independently of the SVD fit of the package
+    S = np.einsum('a,ai,aj->ij',w,P,Q)
+    xx, xy, xz, yx, yy, yz, zx, zy, zz = S.ravel()
+    N = np.array([[xx+yy+zz,yz-zy,zx-xz,xy-yx],[yz-zy,xx-yy-zz,xy+yx,zx+xz],[zx-xz,xy+yx,-xx+yy-zz,yz+zy],[xy-yx,zx+xz,yz+zy,-xx-yy+zz]])
+    q0, qx, qy, qz = np.linalg.eigh(N)[1][:,-1]
+    return np.array([[q0*q0+qx*qx-qy*qy-qz*qz,2*(qx*qy-q0*qz),2*(qx*qz+q0*qy)],
+                     [2*(qy*qx+q0*qz),q0*q0-qx*qx+qy*qy-qz*qz,2*(qy*qz-q0*qx)],
+                     [2*(qz*qx-q0*qy),2*(qz*qy+q0*qx),q0*q0-qx*qx-qy*qy+qz*qz]])
+
+
+def msrd(rng):#SiO4 (6) and Si2O7 (3 : 6 SiO4 sharing one O each pair) turning (rotational Brownian motion) and drifting in a triclinic cell deformed at
+    #every snapshot, each atom vibrating about its site in the frame of its molecule (AR(1), 10 steps) ; SiO4 number 0 loses an O for 10 snapshots
+    #(a gap, bridged by -g 50), number 2 for 100 (two lives). The truth : the MSRD of every bond computed here by brute force over the origins and
+    #lags, from the positions as generated (unwrapped), the bridging O and the lives known by construction, the body frame by Horn's quaternions
+    nsnap, window, rsio = 600, 120, 1.62
+    tet = np.array([[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]])/math.sqrt(3)
+    def oriented(d):#tetrahedron with its first vertex along d (unit), turned at random about it
+        a = tet[0]
+        v = np.cross(a,d)
+        R0 = rotation_of(v/np.linalg.norm(v)*math.acos(np.clip(a @ d,-1,1))) if np.linalg.norm(v) > 1e-12 else np.eye(3)
+        return (tet @ R0.T) @ rotation_of(d*rng.uniform(0,2*math.pi)).T
+    mols = []                                                                  #(Si sites, O sites, bonds (Si site, O site), bridging O sites)
+    for q in range(6):
+        mols.append((np.zeros((1,3)),tet*rsio,[(0,j) for j in range(4)],set()))
+    half = math.radians(140.0)/2
+    for q in range(3):#Si_A at -x, Si_B at +x, the shared O above the middle : Si-O-Si 140 deg
+        ob = np.array([0.0,rsio*math.cos(half),0.0])
+        sa, sb = np.array([-rsio*math.sin(half),0,0]), np.array([rsio*math.sin(half),0,0])
+        oa, obb = sa+oriented((ob-sa)/rsio)[1:]*rsio, sb+oriented((ob-sb)/rsio)[1:]*rsio
+        mols.append((np.vstack([sa,sb]),np.vstack([ob,oa,obb]),[(0,0),(0,1),(0,2),(0,3),(1,0),(1,4),(1,5),(1,6)],{0}))
+    nsi, no = sum(len(m[0]) for m in mols), sum(len(m[1]) for m in mols)
+    msi, mo = MASS['Si'], MASS['O']
+    base = cell_from(36.0,37.0,14.0,85.0,95.0,100.0)
+    sites = [np.array([i+0.5,j+0.5,0.5])/np.array([3,3,1]) @ base for i in range(3) for j in range(3)]
+    #index of every atom in the UMD file (Si first, then O), the units (Si atom, its 4 O atoms, bridging flags, second Si of the bridging O)
+    siat, oat, units = [], [], []
+    ns = noo = 0
+    for m in mols:
+        siat.append(np.arange(ns,ns+len(m[0])))
+        oat.append(nsi+np.arange(noo,noo+len(m[1])))
+        ns += len(m[0])
+        noo += len(m[1])
+    for qm,m in enumerate(mols):
+        for si in range(len(m[0])):
+            os_ = [o for s_,o in m[2] if s_ == si]
+            other = [s_ for s_ in range(len(m[0])) if s_ != si]
+            units.append({'si':int(siat[qm][si]),'o':[int(oat[qm][o]) for o in os_],'bridging':[o in m[3] for o in os_],
+                          'second':[int(siat[qm][other[0]]) if o in m[3] else -1 for o in os_],'mol':qm})
+    R = [random_rotation(rng) for _ in mols]
+    centre = [s_.copy() for s_ in sites]
+    shapes = [np.vstack([m[0],m[1]]) for m in mols]
+    shapes = [x-(np.r_[[msi]*len(m[0]),[mo]*len(m[1])][:,None]*x).sum(axis=0)/(msi*len(m[0])+mo*len(m[1])) for x,m in zip(shapes,mols)]
+    amp = [np.r_[[0.025]*len(m[0]),[0.055]*len(m[1])] for m in mols]
+    rho = math.exp(-1.0/10.0)
+    U = [rng.normal(size=x.shape)*a[:,None] for x,a in zip(shapes,amp)]
+    gap0, gap2 = range(200,210), range(300,400)                                  #O number 3 of SiO4 0, O number 1 of SiO4 2 pulled to 3.0 A
+    pos = np.zeros((nsnap,nsi+no,3))
+    cells = []
+    umd = UMD('msrd.umd.dat',['Si','O'],[nsi,no])
+    for t in range(nsnap):
+        if t:
+            for qm in range(len(mols)):
+                R[qm] = R[qm] @ rotation_of(rng.normal(0,0.03,3))
+                centre[qm] = centre[qm]+rng.normal(0,0.01,3)
+                U[qm] = rho*U[qm]+math.sqrt(1-rho*rho)*rng.normal(size=U[qm].shape)*amp[qm][:,None]
+        x = np.zeros((nsi+no,3))
+        for qm,m in enumerate(mols):
+            local = shapes[qm]+U[qm]
+            nm = len(m[0])
+            if qm == 0 and t in gap0:
+                local[nm+3] = local[0]+(local[nm+3]-local[0])*3.0/np.linalg.norm(local[nm+3]-local[0])
+            if qm == 2 and t in gap2:
+                local[nm+1] = local[0]+(local[nm+1]-local[0])*3.0/np.linalg.norm(local[nm+1]-local[0])
+            xy = centre[qm]+local @ R[qm].T
+            x[siat[qm]] = xy[:nm]
+            x[oat[qm]] = xy[nm:]
+        f = 1.0+0.01*math.sin(2*math.pi*t/97.0)
+        cell = base @ np.diag([f,1.0/f,1.0])
+        cells.append(cell)
+        pos[t] = x
+        umd.snapshot(float(t),1.0,cell,x,x,np.zeros_like(x))
+    umd.close()
+    #The bonds the run must have (-l 2.1) : exactly the designed ones, but the pulled O
+    for t in range(0,nsnap,7):
+        inv = np.linalg.inv(cells[t])
+        d = (pos[t][:,None,:]-pos[t][None,:,:]) @ inv
+        d -= np.rint(d)
+        r = np.linalg.norm(d @ cells[t],axis=2)
+        close = {(int(i),int(j)) for i,j in zip(*np.nonzero(r < 2.1)) if i < j}
+        expect = {(u['si'],o) for u in units for o in u['o']}
+        if t in gap0:
+            expect.discard((units[0]['si'],units[0]['o'][3]))
+        if t in gap2:
+            expect.discard((units[2]['si'],units[2]['o'][1]))
+        assert close == expect, 'synthetic msrd : unexpected bonds at snapshot %d' % t
+    #Lives and masks by construction
+    mask = np.ones((len(units),nsnap),dtype=bool)
+    mask[0,list(gap0)] = False
+    mask[2,list(gap2)] = False
+    lives = [(q,0,nsnap-1) for q in range(len(units)) if q != 2]+[(2,0,299),(2,400,nsnap-1)]
+    lives.sort()
+    num = {(f,c,d):np.zeros(window) for f in ('lab','body') for c in (0,1) for d in range(3)}
+    den = {c:np.zeros(window) for c in (0,1)}
+    st = {key:{c:0.0 for c in (0,1)} for key in ('n','r','r2','r3')}
+    sst = {(f,key):{c:0.0 for c in (0,1)} for f in ('lab','body') for key in ('par','dev','R0')}
+    w = np.array([msi]+[mo]*4)
+    for q,s,e in lives:
+        u = units[q]
+        tt = np.arange(s,e+1)
+        mk = mask[q,tt]
+        Si = pos[tt,u['si']]
+        b = pos[tt][:,u['o']]-Si[:,None,:]                                         #(L, 4, 3), unwrapped : no image needed
+        v = np.zeros_like(b)
+        for j in range(4):
+            if u['bridging'][j]:
+                v[:,j] = pos[tt,u['second'][j]]-pos[tt,u['o'][j]]
+            else:
+                dd = np.linalg.norm(b-b[:,j:j+1],axis=2)
+                dd[:,j] = np.inf
+                v[:,j] = b[np.arange(len(tt)),np.argmin(dd,axis=1)]
+        ep = b/np.linalg.norm(b,axis=2,keepdims=True)
+        e1 = v-(v*ep).sum(axis=2,keepdims=True)*ep
+        e1 /= np.linalg.norm(e1,axis=2,keepdims=True)
+        E = np.stack([ep,e1,np.cross(ep,e1)],axis=2)                               #(L, 4, 3 dir, 3)
+        P = np.concatenate([np.zeros((len(tt),1,3)),b],axis=1)
+        Pc = P-(w[None,:,None]*P).sum(axis=1,keepdims=True)/w.sum()
+        first = np.flatnonzero(mk)[0]
+        Rt = np.array([horn_rotation(Pc[first],Pc[i],w) for i in range(len(tt))])  #current ~ R ref
+        frames = {'lab':(b,E),'body':(np.einsum('lji,lkj->lki',Rt,b),np.einsum('lji,lkdj->lkdi',Rt,E))}
+        br = np.array(u['bridging'])
+        cls = np.broadcast_to(np.where(br,0,1),(len(tt),4))                        #class 0 bridging, 1 non-bridging
+        for lag in range(min(window,len(tt))):
+            ok = mk[:len(tt)-lag] & mk[lag:]
+            for c in (0,1):
+                sel = ok[:,None] & (cls[:len(tt)-lag] == c)
+                den[c][lag] += sel.sum()
+                for f,(x,EE) in frames.items():
+                    dx = x[lag:]-x[:len(tt)-lag]
+                    proj = np.einsum('lki,lkdi->lkd',dx,EE[:len(tt)-lag])
+                    for d in range(3):
+                        num[(f,c,d)][lag] += (proj[...,d]**2)[sel].sum()
+        r = np.linalg.norm(b,axis=2)
+        for c in (0,1):
+            sel = mk[:,None] & (cls == c)
+            st['n'][c] += sel.sum()
+            st['r'][c] += r[sel].sum()
+            st['r2'][c] += (r**2)[sel].sum()
+            st['r3'][c] += (r**3)[sel].sum()
+        for f,(x,EE) in frames.items():
+            mean = x[mk].mean(axis=0)                                              #(4, 3)
+            R0 = np.linalg.norm(mean,axis=1)
+            dv = x-mean[None]
+            dpar = ((dv*(mean/R0[:,None])[None]).sum(axis=2))**2
+            dall = (dv**2).sum(axis=2)
+            for c in (0,1):
+                sel = mk[:,None] & (cls == c)
+                sst[(f,'par')][c] += dpar[sel].sum()
+                sst[(f,'dev')][c] += dall[sel].sum()
+                sst[(f,'R0')][c] += np.broadcast_to(R0[None],dall.shape)[sel].sum()
+    lags = [0,1,5,10,30,60,119]
+    truth = {'lags':lags,'columns':{},'summary':{},'lives':len(lives),'polyhedra_per_snapshot':float(mask.sum()/nsnap),'window':window}
+    tags = {0:'bridging',1:'nonbridging'}
+    for f in ('lab','body'):
+        tot = {d:num[(f,0,d)]+num[(f,1,d)] for d in range(3)}
+        dall = den[0]+den[1]
+        truth['columns']['%s_O_par' % f] = [float(tot[0][l]/dall[l]) for l in lags]
+        truth['columns']['%s_O_perp' % f] = [float((tot[1][l]+tot[2][l])/dall[l]) for l in lags]
+        for c,tag in tags.items():
+            for d,name in enumerate(('par','perp1','perp2')):
+                truth['columns']['%s_O_%s_%s' % (f,tag,name)] = [float(num[(f,c,d)][l]/den[c][l]) for l in lags]
+    truth['columns']['pairs_O_all'] = [float(den[0][l]+den[1][l]) for l in lags]
+    for c,tag in tags.items():
+        truth['columns']['pairs_O_'+tag] = [float(den[c][l]) for l in lags]
+    for c,tag in [(None,'all'),(0,'bridging'),(1,'nonbridging')]:
+        get = (lambda dct: dct[0]+dct[1]) if c is None else (lambda dct,c=c: dct[c])
+        n = get(st['n'])
+        m1, m2, m3 = get(st['r'])/n, get(st['r2'])/n, get(st['r3'])/n
+        pre = 'Si-O_'+tag
+        truth['summary'][pre+'_fraction'] = n/(st['n'][0]+st['n'][1])
+        truth['summary'][pre+'_r_mean_(A)'] = m1
+        truth['summary'][pre+'_sigma2_r_(A2)'] = m2-m1**2
+        truth['summary'][pre+'_C3_(A3)'] = m3-3*m1*m2+2*m1**3
+        for f in ('lab','body'):
+            par, dev, R0 = get(sst[(f,'par')])/n, get(sst[(f,'dev')])/n, get(sst[(f,'R0')])/n
+            truth['summary'][pre+'_%s_R0_(A)' % f] = R0
+            truth['summary'][pre+'_%s_sigma2_par_(A2)' % f] = par
+            truth['summary'][pre+'_%s_sigma2_perp_(A2)' % f] = dev-par
+    write_truth('msrd',truth)
+
+
 KINDS = {'idealgas':idealgas,'fcc':fcc,'water':water,'randomwalk':randomwalk,'ou':ou,'oscillators':oscillators,'stress':stress,'ti':ti,
-         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules,'twophase':twophase}
+         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules,'twophase':twophase,'msrd':msrd}
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] not in KINDS:

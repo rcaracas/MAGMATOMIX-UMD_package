@@ -10,9 +10,9 @@
 <text x="22" y="1450" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="22" dy="0">STRUCTURAL</tspan><tspan x="22" dy="36.96">PROPERTIES</tspan></text>
 <text x="506" y="1450" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="506" dy="0">TRANSPORT</tspan><tspan x="506" dy="36.96">PROPERTIES</tspan></text>
 <text x="964" y="1450" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="33" fill="#231F20" text-anchor="start" font-weight="bold"><tspan x="964" dy="0">THERMODYNAMIC</tspan><tspan x="964" dy="36.96">PROPERTIES</tspan></text>
-<text x="22" y="1398" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="22" dy="0">umd_workflow.py -g : the whole panel</tspan></text>
-<text x="506" y="1398" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="506" dy="0">umd_workflow.py -t : the whole panel</tspan></text>
-<text x="964" y="1398" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="964" dy="0">umd_workflow.py -d : the whole panel</tspan></text>
+<text x="22" y="1392" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="22" dy="0">umd_workflow.py -g : the solid boxes</tspan><tspan x="22" dy="18.4">dashed : advanced analyses, run by hand</tspan></text>
+<text x="506" y="1392" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="506" dy="0">umd_workflow.py -t : the solid boxes</tspan><tspan x="506" dy="18.4">dashed : advanced analyses, run by hand</tspan></text>
+<text x="964" y="1392" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="964" dy="0">umd_workflow.py -d : the whole panel</tspan></text>
 <rect x="6" y="6" width="236" height="140" fill="white" stroke="#231F20" stroke-width="4.5"/>
 <text x="124" y="52" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="32" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">ab initio /</tspan><tspan x="124" dy="35.2">classical MD</tspan></text>
 <text x="124" y="116" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="124" dy="0">VASP, ABINIT, CP2K,</tspan><tspan x="124" dy="17.25">QBox, LAMMPS</tspan></text>
@@ -62,6 +62,8 @@
 <path d="M 563 1239 L 547 1232.5 L 551 1239 L 547 1245.5 Z" fill="#231F20"/>
 <path d="M 528 1139 L 563 1139" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 563 1139 L 547 1132.5 L 551 1139 L 547 1145.5 Z" fill="#231F20"/>
+<path d="M 528 1239 L 528 1339 L 563 1339" fill="none" stroke="#231F20" stroke-width="2" stroke-dasharray="7 5"/>
+<path d="M 563 1339 L 547 1332.5 L 551 1339 L 547 1345.5 Z" fill="#231F20"/>
 <path d="M 680 196 L 1030 415" fill="none" stroke="#231F20" stroke-width="2"/>
 <path d="M 1030 415 L 1019.88 401.003 L 1019.83 408.635 L 1012.99 412.023 Z" fill="#231F20"/>
 <path d="M 680 188 L 1340 280 L 1340 637 L 1148 637" fill="none" stroke="#231F20" stroke-width="2"/>
@@ -111,7 +113,8 @@
 <path d="M 166 1045 L 193.2 1045" stroke="#231F20" stroke-width="3"/>
 <path d="M 222 1045 L 182 1028 L 193.2 1045 L 182 1062 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
 <text x="230" y="1039" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="230" dy="0">BOND</tspan><tspan x="230" dy="19.6">LIFETIMES</tspan></text>
-<path d="M 40 859 L 18 859 L 18 1186 L 262 1186" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 40 859 L 18 859 L 18 1116" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 18 1116 L 18 1186 L 262 1186" fill="none" stroke="#231F20" stroke-width="2" stroke-dasharray="7 5"/>
 <path d="M 18 1116 L 150 1116" fill="none" stroke="#231F20" stroke-width="2"/>
 <text x="30" y="1108" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="30" dy="0">lifetimes.py</tspan></text>
 <path d="M 150 1116 L 171.2 1116" stroke="#231F20" stroke-width="3"/>
@@ -121,10 +124,10 @@
 <path d="M 262 1186 L 283.2 1186" stroke="#231F20" stroke-width="3"/>
 <path d="M 312 1186 L 272 1169 L 283.2 1186 L 272 1203 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
 <text x="320" y="1180" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="320" dy="0">LIQUID / VAPOR</tspan><tspan x="320" dy="19.6">PARTITIONING</tspan></text>
-<path d="M 30 679 L 10 679 L 10 1291 L 38 1291" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 30 679 L 10 679 L 10 1291 L 38 1291" fill="none" stroke="#231F20" stroke-width="2" stroke-dasharray="7 5"/>
 <path d="M 38 1291 L 22 1284.5 L 26 1291 L 22 1297.5 Z" fill="#231F20"/>
 <text x="30" y="1246" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="30" dy="0">rotations_umd.py -f -b -c -a -x -V</tspan></text>
-<rect x="40" y="1262" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<rect x="40" y="1262" width="124" height="58" fill="white" stroke="#231F20" stroke-width="3.2" stroke-dasharray="9 6"/>
 <text x="102" y="1298.35" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="102" dy="0">.rot.</tspan></text>
 <path d="M 166 1291 L 193.2 1291" stroke="#231F20" stroke-width="3"/>
 <path d="M 222 1291 L 182 1274 L 193.2 1291 L 182 1308 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
@@ -149,10 +152,10 @@
 <text x="776" y="750" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">(and tensor)</tspan></text>
 <text x="585" y="810" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="585" dy="0">analyze_msd.py</tspan></text>
 <path d="M 640 780 L 640 795" fill="none" stroke="#231F20" stroke-width="2"/>
-<path d="M 166 830 L 470 830 L 470 850 L 640 850 L 640 900" fill="none" stroke="#231F20" stroke-width="2"/>
+<path d="M 166 830 L 470 830 L 470 850 L 640 850 L 640 900" fill="none" stroke="#231F20" stroke-width="2" stroke-dasharray="7 5"/>
 <path d="M 640 900 L 646.5 884 L 640 888 L 633.5 884 Z" fill="#231F20"/>
 <text x="650" y="886" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="650" dy="0">msd_clusters_umd.py -f -p</tspan></text>
-<rect x="565" y="902" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2"/>
+<rect x="565" y="902" width="150" height="60" fill="white" stroke="#231F20" stroke-width="3.2" stroke-dasharray="9 6"/>
 <text x="640" y="938.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msd.</tspan></text>
 <path d="M 717 932 L 741.2 932" stroke="#231F20" stroke-width="3"/>
 <path d="M 770 932 L 730 915 L 741.2 932 L 730 949 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
@@ -171,6 +174,12 @@
 <path d="M 717 1194 L 741.2 1194" stroke="#231F20" stroke-width="3"/>
 <path d="M 770 1194 L 730 1177 L 741.2 1194 L 730 1211 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
 <text x="776" y="1187" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">MELT / GAS</tspan><tspan x="776" dy="18.48">EXCHANGE,</tspan><tspan x="776" dy="18.48">GAS PRESSURE</tspan></text>
+<text x="565" y="1258" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="565" dy="0">msrd_umd.py -f -b -c -a -x -v -p</tspan></text>
+<rect x="565" y="1268" width="150" height="52" fill="white" stroke="#231F20" stroke-width="3.2" stroke-dasharray="9 6"/>
+<text x="640" y="1300.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="640" dy="0">.msrd.</tspan></text>
+<path d="M 717 1294 L 741.2 1294" stroke="#231F20" stroke-width="3"/>
+<path d="M 770 1294 L 730 1277 L 741.2 1294 L 730 1311 Z" fill="url(#grayfill)" stroke="#231F20" stroke-width="1.5" stroke-linejoin="round"/>
+<text x="776" y="1282" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16.5" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="776" dy="0">RELATIVE</tspan><tspan x="776" dy="18.48">DISPLACEMENTS</tspan><tspan x="776" dy="18.48">OF BONDS (MSRD)</tspan></text>
 <text x="1030" y="330" font-family="'Myriad Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="1030" dy="0">averages.py -f -p -a</tspan></text>
 <rect x="966" y="372" width="170" height="64" fill="white" stroke="#231F20" stroke-width="3.2"/>
 <text x="1051" y="410.65" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#231F20" text-anchor="middle" font-weight="normal"><tspan x="1051" dy="0">fullthermo.</tspan></text>

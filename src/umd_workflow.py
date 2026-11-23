@@ -294,16 +294,18 @@ def main(argv):
             print('     decompressed once into a temporary file, read by every step, and removed at the end : the outputs have the usual names.')
             print('-g : structural properties (geometry) : gofr_umd.py, analyze_gofr.py (bond cutoffs = first minima of the g(r)), bonding_umd.py')
             print('     with these cutoffs, speciation_and_angles.py -r 1 (central atoms and their adjacent neighbours, with the angles -t 1 and')
-            print('     the bond lifetimes -l 1) and -r 0 (polymerization of all the atoms : molecules, -c all -a all), lifetimes.py (plot of the')
-            print('     r1 species).')
-            print('-t : transport properties : msd_umd.py (diffusion coefficients), viscosity_umd.py, and, when the r1 species exist (-g, or a')
-            print('     former run), msd_clusters_umd.py and analyze_msd_clusters.py (diffusion of the chemical species), composition_umd.py')
-            print('     (compositional fluctuations, voids, droplets ; sub-cells of about %g A) and, when the run has a gas phase (mean void' % SUBCELL)
+            print('     the bond lifetimes -l 1), lifetimes.py (plot of the r1 species).')
+            print('-t : transport properties : msd_umd.py (diffusion coefficients), viscosity_umd.py, composition_umd.py (compositional')
+            print('     fluctuations, voids, droplets ; sub-cells of about %g A) and, when the run has a gas phase (mean void' % SUBCELL)
             print('     fraction of composition_umd.py at least %g) and a condensed phase (at least %d atoms of elements that are not volatile),' % (GAS,CONDENSED))
             print('     exchange_umd.py (exchange of atoms between the condensed phase and the gas ; molecules from the bonding file when there is one).')
             print('-d : thermodynamic properties : averages.py -a (fullthermo.dat, one line per UMD file of the folder), vibrations_umd.py,')
             print('     vdos_thermo.py, and thermo_integration_umd.py on the UMD files of a folder when one of them has lambda_ThermoInt < 1.')
             print('     Without -g, -t, -d : the three panels.')
+            print('The workflow runs the basic analyses. The advanced ones, specific to some systems, are run by hand (dashed in the flowchart) :')
+            print('     speciation_and_angles.py -r 0 (polymerization, molecules), msd_clusters_umd.py and analyze_msd_clusters.py (diffusion of')
+            print('     the species : most coordination species live less than the time to reach the diffusive regime), rotations_umd.py,')
+            print('     msrd_umd.py, exchange_umd.py -P and stat-concentrate.py (liquid / vapor).')
             print('check_umd.py always runs first ; its warnings are listed at the end. The workflow continues after a warning : read them.')
             print('-i : snapshots skipped at the beginning (equilibration), passed to all the scripts reading the UMD file. Default 0.')
             print('-s : one snapshot out of s is used by check_umd.py (checks of the atoms), gofr_umd.py, bonding_umd.py (hence the speciation)')
@@ -315,7 +317,7 @@ def main(argv):
             print('-o : runs every step again. Default : a step whose output files are newer than its inputs and were written by the same')
             print('     command (umd_workflow.done) is not run again, so that an interrupted workflow continues where it stopped and a panel')
             print('     can be added later ; a step whose options changed (-i, -s, -c, -a) runs again, and the steps that depend on it. The files')
-            print('     a step wrote in a former run and not in the new one (e.g. cluster MSDs of species no longer found) are removed ; when')
+            print('     a step wrote in a former run and not in the new one (e.g. the lifetime plots of a changed speciation) are removed ; when')
             print('     a step fails, they are kept and the step runs again the next time.')
             print('Each script runs with its default options, in the folder of its UMD file ; run it alone for other options. The output of the')
             print('scripts is appended to umd_workflow.log in that folder. No window is opened.')
@@ -381,16 +383,12 @@ def main(argv):
                                [umd,bonds],[popul,base+'.r1.stat.dat',base+'.r1.step.dat',base+'.angles.dat',base+'.bondslives.dat'])]
             else:
                 print('   no central or adjacent elements for the r1 speciation (cations',cen,', anions',adj,') : give them with -c and -a')
-            steps += [Step('speciation_and_angles.py',['-f',umd,'-b',bonds,'-c','all','-a','all','-r','0'],
-                           [umd,bonds],[base+'.r0.popul.dat',base+'.r0.stat.dat',base+'.r0.step.dat'])]
             if cen and adj:
                 steps += [Step('lifetimes.py',['-f',popul],[popul],[base+'.r1.lifetimes.pdf'])]
 
         if 't' in panels:
             steps += [Step('msd_umd.py',['-f',umd]+skip+sample,[umd],[base+'.msd.dat',base+'.msd.blocks.dat',base+'.diffusion.dat']),
                       Step('viscosity_umd.py',['-f',umd]+skip,[umd],[base+'.stress.scf.dat',base+'.visc.dat'])]
-            if any(step.makes[0] == popul for step in steps) or os.path.isfile(os.path.join(folder,popul)):
-                steps += [Step('msd_clusters_umd.py',['-f',umd,'-p',popul],[umd,popul],[],base+'.r1__*.msd.dat')]
             grid = comp_grid(path,first)
             volatile = [el in composition_umd.VOLATILES for el in MyCrystal.elements]
             ncondensed = sum(n for n, v in zip(MyCrystal.types,volatile) if not v or all(volatile))
@@ -417,9 +415,6 @@ def main(argv):
     for folder, umds in byfolder.items():#Steps over all the UMD files of a folder, and the summary
         print('\n'+folder+' :')
         steps = []
-        clusters = sorted(os.path.basename(f) for f in glob.glob(os.path.join(folder,'*.r1__*.msd.dat')))
-        if 't' in panels and clusters:
-            steps += [Step('analyze_msd_clusters.py',[],clusters,['diffusivities_clusters.txt'])]
         if 'd' in panels:
             steps += [Step('averages.py',['-a','-f',','.join(umds)]+skip,umds,['fullthermo.dat'])]
             if min(umdpf.Crystallization(os.path.join(folder,umd))[0].lambda_ThermoInt for umd in umds) < 1.0:

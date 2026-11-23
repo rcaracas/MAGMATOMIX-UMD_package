@@ -25,8 +25,9 @@ def cmd(x,y,lines,anchor='start',rotate=0,size=17):     #a command of the packag
 def prop(x,y,lines,anchor='start',size=17.5):            #a property (magenta capitals)
     text(x,y,lines,size,MAGENTA,anchor,font=CMDFONT,spacing=1.12)
 
-def box(x,y,w,h,label,size=21,sw=3.2):
-    out.append('<rect x="%g" y="%g" width="%g" height="%g" fill="white" stroke="%s" stroke-width="%g"/>' % (x,y,w,h,BLACK,sw))
+def box(x,y,w,h,label,size=21,sw=3.2,dashed=False):         #dashed : an advanced analysis, run by hand (not by umd_workflow.py)
+    out.append('<rect x="%g" y="%g" width="%g" height="%g" fill="white" stroke="%s" stroke-width="%g"%s/>'
+               % (x,y,w,h,BLACK,sw,' stroke-dasharray="9 6"' if dashed else ''))
     if label:
         labels = label if isinstance(label,list) else [label]
         y0 = y + h/2 - (len(labels)-1)*size*0.55 + size*0.35
@@ -39,9 +40,9 @@ def stack(x,y,w,h,labels,size=21):                          #boxes on top of eac
 def panel(x,y,w,h):
     out.append('<rect x="%g" y="%g" width="%g" height="%g" fill="none" stroke="%s" stroke-width="1" stroke-dasharray="11.8 11.8"/>' % (x,y,w,h,BLACK))
 
-def line(points,head=True,sw=2):                            #black line through points, arrow head at the end
+def line(points,head=True,sw=2,dashed=False):               #black line through points, arrow head at the end ; dashed : to an advanced analysis
     d = 'M ' + ' L '.join('%g %g' % p for p in points)
-    out.append('<path d="%s" fill="none" stroke="%s" stroke-width="%g"/>' % (d,BLACK,sw))
+    out.append('<path d="%s" fill="none" stroke="%s" stroke-width="%g"%s/>' % (d,BLACK,sw,' stroke-dasharray="7 5"' if dashed else ''))
     if head:
         (x0,y0),(x1,y1) = points[-2],points[-1]
         a = math.atan2(y1-y0,x1-x0)
@@ -73,8 +74,11 @@ title(W-22,48,'INPUT/OUTPUT','end')
 title(22,H-70,['STRUCTURAL','PROPERTIES'])
 title(506,H-70,['TRANSPORT','PROPERTIES'])
 title(964,H-70,['THERMODYNAMIC','PROPERTIES'])
-for x,flag in ((22,'-g'),(506,'-t'),(964,'-d')):           #the automated workflow runs a whole panel
-    cmd(x,H-122,'umd_workflow.py '+flag+' : the whole panel',size=16)
+for x,flag,advanced in ((22,'-g',True),(506,'-t',True),(964,'-d',False)): #the automated workflow (the basic analyses) ; dashed boxes : advanced, by hand
+    if advanced:
+        cmd(x,H-128,['umd_workflow.py '+flag+' : the solid boxes','dashed : advanced analyses, run by hand'],size=16)
+    else:
+        cmd(x,H-128,'umd_workflow.py '+flag+' : the whole panel',size=16)
 
 #---------------------------------------------------------------- input / output
 md = box(6,6,236,140,None,sw=4.5)
@@ -112,6 +116,7 @@ line([(640,204),(640,400+DY)])
 line([(540,204),(540,690+DY),(563,690+DY)])
 line([(528,204),(528,1194+DY),(563,1194+DY)])
 line([(528,1094+DY),(563,1094+DY)])
+line([(528,1194+DY),(528,1294+DY),(563,1294+DY)],dashed=True)               #msrd_umd.py : advanced
 line([(680,196),(1030,370+DY)])
 line([(680,188),(1340,280),(1340,592+DY),(1148,592+DY)])
 out.append('<g transform="translate(0,%g)">' % DY)
@@ -140,7 +145,8 @@ prop(230,981,'ANGLES')
 gray(166,1045,222,1045)
 prop(230,1039,['BOND','LIFETIMES'])
 #lifetimes and liquid/vapor partitioning from the species
-line([(40,859),(18,859),(18,1186),(262,1186)],head=False)
+line([(40,859),(18,859),(18,1116)],head=False)
+line([(18,1116),(18,1186),(262,1186)],head=False,dashed=True)                #liquid / vapor : advanced
 line([(18,1116),(150,1116)],head=False)
 cmd(30,1108,'lifetimes.py',size=16)
 gray(150,1116,200,1116)
@@ -149,9 +155,9 @@ cmd(30,1160,['exchange_umd.py -P','stat-concentrate.py'],size=16)
 gray(262,1186,312,1186)
 prop(320,1180,['LIQUID / VAPOR','PARTITIONING'])
 #orientations of the molecular units, from the .bonding. file (velocities of the .umd. file for the entropy)
-line([(30,679),(10,679),(10,1291),(38,1291)])
+line([(30,679),(10,679),(10,1291),(38,1291)],dashed=True)
 cmd(30,1246,'rotations_umd.py -f -b -c -a -x -V',size=16)
-rot = box(40,1262,124,58,'.rot.')
+rot = box(40,1262,124,58,'.rot.',dashed=True)
 gray(166,1291,222,1291)
 prop(230,1270,['ORIENTATIONS,','ROTATIONS,','ROTATIONAL ENTROPY'],size=16.5)
 
@@ -169,9 +175,9 @@ text(776,750,'(and tensor)',15,MAGENTA,font=CMDFONT)
 cmd(585,810,'analyze_msd.py',size=16)
 line([(640,780),(640,795)],head=False)
 #species from speciation_and_angles.py
-line([(166,830),(470,830),(470,850),(640,850),(640,900)])
+line([(166,830),(470,830),(470,850),(640,850),(640,900)],dashed=True)        #msd_clusters_umd.py : advanced
 cmd(650,886,['msd_clusters_umd.py -f -p'])
-msdc = box(565,902,150,60,'.msd.',19)
+msdc = box(565,902,150,60,'.msd.',19,dashed=True)
 gray(717,932,770,932)
 prop(776,920,['DIFFUSION OF','CHEMICAL','SPECIES'])
 cmd(565,1000,'analyze_msd_clusters.py',size=16)
@@ -185,6 +191,11 @@ cmd(565,1158,'exchange_umd.py -f -b -g -m -A',size=16)
 exch = box(565,1168,150,52,'.exchange.',19)
 gray(717,1194,770,1194)
 prop(776,1187,['MELT / GAS','EXCHANGE,','GAS PRESSURE'],size=16.5)
+#mean square relative displacements of the bonds of the polyhedra (polyhedra from the .bonding. file)
+cmd(565,1258,'msrd_umd.py -f -b -c -a -x -v -p',size=16)
+msrd = box(565,1268,150,52,'.msrd.',19,dashed=True)
+gray(717,1294,770,1294)
+prop(776,1282,['RELATIVE','DISPLACEMENTS','OF BONDS (MSRD)'],size=16.5)
 
 #---------------------------------------------------------------- thermodynamic
 cmd(1030,330,['averages.py -f -p -a'])

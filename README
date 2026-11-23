@@ -77,7 +77,7 @@ repair_umd.py                   repairs UMD files written by older versions of V
 umd2out.py                      UMD -> extended XYZ, POSCAR, LAMMPS data and dump, DeepMD
 build_umd.py                    new structures from a UMD snapshot, a POSCAR or an empty box; trajectories of selected atoms
 check_umd.py                    quality checks of a run
-umd_workflow.py                 automated workflow: runs the scripts of the structural (-g), transport (-t), thermodynamic (-d) panels,
+umd_workflow.py                 automated workflow: runs the basic scripts of the structural (-g), transport (-t), thermodynamic (-d) panels (not those marked advanced),
                                 one summary table of the results per folder
 umd_clean.py                    removes the outputs of the package from a folder, to start afresh (lists them; -y moves them aside)
 
@@ -86,17 +86,18 @@ gofr_umd.py                     pair distribution functions of all pairs or of c
 analyze_gofr.py                 first maxima, minima and coordination numbers; bond cutoffs
 bonding_umd.py                  bonds of every snapshot (C library c_bonds_full)
 speciation_and_angles.py        chemical species, angles, bond lifetimes (C library c_clusters)
-rotations_umd.py                orientations of molecular units (H2O, NH3, CH4, OH, SO4...): correlations between units and in time, orientation map, entropy of translation and rotation (2PT)
+rotations_umd.py                (advanced) orientations of molecular units (H2O, NH3, CH4, OH, SO4...): correlations between units and in time, orientation map, entropy of translation and rotation (2PT)
 lifetimes.py                    plots of the lifetimes of the species
-stat-concentrate.py             liquid/vapor partitioning over several runs
+stat-concentrate.py             (advanced) liquid/vapor partitioning over several runs
 exchange_umd.py                 exchange of atoms between a condensed phase and the gas (or between two condensed phases, -c) through their interface: states, paths, exchanges, fluxes and equilibrium, gas pressure and composition, partition, molecules; liquid and vapor species (-P)
 composition_umd.py              compositional fluctuations: atoms counted in a grid of sub-cells; local composition and density against ideal mixing, correlations of the elements, voids and bubbles, droplets, partition between gas and condensed phase, lifetimes of the heterogeneities
 
     transport properties:
 msd_umd.py                      mean square displacements, diffusion coefficients and tensor
-msd_clusters_umd.py             mean square displacements of chemical species
+msd_clusters_umd.py             (advanced) mean square displacements of chemical species
+msrd_umd.py                     (advanced) mean square relative displacements of the bonds of coordination polyhedra (SiO4, MgO6...): along and across each bond, in the frame of the cell and of the polyhedron; static EXAFS values
 analyze_msd.py                  diffusion coefficients from MSD files
-analyze_msd_clusters.py         diffusion coefficients of chemical species
+analyze_msd_clusters.py         (advanced) diffusion coefficients of chemical species
 viscosity_umd.py                shear viscosity (Green-Kubo)
 
     thermodynamic properties:
@@ -271,3 +272,8 @@ v 3.4, November 2026 - native Windows, tests on three systems, exchange between 
 - ROADMAP: native Windows is v3.4; the large-system steps renumbered v3.5 to v3.9
 - documentation/umd-flowchart: rotations_umd.py (structural panel), the gas pressure of exchange_umd.py, compressed runs (.umd.dat.gz), umd_clean.py
 - exchange_umd.py -c <elements of phase A>: exchange between two condensed phases (e.g. -c Fe: He between liquid iron and a silicate melt). The field is the smoothed density of the elements of A only: phase A where it is above half its bulk, phase B the rest, whatever its density (without -c both liquids are dense and everything is condensed). The same states, paths, exchanges and fluxes, labelled A and B; instead of the gas, the partition between the zones of A and B: number densities (D), mole fractions (K) and mass fractions (D_mass, the metal/silicate partition coefficient), with errors. Gas options (-g, -b, -m clusters, -T, -A) refused with -c. Outputs in the folder <base>.exchange.<elements of A>. Checked on a synthetic run (He between an Fe slab and a Si-O slab of the same density, O dissolved in the Fe and Fe in the Si-O; validation case syn_twophase): rates, stays, D within their errors, K and D_mass exact, the dissolved atoms in their host; outputs of the gas mode unchanged
+
+Since v 3.4 (not yet released):
+- msrd_umd.py (new): mean square relative displacements (MSRD) of the bonds of coordination polyhedra (-c Si -a O: SiO4; -x the number of adjacent atoms, default the most frequent composition), from the bonding file. For each bond, b = r_adjacent - r_central (the translation of the polyhedron cancels in it), MSRD(t) = <[(b(t0+t) - b(t0)).e(t0)]^2> over the bonds and all the time origins (FFT), e(t0) along the bond (parallel) or across it: perp1 in the plane of the bond and of the second central atom of a bridging adjacent atom (the Si-O-Si plane), else of the nearest other adjacent atom (the O-Si-O plane), perp2 normal to that plane; bridging and non-bridging bonds apart, by their state at t0. Two frames: the cell (lab: the transverse MSRD includes the rotation of the polyhedron) and the polyhedron (body: its rigid rotation between t0 and t0+t removed by the mass-weighted Kabsch fit). A polyhedron is followed by its central atom while it keeps the same adjacent atoms; gaps of at most -g fs without its composition bridged. Static values, as measured by EXAFS: mean bond length, its variance (the Debye-Waller factor of the distance) and third cumulant; sigma2 parallel and perpendicular about the mean positions of each life, the distance R0 between the mean positions (<r> - R0 = sigma2_perp/(2 R0) checked: pyrolite SiO4 0.0283 and 0.0284 A in the body frame). Errors from blocks. Outputs <base>.<unit>.msrd.time.dat and .msrd.dat. -v plots them (rows lab and body frames, columns all, bridging and non-bridging bonds; the MSRD along and across the bonds with their error bands, the static 2 sigma2 plateaus dotted, the static values in text boxes; one page per adjacent element, Previous/Next), -p writes the plot to <base>.<unit>.msrd.pdf. Checked on a synthetic run (validation case syn_msrd: SiO4 and Si2O7 turning, drifting and vibrating in a triclinic cell deformed at every snapshot, with a bridged gap and a broken life): every MSRD and static value equal to a brute-force computation (body frame by Horn's quaternions) to 3e-9
+- umd_workflow.py runs the basic analyses only (faster, and a clear line between a basic and an advanced user): speciation_and_angles.py -r 0 (polymerization, molecules), msd_clusters_umd.py and analyze_msd_clusters.py are no longer steps of the workflow; they are advanced analyses, run by hand. The cluster MSDs were not usable as the workflow ran them: of the 54 r1 species of the reference runs (pyrolite 33, glycine 7, corundum 3, ZnS 3...), none reached the diffusive regime (alpha 0.8-1.2; all 33 of pyrolite above 1.5, still ballistic), because most coordination species live less than the time a melt takes to become diffusive; run them by hand for long-lived molecules, with a chosen fit window
+- documentation/umd-flowchart: msrd_umd.py (transport panel); the advanced analyses, run by hand and not by umd_workflow.py (rotations_umd.py, msrd_umd.py, msd_clusters_umd.py, liquid/vapor partitioning), in dashed boxes and lines; the label of each panel says what the workflow runs. Marked advanced in the README and the quick help
