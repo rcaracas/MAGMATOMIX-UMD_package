@@ -26,8 +26,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Python packages
@@ -40,7 +40,7 @@ jobs:
         run: python validation/run_validation.py -c "syn_*" -o ci-runs
       - name: Keep the run folder when something failed
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: validation-${{ matrix.os }}
           path: |
