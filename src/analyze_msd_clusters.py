@@ -83,7 +83,7 @@ def main(argv):
             print('-v : display each averaged MSD with its linear fit and the fit window (grey), one at a time (default: no display). Two clicks')
             print('     on the graph set the fit window of this cluster : the first one its start, the second one its end ; the instances living')
             print('     through it are averaged and fitted again at once. Automatic : back to the window of -s/-e. Previous/Next : the other')
-            print('     clusters, one pass ; Next on the last one closes the window, and the files are then written with the windows set.')
+            print('     clusters, one pass ; Next reads Done on the last one and closes the window, and the files are then written with the windows set.')
             print('')
             print('diffusivities_clusters.txt has one line per cluster file, with:')
             print('     file, cluster, number of instances, number used in the fit, start and end of the fit (fs),')

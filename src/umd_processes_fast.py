@@ -473,6 +473,32 @@ def read_stresses_4visc(UMDfile):#The header (Crystallization), one Lattice per 
 
 _headerdone = False
 
+def page_buttons(fig,npages,show,prev_rect,next_rect,last=True):#Buttons of the windows of the package, so the user knows when it is done : one page,
+    #a Done button that closes the window ; several pages (drawn by show(k), the first one already drawn by the caller), Previous and Next, Next
+    #reading Done on the last page and closing the window there (one pass, no wrap-around ; Previous on the first page stays). last=False : the
+    #window is one of several shown one after the other (vibrations_umd.py -v without -f), its single button reads Next. Returns the state {'k': page}
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import Button
+    state = {'k':0}
+    finish = 'Done' if last else 'Next'
+    bnext = Button(fig.add_axes(next_rect),finish if npages < 2 else 'Next')
+    bprev = Button(fig.add_axes(prev_rect),'Previous') if npages > 1 else None
+    def step(delta):
+        k = state['k']+delta
+        if k >= npages:
+            plt.close(fig)
+            return
+        state['k'] = max(0,k)
+        show(state['k'])
+        bnext.label.set_text(finish if state['k'] == npages-1 else 'Next')
+        fig.canvas.draw_idle()
+    bnext.on_clicked(lambda event: step(1))
+    if bprev is not None:
+        bprev.on_clicked(lambda event: step(-1))
+    fig._umd_buttons = tuple(b for b in (bprev,bnext) if b is not None)   #kept alive, otherwise garbage-collected and unresponsive
+    return state
+
+
 def headerumd():#once per run, also when a script runs on several files (-f all)
     global _headerdone
     if _headerdone:

@@ -213,7 +213,8 @@ def write_columns(filename,comments,labels,columns):
     f.close()
 
 
-def plot_vibrations(t,vacfnorm,freq,g,gerr,elements,title):#g, gerr : vDOS and errors of the elements, then of their sum
+def plot_vibrations(t,vacfnorm,freq,g,gerr,elements,title,last=True):#g, gerr : vDOS and errors of the elements, then of their sum ; last=False :
+    #another window follows (show_results), the button reads Next instead of Done
     import matplotlib.pyplot as plt
     fig,(ax1,ax2) = plt.subplots(2,1,figsize=(8,8))
     for itypat,el in enumerate(elements):
@@ -235,6 +236,8 @@ def plot_vibrations(t,vacfnorm,freq,g,gerr,elements,title):#g, gerr : vDOS and e
     ax2.set_title('shaded : one standard error',fontsize='medium')
     ax2.legend(fontsize='small',ncol=5)
     fig.tight_layout()
+    fig.subplots_adjust(bottom=0.11)
+    umdpf.page_buttons(fig,1,None,None,[0.8,0.012,0.15,0.04],last=last)   #closes the window
     plt.show()
 
 
@@ -250,10 +253,10 @@ def show_results():#-v without -f : the VACFs and vDOS already computed in the c
     if not bases:
         print('no <base>.vibr.err.dat or <base>.vibr.dat in the current folder : give the UMD file with -f to compute them')
         return
+    for base in [b for b in bases if not os.path.isfile(b+'.vels.scf.dat')]:
+        print(base,': no ',base+'.vels.scf.dat, skipped')
+    bases = [b for b in bases if os.path.isfile(b+'.vels.scf.dat')]   #the last one shown gets Done, the others Next
     for base in bases:
-        if not os.path.isfile(base+'.vels.scf.dat'):
-            print(base,': no ',base+'.vels.scf.dat, skipped')
-            continue
         vlabels, vacf = read_table(base+'.vels.scf.dat')
         elements = [lab for lab in vlabels[1:vlabels.index('Average')] if '_' not in lab]#the elements, not their axes
         if os.path.isfile(base+'.vibr.err.dat'):
@@ -264,7 +267,7 @@ def show_results():#-v without -f : the VACFs and vDOS already computed in the c
         g = np.array([gdata[:,glabels.index(name)] for name in names])
         gerr = np.array([gdata[:,glabels.index(name+'_err')] if name+'_err' in glabels else np.zeros(len(gdata)) for name in names])
         print('showing',base,'(computed before ;',base+'.vibr.err.dat' if os.path.isfile(base+'.vibr.err.dat') else base+'.vibr.dat, no errors',')')
-        plot_vibrations(vacf[:,0],np.array([vacf[:,vlabels.index(el)] for el in elements]),gdata[:,0],g,gerr,elements,base+' (computed before)')
+        plot_vibrations(vacf[:,0],np.array([vacf[:,vlabels.index(el)] for el in elements]),gdata[:,0],g,gerr,elements,base+' (computed before)',last=base == bases[-1])
 
 
 def main(argv):

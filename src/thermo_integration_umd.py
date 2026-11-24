@@ -253,6 +253,8 @@ def main(argv):
         fig.tight_layout()
         fig.savefig('thermo_integration.pdf')
         print('Plot in thermo_integration.pdf')
+        fig.subplots_adjust(bottom=0.2)
+        umdpf.page_buttons(fig,1,None,None,[0.8,0.02,0.15,0.07])   #Done : closes the window (not in the PDF, saved before)
         plt.show()
 
 

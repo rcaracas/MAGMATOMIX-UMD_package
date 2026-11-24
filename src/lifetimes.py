@@ -194,7 +194,7 @@ def main(argv):
             print('     Default : <prefix>.r0.step.dat for each <prefix>.r<r>.popul.dat.')
             print('-m : merges the files into one figure, for independent runs at the same P and T. Default : one figure per file.')
             print('-o : name of the merged figure (with -m). Default lifetimes.merged.pdf.')
-            print('-v : shows the figures, with Previous/Next buttons.')
+            print('-v : shows the figures, with Previous/Next buttons (one pass ; Next reads Done on the last figure and closes the window).')
             print('Output : <popul base>.lifetimes.pdf per file (or the merged one) ; with -l, <popul base>.liquid.lifetimes.pdf and .vapor.lifetimes.pdf')
             print('(merged : <output>.liquid.pdf and .vapor.pdf). The single atoms are in row 0 : the central ones in their column, the adjacent ones')
             print('(not bound to a central atom) in columns of their own (free O...). Species with several central atoms are left out. A panel with')
@@ -283,23 +283,14 @@ def main(argv):
         print('figure written in',outfile)
 
     if view:
-        from matplotlib.widgets import Button
-        state = {'k': 0}
         fig = plt.figure(figsize=(12,9))
         panel = fig.subfigures(1,1)#redrawn at each step ; the buttons stay on fig
-        def show():
-            title,outfile,lifetimes,formulas,centrals,adjacents,layout = figures[state['k']]
-            draw(panel,title+'  (%d/%d)' % (state['k']+1,len(figures)),lifetimes,formulas,centrals,adjacents,layout)
+        def show(k):
+            title,outfile,lifetimes,formulas,centrals,adjacents,layout = figures[k]
+            draw(panel,title+('  (%d/%d)' % (k+1,len(figures)) if len(figures) > 1 else ''),lifetimes,formulas,centrals,adjacents,layout)
             fig.canvas.draw_idle()
-        def step(d):
-            state['k'] = (state['k']+d) % len(figures)
-            show()
-        bprev = Button(fig.add_axes([0.70,0.01,0.1,0.04]),'Previous')
-        bnext = Button(fig.add_axes([0.81,0.01,0.1,0.04]),'Next')
-        bprev.on_clicked(lambda event: step(-1))
-        bnext.on_clicked(lambda event: step(1))
-        fig._umd_buttons = (bprev,bnext)
-        show()
+        show(0)
+        umdpf.page_buttons(fig,len(figures),show,[0.70,0.01,0.1,0.04],[0.81,0.01,0.1,0.04])   #one pass : Next reads Done on the last figure
         plt.show()
 
 

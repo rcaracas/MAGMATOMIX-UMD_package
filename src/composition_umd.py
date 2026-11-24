@@ -178,10 +178,9 @@ def parse_cells(arg,grid,rng):#Sub-cells of -c : ia:ib:ic (indexes from 0 along 
 def plot_subcells(cells,grid,times,C,elements,isvol,rho_all,rho_melt,limit,title,tracked=None):#For each sub-cell (ia, ib, ic) : the number of atoms of the
     #tracked elements (default all ; -a)
     #against time, stacked (the top line is the total), and below the density of the sub-cell with the void threshold, the voids shaded ;
-    #Previous and Next buttons when there are several sub-cells (Next on the last one closes the window, as the other scripts). Returns the
+    #Previous and Next buttons when there are several sub-cells (Next reads Done on the last one and closes the window ; Done for one sub-cell). Returns the
     #figure and the function that draws sub-cell k (for tests)
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import Button
     nel = len(elements)
     tracked = list(range(nel)) if tracked is None else list(tracked)
     order = [e for e in tracked if not isvol[e]]+[e for e in tracked if isvol[e]]   #melt elements at the bottom, volatiles on top
@@ -191,7 +190,6 @@ def plot_subcells(cells,grid,times,C,elements,isvol,rho_all,rho_melt,limit,title
     fig = plt.figure(figsize=(10,6.5),facecolor=SURFACE)
     ax1 = fig.add_axes([0.08,0.47,0.74,0.42],facecolor=SURFACE)
     ax2 = fig.add_axes([0.08,0.14,0.74,0.27],facecolor=SURFACE,sharex=ax1)
-    state = {'k':0}
     def draw(k):
         ia, ib, ic = cells[k]
         idx = (ia*grid[1]+ib)*grid[2]+ic
@@ -229,20 +227,8 @@ def plot_subcells(cells,grid,times,C,elements,isvol,rho_all,rho_melt,limit,title
         fig.suptitle(title+' : sub-cell %d:%d:%d of %dx%dx%d' % (ia,ib,ic,*grid)+('   (%d of %d)' % (k+1,len(cells)) if len(cells) > 1 else '')
                      +'\nvoid %.0f %% of the time' % (100*void.mean()),color=TEXT,fontsize=10,x=0.08,ha='left')
         fig.canvas.draw_idle()
-    def step(delta):
-        k = state['k']+delta
-        if k >= len(cells):
-            plt.close(fig)
-            return
-        state['k'] = max(0,k)
-        draw(state['k'])
     draw(0)
-    if len(cells) > 1:
-        bprev = Button(fig.add_axes([0.62,0.02,0.1,0.05]),'Previous')
-        bnext = Button(fig.add_axes([0.73,0.02,0.1,0.05]),'Next')
-        bprev.on_clicked(lambda event: step(-1))
-        bnext.on_clicked(lambda event: step(1))
-        fig._umd_buttons = (bprev,bnext)       #kept alive, otherwise garbage-collected and unresponsive
+    umdpf.page_buttons(fig,len(cells),draw,[0.62,0.02,0.1,0.05],[0.73,0.02,0.1,0.05])   #Done for one sub-cell ; Previous, Next (Done on the last)
     return fig, draw
 
 
@@ -443,7 +429,7 @@ def main(argv):
             print('     The exchange of atoms between the gas and the condensed phase, its fluxes and equilibrium : exchange_umd.py.')
             print('-v : plot of the sub-cells of -c (without -c : every sub-cell, in random order) : the number of atoms of each element of -a against time')
             print('     (stacked : the top is their total), and the density of the sub-cell with the void threshold, the voids shaded ; Previous and')
-            print('     Next buttons.')
+            print('     Next buttons (Next reads Done on the last sub-cell and closes the window ; Done for a single sub-cell).')
             print('Any cell, orthogonal or not, and cells changing at every snapshot (NPT) : the sub-cells are cut in reduced coordinates, so they all')
             print('have the same volume, V/n, at every snapshot.')
             print('Outputs : all in the folder <base>.comp.<grid>, <grid> = na x nb x nc, e.g. pyrolite.comp.6x6x6 (one folder per grid ; delete it to remove')

@@ -289,13 +289,14 @@ def check_plots(analyses):#One plot per pair, with Previous/Next ; two left clic
             ax.axvline(x,color='tab:blue',linewidth=0.8)
         todo = 'click the minimum' if state['clicks'] else 'click the maximum, then the minimum'
         if state['i'] == len(items)-1:
-            todo += '    (last pair : Next closes and writes the files)'
+            todo += '    (last pair : Done closes and writes the files)'
+        buttons[4].label.set_text('Done' if state['i'] == len(items)-1 else 'Next')#Next reads Done on the last pair
         fig.suptitle('%d/%d    %s : %s%s' % (state['i']+1,len(items),'Manual (as clicked)' if state['manual'] else 'clicks fitted',todo,
                                             ('    '+state['message']) if state['message'] else ''),x=0.98,ha='right',fontsize='small')
         buttons[2].color = 'lightsteelblue' if state['manual'] else '0.85'#Manual is highlighted while it is on
         buttons[2].ax.set_facecolor(buttons[2].color)
         fig.canvas.draw_idle()
-    def step(delta):#one pass over the pairs : Next on the last one closes the window (the files are then written), Previous on the first stays
+    def step(delta):#one pass over the pairs : Next reads Done on the last one and closes the window (the files are then written), Previous on the first stays
         if state['i']+delta >= len(items):
             plt.close(fig)
             return
@@ -400,8 +401,8 @@ def main(argv):
             print('     polynomial over the bottom tenth of the dip (fits at most '+str(MAX_FIT)+' A wide).')
             print('     Manual : a switch (highlighted while on) : the clicked points are then taken as they are ; press it again to fit them.')
             print('     Discard : no shell for this pair (0 in the .inp files). Automatic : back to the automatic values. Previous/Next : the')
-            print('     other pairs and files, one pass : each pair once (A-B and B-A, which have the same g(r), are changed together), and Next')
-            print('     on the last pair closes the window and writes the files (so does closing the window). Clicks are ignored while the zoom')
+            print('     other pairs and files, one pass : each pair once (A-B and B-A, which have the same g(r), are changed together) ; Next')
+            print('     reads Done on the last pair : it closes the window and writes the files (so does closing the window). Clicks are ignored while the zoom')
             print('     or pan of the toolbar is active.')
             print('-p : save one plot per pair, <base>.gofr.<pair>.png.')
             print('Method : the g(r) is smoothed by a gaussian (-g); its first peak more prominent than '+str(NOISE_PEAKS)+' times the local noise (from the scatter')

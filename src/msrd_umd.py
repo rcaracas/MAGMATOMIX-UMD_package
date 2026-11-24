@@ -52,18 +52,16 @@ def read_outputs(timefile,sumfile):#The MSRD in time (header -> column) and the 
     return columns, summary
 
 
-def plot_msrd(timefile,sumfile,central,adjacents,title):#One page per adjacent element : rows lab and body frames, columns all bonds, bridging,
+def plot_msrd(timefile,sumfile,central,adjacents,title,interactive=True):#One page per adjacent element : rows lab and body frames, columns all bonds, bridging,
     #non-bridging ; the MSRD along the bond and across it with their error bands, 2 sigma2 (static) dotted, the static values in text boxes.
-    #Previous and Next buttons with several adjacent elements (Next on the last one closes the window, as the other scripts). Returns the figure and
-    #the function that draws page k (for tests and for the PDF)
+    #interactive : buttons, Done for one page, Previous and Next for several (Next reads Done on the last one and closes the window ; none in the
+    #PDF of -p). Returns the figure and the function that draws page k (for tests and for the PDF)
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import Button
     from matplotlib.lines import Line2D
     col, summ = read_outputs(timefile,sumfile)
     t = col['time_(fs)']
     fig, axes = plt.subplots(2,3,figsize=(13,7.6),facecolor=SURFACE)
-    fig.subplots_adjust(left=0.07,right=0.985,top=0.75,bottom=0.08,wspace=0.18,hspace=0.30)
-    state = {'k':0}
+    fig.subplots_adjust(left=0.07,right=0.985,top=0.75,bottom=0.11 if interactive else 0.08,wspace=0.18,hspace=0.30)
     names = {'par':'parallel (along the bond)','perp1':'perp1 (in the %s-%%s-%s or %%s-%s-%%s plane)' % (central,central,central),
              'perp2':'perp2 (normal to that plane)','perp':'perp = perp1 + perp2'}
     def value(key):
@@ -141,20 +139,9 @@ def plot_msrd(timefile,sumfile,central,adjacents,title):#One page per adjacent e
         fig.suptitle('%s : %s-%s bonds of the polyhedra, mean square relative displacements%s\n%d lives of %.0f fs on average ; static $\\sigma^2$ about the mean positions of each life ; bands : errors from blocks'
                      % (title,central,el,'   (%d of %d)' % (k+1,len(adjacents)) if len(adjacents) > 1 else '',lives,life),color=TEXT,fontsize=10,x=0.07,ha='left',y=0.985)
         fig.canvas.draw_idle()
-    def step(delta):
-        k = state['k']+delta
-        if k >= len(adjacents):
-            plt.close(fig)
-            return
-        state['k'] = max(0,k)
-        draw(state['k'])
     draw(0)
-    if len(adjacents) > 1:
-        bprev = Button(fig.add_axes([0.76,0.02,0.1,0.045]),'Previous')
-        bnext = Button(fig.add_axes([0.87,0.02,0.1,0.045]),'Next')
-        bprev.on_clicked(lambda event: step(-1))
-        bnext.on_clicked(lambda event: step(1))
-        fig._umd_buttons = (bprev,bnext)       #kept alive, otherwise garbage-collected and unresponsive
+    if interactive:
+        umdpf.page_buttons(fig,len(adjacents),draw,[0.76,0.015,0.1,0.04],[0.87,0.015,0.1,0.04])
     return fig, draw
 
 
@@ -305,7 +292,7 @@ def main(argv):
             print('-n : number of blocks of the run for the errors. Default 4')
             print('-w : length of the MSRD in time, in snapshots. Default half a block, at most half the run')
             print('-v : plot : MSRD against time, lab and body frames, all, bridging and non-bridging bonds, with their errors, 2 sigma2 (static)')
-            print('     dotted and the static values in text boxes ; one page per adjacent element (Previous, Next)')
+            print('     dotted and the static values in text boxes ; one page per adjacent element (Previous, Next ; Done on the last page)')
             print('-p : the same plot written to <base>.<unit>.msrd.pdf, one page per adjacent element')
             print('For each bond central - adjacent atom, b = r_adjacent - r_central (the translation of the polyhedron cancels in it) ; MSRD(t) =')
             print('     < [(b(t0+t) - b(t0)) . e(t0)]^2 > over the bonds and all the time origins t0 of the lives, e(t0) along the bond (par) or across it :')
@@ -632,7 +619,7 @@ def main(argv):
             matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from matplotlib.backends.backend_pdf import PdfPages
-        fig, draw = plot_msrd(names[0],names[1],central,adjacents,os.path.basename(base))
+        fig, draw = plot_msrd(names[0],names[1],central,adjacents,os.path.basename(base),interactive=False)
         with PdfPages(names[2]) as out:
             for q in range(nel):
                 draw(q)

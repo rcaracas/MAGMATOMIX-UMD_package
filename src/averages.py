@@ -227,11 +227,11 @@ def write_thermo(files,SkipSteps,units):#Thermodynamics of the UMD files, in ful
 
 
 def plot_series(series):
-    """Plots one series at a time, with Previous/Next buttons to move between them.
+    """Plots one series at a time, with Previous/Next buttons to move between them (Next reads Done on the last one and closes the window ;
+    a single series has a Done button).
     Each series is (title, unit, data, average, stdev) and gets its own y-scale, since e.g. diagonal and
     off-diagonal stresses, or pressure and energy, can differ by orders of magnitude."""
     import matplotlib.pyplot as plt
-    from matplotlib.widgets import Button
     fig, ax = plt.subplots()
     line, = ax.plot(series[0][2])
     avgline = ax.axhline(series[0][3], color='m')
@@ -250,16 +250,11 @@ def plot_series(series):
         ax.autoscale(enable=True)      #re-enabled in case the toolbar zoom switched it off
         fig.canvas.draw_idle()
     draw()
-    if len(series) > 1:
-        fig.subplots_adjust(bottom=0.2)
-        def step(delta):
-            state['iseries'] = (state['iseries'] + delta) % len(series)
-            draw()
-        bprev = Button(fig.add_axes([0.59, 0.03, 0.15, 0.06]), 'Previous')
-        bnext = Button(fig.add_axes([0.75, 0.03, 0.15, 0.06]), 'Next')
-        bprev.on_clicked(lambda event: step(-1))
-        bnext.on_clicked(lambda event: step(1))
-        fig._umd_buttons = (bprev, bnext)       #keeps the buttons alive, otherwise they are garbage-collected and stop responding
+    fig.subplots_adjust(bottom=0.2)
+    def show(k):
+        state['iseries'] = k
+        draw()
+    umdpf.page_buttons(fig, len(series), show, [0.59, 0.03, 0.15, 0.06], [0.75, 0.03, 0.15, 0.06])
     plt.show()
 
 

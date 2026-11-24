@@ -130,7 +130,7 @@ def fit_msd(fit,tmin,tmax):
 
 
 def plot_fits(fits,refit=None):
-    """Plots one MSD at a time with its linear fit and the fit window, one pass with Previous/Next (Next on the last one closes the window).
+    """Plots one MSD at a time with its linear fit and the fit window, one pass with Previous/Next (Next reads Done on the last one and closes the window).
     Each fit is a dictionary with the keys title, t, msd, tmin, tmax, slope, intercept, D, D_err, R2, alpha, and default (the window of -s/-e).
     With refit(fit,tmin,tmax) (True if fitted), two clicks set the window : the first one its start, the second one its end ; Automatic
     goes back to the default window. The fits are changed in place, the caller writes them after the window is closed."""
@@ -164,7 +164,8 @@ def plot_fits(fits,refit=None):
         else:
             todo = ''
         if state['ifit'] == len(fits)-1:
-            todo += '    (last : Next closes'+(' and writes the files)' if refit is not None else ')')
+            todo += '    (last : Done closes'+(' and writes the files)' if refit is not None else ')')
+        buttons[-1].label.set_text('Done' if state['ifit'] == len(fits)-1 else 'Next')#Next reads Done on the last fit
         fig.suptitle(todo + (('    '+state['message']) if state['message'] else ''), x=0.98, ha='right', fontsize='small')
         ax.relim()
         ax.autoscale(enable=True)      #re-enabled in case the toolbar zoom switched it off
@@ -250,8 +251,8 @@ def main(argv):
             print('origins, give much noisier D ; increase EndTemps for slow, sub-diffusive systems.')
             print('-v : display each MSD with its linear fit and the fit window (grey), one at a time (default: no display). Two clicks on the')
             print('     graph set the fit window of this MSD : the first one its start, the second one its end ; D, its error, R^2 and alpha')
-            print('     are fitted again at once. Automatic : back to the default window. Previous/Next : the other MSDs, one pass ; Next on')
-            print('     the last one closes the window (so does closing it), and the diffusivities.txt files are then written with the')
+            print('     are fitted again at once. Automatic : back to the default window. Previous/Next : the other MSDs, one pass ; Next reads')
+            print('     Done on the last one and closes the window (so does closing it), and the diffusivities.txt files are then written with the')
             print('     windows set. Clicks are ignored while the zoom or pan of the toolbar is active.')
             print('Cluster MSD files from msd_clusters_umd.py are skipped : use analyze_msd_clusters.py for them.')
             print('')

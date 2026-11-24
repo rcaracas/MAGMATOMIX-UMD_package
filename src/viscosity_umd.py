@@ -73,6 +73,8 @@ def plot_viscosity(t,acf,etacomp,eta,etaerr,res,title):
     ax2.set_title('viscosity = '+'%.3g' % (res['eta']*1e3)+' +/- '+'%.2g' % (res['error']*1e3)+' mPa.s at '+'%.0f' % res['tend']+' fs',fontsize='medium')
     ax2.legend(fontsize='small',ncol=3)
     fig.tight_layout()
+    fig.subplots_adjust(bottom=0.12)
+    umdpf.page_buttons(fig,1,None,None,[0.8,0.015,0.15,0.045])   #Done : closes the window
     plt.show()
 
 
