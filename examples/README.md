@@ -27,7 +27,7 @@ python3 ../MAGMATOMIX-UMD_package/src/umd2out.py -f pyrolite.a13.T3000K.umd.dat 
 python3 ../MAGMATOMIX-UMD_package/src/umd_workflow.py -f pyrolite.a13.T3000K.umd.dat      # or all the analyses at once
 ```
 
-Each script runs in 1–2 s on a laptop, the whole workflow (15 steps) in about 20 s. What you should find:
+Each script runs in 1–2 s on a laptop, the whole workflow (12 steps) in about 20 s. What you should find:
 
 - `averages.py -a -i 500`: density 2.445 g/cm³, P 1.29 ± 0.16 GPa, T 2999.5 ± 16 K, Cv 3.46 ± 0.22 N kB
 - `analyze_gofr.py` (`.coordinations.inp`): Si-O 4.00, Al-O 4.09, Fe-O 4.14, Mg-O 4.93, Na-O 5.90, Ca-O 7.72; Si-O cutoff 2.42 Å

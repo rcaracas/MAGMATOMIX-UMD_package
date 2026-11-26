@@ -83,12 +83,12 @@ for x,flag,advanced in ((22,'-g',True),(506,'-t',True),(964,'-d',False)): #the a
 #---------------------------------------------------------------- input / output
 md = box(6,6,236,140,None,sw=4.5)
 text(124,52,['ab initio /','classical MD'],32,BLACK,'middle',spacing=1.1)
-text(124,116,['VASP, ABINIT, CP2K,','QBox, LAMMPS'],15,BLACK,'middle')
+text(124,116,['VASP, ABINIT, CP2K,','CASTEP, QBox, LAMMPS'],15,BLACK,'middle')
 umd = box(500,140,180,64,None)
 text(590,180,'.umd.',24,BLACK,'middle')
 text(590,198,'(.umd.dat or .umd.dat.gz)',11.5,BLACK,'middle')
 line([(242,112),(498,164)])
-cmd(274,22,['VaspParser.py, AbinitParser.py,','CP2KParser.py, QBoxParser.py,','LAMMPSParser2umd.py -f -i -s'])   #two per line : the label of repair_umd.py is below
+cmd(274,22,['VaspParser.py, AbinitParser.py,','CP2KParser.py, CastepParser.py,','QBoxParser.py, LAMMPSParser2umd.py','-f -i -s'])   #two per line : the label of repair_umd.py is below
 #repair of old VASP files
 line([(522,140),(522,116),(598,116),(598,138)])
 cmd(512,112,'repair_umd.py -f',anchor='end',size=15)

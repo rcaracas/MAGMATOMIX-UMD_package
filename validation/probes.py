@@ -78,6 +78,25 @@ def umd_digest(path):#A UMD file read line by line : snapshots, atoms, means of 
     return out
 
 
+def umd_snapshots(path):#A UMD file read whole : the header {key : fields} and the snapshots, each {key : numbers} with 'atoms', one list of numbers per atom
+    head = {}
+    snapshots = []
+    with open(path) as f:
+        for line in f:
+            entry = line.split()
+            if not entry:
+                continue
+            if entry[0] == 'timestep':
+                snapshots.append({})
+            if entry[0] == 'atoms:':
+                snapshots[-1]['atoms'] = [[float(x) for x in next(f).split()] for _ in range(int(head['natom'][0]))]
+            elif snapshots:
+                snapshots[-1][entry[0]] = [float(x) for x in entry[1:] if re.fullmatch(r'[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?',x)]
+            else:
+                head[entry[0]] = entry[1:]
+    return head, snapshots
+
+
 def rows(path,sep=None):#The lines of a text file split into fields, without the comment lines (#) and the empty ones
     out = []
     with open(path) as f:

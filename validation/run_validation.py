@@ -11,7 +11,7 @@
 #missing, CHANGED when only the checksums of some outputs changed (the numbers within tolerance : e.g. the last digit), OK when every
 #output is identical. data/ is never written to : it is checked before and after.
 
-import sys, os, getopt, json, time, hashlib, re, subprocess, zipfile, platform, fnmatch, shutil
+import sys, os, getopt, json, time, hashlib, re, subprocess, zipfile, tarfile, platform, fnmatch, shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -50,7 +50,7 @@ def checksum(path,folder):#sha256 of a file ; for a text file without the dates 
     return h.hexdigest()
 
 
-def prepare(case,folder,data):#the case folder : links to the inputs of data/, the members of zip files extracted
+def prepare(case,folder,data):#the case folder : links to the inputs of data/, the members of zip and tar archives extracted
     os.makedirs(folder)
     inputs = []
     for item in case.inputs:
@@ -60,6 +60,15 @@ def prepare(case,folder,data):#the case folder : links to the inputs of data/, t
                     if name.endswith('/') or '/' in name or '\\' in name or name.startswith('.'):
                         continue                                                #flat archives only : nothing outside the case folder
                     with z.open(name) as src, open(os.path.join(folder,name),'wb') as dst:
+                        shutil.copyfileobj(src,dst)
+                    inputs.append(name)
+        elif item.endswith(('.tar.gz','.tgz','.tar')):
+            with tarfile.open(os.path.join(data,item)) as t:
+                for member in t.getmembers():
+                    name = member.name
+                    if not member.isfile() or '/' in name or '\\' in name or name.startswith('.'):
+                        continue                                                #plain files at the top of the archive only
+                    with t.extractfile(member) as src, open(os.path.join(folder,name),'wb') as dst:
                         shutil.copyfileobj(src,dst)
                     inputs.append(name)
         else:
@@ -75,7 +84,7 @@ def run_case(case,folder,data):
     result = {'commands':[],'numbers':{},'files':{},'crash':[],'truth':[]}
     try:
         inputs = prepare(case,folder,data)
-    except (OSError,zipfile.BadZipFile) as error:
+    except (OSError,zipfile.BadZipFile,tarfile.TarError) as error:
         result['crash'].append('input : '+str(error))
         return result
     env = dict(os.environ,MPLBACKEND='Agg')

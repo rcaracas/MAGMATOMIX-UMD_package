@@ -1,0 +1,46 @@
+{
+ "about": "CASTEP .md.gz read compressed : a molecule C7H7OCl in a box of 10 A, NVT, no stress",
+ "environment": {
+  "commit": "3.4-3-g777701e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "CastepParser.py -f cani.md.gz",
+   "code": 0,
+   "time": 0.86
+  }
+ ],
+ "numbers": {
+  "natom": 16,
+  "snapshots": 1001,
+  "last_time": 1000.0,
+  "mean_InternalEnergy": -2077.1513147792225,
+  "mean_TotalElectronicEnergy": -2077.692091400601,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 0.5407766183816186,
+  "mean_EnergyWithDrift": -2077.1513147792225,
+  "mean_Enthalpy": 0.0,
+  "mean_Temperature": 278.9092907092907,
+  "mean_Pressure": 0.0,
+  "mean_Density": 0.23699999999999632,
+  "mean_stress_xx": 0.0,
+  "mean_stress_yy": 0.0,
+  "mean_stress_zz": 0.0,
+  "mean_stress_xy": 0.0,
+  "mean_stress_yz": 0.0,
+  "mean_stress_zx": 0.0,
+  "mean_volume": 1000.0,
+  "msd_first_last": 1.4142963748875,
+  "rms_velocity_last": 0.019540247567520735,
+  "rms_force_last": 2.158679449964723,
+  "mean_xcart_last": 5.496309375
+ },
+ "files": {
+  "cani.md.umd.dat": "bd6d2d974dfc44cc5aad3d8eee181d51ff754333f2ae5b8e65a02b07612971db"
+ }
+}

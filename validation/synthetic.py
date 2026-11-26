@@ -59,6 +59,12 @@
 #               a gap of 10 snapshots (bridged) and one of 100 (two lives) : the MSRD of every bond, lab and body frames, bridging and
 #               non-bridging, and the static values, computed by brute force (body frame by Horn's quaternions) (msrd_umd.py -c Si -a O -w 120)
 #   idealgas_gz the ideal gas written compressed (idealgas.umd.dat.gz), with the truth of idealgas : the reading of .gz runs
+#   castep      trajectory files of CASTEP (.md, atomic units), written here as CASTEP writes them, for CastepParser.py ; the truth is every value
+#               of the UMD files. castep_npt.md : species Fe:up, O (mass 17.999161), Fe:dn, H:D (2.0141018) in a triclinic cell that changes at
+#               every frame, atoms crossing the faces, positions not wrapped (as CASTEP), steps of 20 atomic units from step 1000, a run continued
+#               from step 1030 after it had written up to 1039 (stale frames, a second header), a last frame cut in the middle of a line.
+#               castep_nvt.md.gz : Ar, Ne in an orthorhombic cell, positions wrapped, no stress, steps of 1 fs in the unit of time of another
+#               version of CASTEP (41.34137328983901 atomic units)
 #   composition grids of 4x4x4 sub-cells, in reduced coordinates of a triclinic cell (composition_umd.py -n 4) : comp_ideal (Ar, Ne uniform, 10 %
 #               of the atoms drawn again at every snapshot : variance / binomial 1, correlation 0, correlation in time 0.9^t), comp_segregated (Ar in
 #               the half a < 1/2, Ne in the other : variance / binomial 2 exactly, correlation Ar-Ne -1/1.96875), comp_hole (10 Ar in each sub-cell
@@ -999,6 +1005,130 @@ def idealgas_gz(rng):#the ideal gas, compressed : idealgas.umd.dat.gz (the scrip
     os.remove('idealgas.umd.dat')
 
 
+#Atomic units of the .md files of CASTEP (CODATA 2018)
+BOHR_A = 0.529177210903             #bohr in A
+HARTREE_EV = 27.211386245988        #Hartree in eV
+AUTIME_FS = 2.4188843265857e-2      #atomic unit of time in fs
+AMU_ME = 1822.888486209             #atomic mass unit in electron masses
+EVA3_GPA = 160.2176634              #eV/A^3 in GPa
+
+
+def fortran(x):#a number as CASTEP writes it : 16 decimals, three digits in the exponent, in a field of 27 characters
+    mantissa, exponent = ('%.16E' % x).split('E')
+    return (mantissa+'E'+exponent[0]+'%03d' % abs(int(exponent))).rjust(27)
+
+
+def md_frame(time,E,T,h,labels,R,V,F,P=None,S=None,hv=None):#one frame of a .md file of CASTEP ; every value in atomic units
+    def line(values,tag):
+        return ' '*18+''.join(fortran(x) for x in values)+' '*(27*(3-len(values)))+'  <-- '+tag
+    lines = [' '*18+fortran(time),line(E,'E'),line([T],'T')]
+    if P is not None:
+        lines.append(line([P],'P'))
+    lines += [line(row,'h') for row in h]
+    if hv is not None:
+        lines += [line(row,'hv') for row in hv]
+    if S is not None:
+        lines += [line(row,'S') for row in S]
+    for tag, values in (('R',R),('V',V),('F',F)):
+        lines += [' %-8s%9d' % label+''.join(fortran(x) for x in row)+'  <-- '+tag for label, row in zip(labels,values)]
+    return '\n'.join(lines)+'\n  \n'
+
+
+MD_HEADER = ' BEGIN header\n  \n END header\n  \n'
+
+
+def castep(rng):#.md files of CASTEP with known content, and the values the UMD files must have (castep.truth.json)
+    import gzip
+    T0 = 2000.0
+
+    def state(species,masses,s,cell,k):#a frame of the model, in the units of the UMD file : velocities and forces drawn at random, the kinetic energy that
+        #of the velocities, the temperature with 3N-3 degrees of freedom, a Hamiltonian energy that is not the sum of the two others
+        m = np.array([masses[name] for name in species])
+        n = len(species)
+        vels = rng.normal(size=(n,3))*np.sqrt(KB*T0/(m[:,None]*AMU_A2FS2))
+        forces = rng.normal(0.0,1.5,(n,3))
+        ke = 0.5*np.sum(m[:,None]*vels**2)*AMU_A2FS2
+        pe = -500.0+0.02*k+rng.normal(0.0,0.3)
+        stress = np.array([30.0,31.0,29.0,0.0,0.0,0.0])+rng.normal(0.0,1.0,6)      #xx yy zz xy yz zx, positive in compression, with the kinetic part
+        return {'s':s.copy(),'cell':cell.copy(),'vels':vels,'forces':forces,'ke':ke,'pe':pe,'hamiltonian':pe+ke+0.01*k,'T':2.0*ke/((3*n-3)*KB),'stress':stress}
+
+    def frame(st,time,labels,stress=True,wrapped=False,hv=None):#the frame in atomic units, as CASTEP : S = - the UMD stress, P = its trace / 3
+        s = st['s']-np.floor(st['s']) if wrapped else st['s']
+        g = st['stress']/EVA3_GPA/(HARTREE_EV/BOHR_A**3)
+        S = -np.array([[g[0],g[3],g[5]],[g[3],g[1],g[4]],[g[5],g[4],g[2]]])
+        return md_frame(time,[st['pe']/HARTREE_EV,st['hamiltonian']/HARTREE_EV,st['ke']/HARTREE_EV],st['T']*KB/HARTREE_EV,st['cell']/BOHR_A,labels,
+                        (s @ st['cell'])/BOHR_A,st['vels']/(BOHR_A/AUTIME_FS),st['forces']/(HARTREE_EV/BOHR_A),
+                        P=g[:3].sum()/3.0 if stress else None,S=S if stress else None,hv=hv)
+
+    def expected(states,order,times,dt,stress=True,wrapped=False):#the snapshots of the UMD file : atoms grouped by element (order), unwrapped positions
+        #from the first frame, each move the change of the reduced coordinates in the cell of the frame
+        out = []
+        absx = None
+        for k, (st, time) in enumerate(zip(states,times)):
+            s = st['s'][order]
+            xred = s-np.floor(s)
+            if absx is None:
+                absx = (xred if wrapped else s) @ st['cell']
+            else:
+                absx = absx+(s-previous) @ st['cell']
+            previous = s
+            P = float(st['stress'][:3].sum()/3.0) if stress else 0.0
+            out.append({'time':time,'timestep':dt,'InternalEnergy':st['pe']+st['ke'],'TotalElectronicEnergy':st['pe'],'KineticEnergyIons':st['ke'],
+                        'EnergyWithDrift':st['hamiltonian'],'Enthalpy':st['pe']+st['ke']+P*abs(np.linalg.det(st['cell']))/EVA3_GPA if stress else 0.0,
+                        'Temperature':st['T'],'Pressure':P,'StressTensor':st['stress'].tolist() if stress else [0.0]*6,'cell':st['cell'].tolist(),
+                        'xred':xred.tolist(),'xcart':(xred @ st['cell']).tolist(),'unwrapped':absx.tolist(),'vels':st['vels'][order].tolist(),
+                        'forces':st['forces'][order].tolist()})
+        return out
+
+    truth = {}
+    #1. variable triclinic cell, species that are not element symbols, isotopes, a continued run, a last frame cut short
+    species = ['Fe:up']*4+['O']*6+['Fe:dn']*4+['H:D']*2
+    masses = {'Fe:up':55.845,'Fe:dn':55.845,'O':17.999161,'H:D':2.0141018}
+    labels = [(name,species[:i+1].count(name)) for i, name in enumerate(species)]
+    n = len(species)
+    base = cell_from(9.0,10.0,11.0,80.0,95.0,105.0)
+    step = 20.0                                                         #atomic units of time : 0.48377687 fs
+    s = rng.uniform(-0.5,1.5,(n,3))                                     #CASTEP does not wrap : reduced coordinates outside [0,1) from the start
+    states = []
+    for k in range(1000,1061):
+        s = s+rng.normal(0.0,0.03,(n,3))                                #moves of 0.3 A per frame : the atoms cross the faces
+        states.append(state(species,masses,s,base @ (np.eye(3)+rng.uniform(-0.02,0.02,(3,3))),k))
+    stale = [state(species,masses,rng.uniform(0.0,1.0,(n,3)),base,k) for k in range(1030,1040)]      #written before the run was continued from step 1030
+    with open('castep_npt.md','w') as f:
+        f.write(MD_HEADER)
+        for k, st in list(zip(range(1000,1030),states[:30]))+list(zip(range(1030,1040),stale)):
+            f.write(frame(st,k*step,labels,hv=rng.normal(0.0,1e-5,(3,3))))
+        f.write(MD_HEADER)
+        for k, st in zip(range(1030,1060),states[30:60]):
+            f.write(frame(st,k*step,labels,hv=rng.normal(0.0,1e-5,(3,3))))
+        f.write(frame(states[60],1060*step,labels,hv=np.zeros((3,3)))[:1900])                           #the run was stopped while writing this frame
+    order = [i for el in ('Fe','O','H') for i in range(n) if species[i].split(':')[0] == el]
+    dt = step*AUTIME_FS
+    truth['npt'] = {'elements':['Fe','O','H'],'types':[8,6,2],'masses':[55.845,17.999161,2.0141018],
+                    'snapshots':expected(states[:60],order,[k*dt for k in range(1000,1060)],dt)}
+    #2. constant cell, positions wrapped, no stress, compressed ; 1 fs in the unit of time of another version of CASTEP
+    species = ['Ar']*6+['Ne']*4
+    masses = {'Ar':MASS['Ar'],'Ne':MASS['Ne']}
+    labels = [(name,species[:i+1].count(name)) for i, name in enumerate(species)]
+    n = len(species)
+    cell = np.diag([8.0,9.0,10.0])
+    s = rng.uniform(0.0,1.0,(n,3))
+    states = []
+    for k in range(40):
+        s = s+rng.normal(0.0,0.04,(n,3))
+        states.append(state(species,masses,s,cell,k))
+    with open('castep_nvt.md.gz','wb') as raw, gzip.GzipFile(filename='',fileobj=raw,mode='wb',mtime=0) as zipped:   #mtime 0 : the same file at every run
+        zipped.write((MD_HEADER+''.join(frame(st,k*41.34137328983901,labels,stress=False,wrapped=True) for k, st in enumerate(states))).encode())
+    order = list(range(n))
+    truth['nvt'] = {'elements':['Ar','Ne'],'types':[6,4],'masses':[MASS['Ar'],MASS['Ne']],
+                    'snapshots':expected(states,order,[float(k) for k in range(40)],1.0,stress=False,wrapped=True)}
+    selected = expected(states,order,[float(k) for k in range(40)],1.0,stress=False,wrapped=True)[5::3]  #-i 5 -s 3 : the same snapshots, 3 fs apart
+    for snapshot in selected:
+        snapshot['timestep'] = 3.0
+    truth['nvt_is'] = dict(truth['nvt'],snapshots=selected)
+    write_truth('castep',truth)
+
+
 def composition(rng):
     cell = cell_from(20.0,21.0,22.0,85.0,95.0,100.0)
     volume = abs(np.linalg.det(cell))
@@ -1241,7 +1371,7 @@ def msrd(rng):#SiO4 (6) and Si2O7 (3 : 6 SiO4 sharing one O each pair) turning (
 
 
 KINDS = {'idealgas':idealgas,'fcc':fcc,'water':water,'randomwalk':randomwalk,'ou':ou,'oscillators':oscillators,'stress':stress,'ti':ti,
-         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules,'twophase':twophase,'msrd':msrd}
+         'faults':faults,'rotors':rotors,'rotors2pt':rotors2pt,'composition':composition,'idealgas_gz':idealgas_gz,'alloy':alloy,'blink':blink,'exchange':exchange,'persist':persist,'bubbles':bubbles,'degassing':degassing,'interface':interface,'molecules':molecules,'twophase':twophase,'msrd':msrd,'castep':castep}
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] not in KINDS:

@@ -1,0 +1,46 @@
+{
+ "about": "CASTEP .md, 16 Fe, Hugoniostat at constant volume (NVHug), stress, velocities, forces",
+ "environment": {
+  "commit": "3.4-3-g777701e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "CastepParser.py -f H.md",
+   "code": 0,
+   "time": 0.91
+  }
+ ],
+ "numbers": {
+  "natom": 16,
+  "snapshots": 888,
+  "last_time": 887.0,
+  "mean_InternalEnergy": -13801.435091582194,
+  "mean_TotalElectronicEnergy": -13801.91703292004,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 0.4819413727477474,
+  "mean_EnergyWithDrift": -13801.435091582194,
+  "mean_Enthalpy": -13748.522560877262,
+  "mean_Temperature": 248.56452702702705,
+  "mean_Pressure": 56.17136993243248,
+  "mean_Density": 9.83100000000009,
+  "mean_stress_xx": 53.916224549549646,
+  "mean_stress_yy": 53.67001970720717,
+  "mean_stress_zz": 60.92786655405394,
+  "mean_stress_xy": -0.07826103603603594,
+  "mean_stress_yz": 0.04725427927927918,
+  "mean_stress_zx": 0.024107770270270192,
+  "mean_volume": 150.9224725809481,
+  "msd_first_last": 0.003536032656250001,
+  "rms_velocity_last": 0.0031114747307346077,
+  "rms_force_last": 1.2141115942351635,
+  "mean_xcart_last": 2.5501316666666667
+ },
+ "files": {
+  "H.md.umd.dat": "41d4700afbaf4d753712a34a3ba610609e9028e4b40f21f3df1cca4d1dfcb90e"
+ }
+}

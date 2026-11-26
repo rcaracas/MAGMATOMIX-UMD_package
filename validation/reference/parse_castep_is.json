@@ -1,0 +1,46 @@
+{
+ "about": "CASTEP parser with -i 10 -s 3",
+ "environment": {
+  "commit": "3.4-3-g777701e-dirty",
+  "python": "3.14.2",
+  "numpy": "2.4.1",
+  "scipy": "1.17.0",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "cpus": 16
+ },
+ "commands": [
+  {
+   "command": "CastepParser.py -f H.md -i 10 -s 3",
+   "code": 0,
+   "time": 0.67
+  }
+ ],
+ "numbers": {
+  "natom": 16,
+  "snapshots": 293,
+  "last_time": 886.0,
+  "mean_InternalEnergy": -13801.435062348124,
+  "mean_TotalElectronicEnergy": -13801.912718781574,
+  "mean_ElectronicEntropy": 0.0,
+  "mean_KineticEnergyIons": 0.4776564709897607,
+  "mean_EnergyWithDrift": -13801.435062348124,
+  "mean_Enthalpy": -13748.516691003422,
+  "mean_Temperature": 246.3529010238908,
+  "mean_Pressure": 56.17757269624571,
+  "mean_Density": 9.831000000000008,
+  "mean_stress_xx": 53.929349488054626,
+  "mean_stress_yy": 53.675082935153576,
+  "mean_stress_zz": 60.92828122866896,
+  "mean_stress_xy": -0.0802303754266212,
+  "mean_stress_yz": 0.04848327645051198,
+  "mean_stress_zx": 0.022728327645051158,
+  "mean_volume": 150.9224725809499,
+  "msd_first_last": 0.006996333356250005,
+  "rms_velocity_last": 0.0030705526782649406,
+  "rms_force_last": 1.227849027013297,
+  "mean_xcart_last": 2.550131875
+ },
+ "files": {
+  "H.md.umd.dat": "f05aaed8170228422f474db6c2c585450de5bf822b7220194f797e0241b67245"
+ }
+}

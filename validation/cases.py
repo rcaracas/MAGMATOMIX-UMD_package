@@ -1,7 +1,7 @@
 ###
 #AUTHORS: RAZVAN CARACAS
 ###
-#The cases of the validation suite : inputs (files of data/, linked into the case folder ; zip files extracted), commands (scripts of
+#The cases of the validation suite : inputs (files of data/, linked into the case folder ; zip and tar archives extracted), commands (scripts of
 #src/ with their options, run one after the other in the case folder), probes (functions of the folder and of the outputs of the commands
 #returning {name : value} or {name : (value, relative tolerance)}).
 
@@ -165,6 +165,12 @@ CASES += [
          [digest('position.xyz.umd.dat')],about='CP2K NVT, 100 H2O + 2 H2SO4, positions, velocities, forces, energies, stress'),
     Case('parse_cp2k_is',CP2K,[('CP2KParser.py',CP2K_ARGS+['-i','10','-s','3'])],
          [digest('position.xyz.umd.dat')],about='CP2K parser with -i 10 -s 3'),
+    Case('parse_castep',['castep-CaNi/Hugoniot.tar.gz'],[('CastepParser.py',['-f','H.md'])],
+         [digest('H.md.umd.dat')],about='CASTEP .md, 16 Fe, Hugoniostat at constant volume (NVHug), stress, velocities, forces'),
+    Case('parse_castep_is',['castep-CaNi/Hugoniot.tar.gz'],[('CastepParser.py',['-f','H.md','-i','10','-s','3'])],
+         [digest('H.md.umd.dat')],about='CASTEP parser with -i 10 -s 3'),
+    Case('parse_castep_gz',['castep-CaNi/cani.md.gz'],[('CastepParser.py',['-f','cani.md.gz'])],
+         [digest('cani.md.umd.dat')],about='CASTEP .md.gz read compressed : a molecule C7H7OCl in a box of 10 A, NVT, no stress'),
 ]
 
 #The automated workflow (check, structure, transport, thermodynamics) on each reference UMD file
@@ -327,6 +333,8 @@ CASES += [
          [workflow(1),checks(r'.*\.check\.dat'),inp(r'.*\.coordinations\.inp')],about='LAMMPS water parsed, then the workflow'),
     Case('chain_cp2k',CP2K,[('CP2KParser.py',CP2K_ARGS),('umd_workflow.py',['-f','position.xyz.umd.dat'])],
          [workflow(1),checks(r'.*\.check\.dat'),inp(r'.*\.coordinations\.inp')],about='CP2K run parsed, then the workflow'),
+    Case('chain_castep',['castep-CaNi/Hugoniot.tar.gz'],[('CastepParser.py',['-f','H.md']),('umd_workflow.py',['-f','H.md.umd.dat'])],
+         [workflow(1),checks(r'.*\.check\.dat'),inp(r'.*\.coordinations\.inp')],about='CASTEP run parsed, then the workflow'),
 ]
 
 #Options not used by the workflow
@@ -566,6 +574,40 @@ def t_msrd(folder,outs):#msrd_umd.py -c Si -a O -w 120 on the synthetic SiO4 and
     for key,exact in t['summary'].items():
         out.append(('msrd '+key,q[key]['value'],exact,1e-6*abs(exact)+1e-9))
     out += [('msrd lives',q['lives']['value'],t['lives'],0),('msrd polyhedra per snapshot',q['polyhedra_per_snapshot']['value'],t['polyhedra_per_snapshot'],1e-12)]
+    return out
+
+
+def t_castep(folder,outs):#CastepParser.py on the synthetic .md files : every value of the UMD files against the values the .md files were written from,
+    #within the rounding of the UMD file ; the numbers of values off (0), so that the result is the same on every system
+    t = truth_of(folder,'castep')
+    ROUND = {'time':1.5e-6,'timestep':5.1e-7,'InternalEnergy':5.1e-7,'TotalElectronicEnergy':5.1e-7,'KineticEnergyIons':5.1e-7,'EnergyWithDrift':5.1e-7,
+             'Enthalpy':5.1e-7,'Temperature':0.051,'Pressure':5.1e-5,'StressTensor':5.1e-5}
+    out = []
+    for key, name in (('npt','castep_npt.md.umd.dat'),('nvt','castep_nvt.md.umd.dat'),('nvt_is','castep_is.umd.dat')):
+        exact = t[key]
+        head, snapshots = P.umd_snapshots(os.path.join(folder,name))
+        label = 'castep '+key+' '
+        out += [(label+'snapshots',len(snapshots),len(exact['snapshots']),0),(label+'elements',' '.join(head['elements']),' '.join(exact['elements']),0),
+                (label+'atoms of each element',' '.join(head['types']),' '.join(str(n) for n in exact['types']),0),
+                (label+'masses off',sum(abs(float(a)-b) > 1e-9 for a,b in zip(head['masses'],exact['masses'])),0,0),
+                (label+'origin',head['origin'][0],'CASTEP',0)]
+        off = {}
+        def count(what,values,expected,tolerance,period=None):
+            d = np.asarray(values,dtype=float)-np.asarray(expected,dtype=float)
+            if period is not None:
+                d = d-np.rint(d)
+            off[what] = off.get(what,0)+int(np.sum(np.abs(d) > tolerance))
+        for snapshot, e in zip(snapshots,exact['snapshots']):
+            for field, tolerance in ROUND.items():
+                count(field,snapshot[field][:6] if field == 'StressTensor' else snapshot[field][0],e[field],tolerance)
+            count('ElectronicEntropy',snapshot['ElectronicEntropy'][0],0.0,0.0)
+            count('cell',[snapshot['rprimd_'+c][:3] for c in 'abc'],e['cell'],5.1e-8)
+            count('acell',snapshot['acell'][:3],np.linalg.norm(e['cell'],axis=1),1.0e-7)
+            atoms = np.array(snapshot['atoms'])
+            count('reduced positions',atoms[:,0:3],e['xred'],5.1e-6,period=1)
+            for what, a, b in (('cartesian positions',3,6),('unwrapped positions',6,9),('velocities',9,12),('forces',12,15)):
+                count(what,atoms[:,a:b],e[{'cartesian positions':'xcart','unwrapped positions':'unwrapped','velocities':'vels','forces':'forces'}[what]],5.1e-6)
+        out += [(label+what+' : values off',n,0,0) for what, n in off.items()]
     return out
 
 
@@ -896,6 +938,20 @@ def t_faults(folder,outs):
     return out
 
 
+def t_castep_check(folder,outs):#check_umd.py on the UMD file of the variable-cell .md file : regular times (check 1), the unwrapped positions follow the
+    #wrapped ones in reduced coordinates (2), the kinetic temperature of the velocities with the masses of the header is the temperature of the file (9)
+    status = {}
+    title = None
+    with open(os.path.join(folder,'castep_npt.md.check.dat')) as f:
+        for line in f:
+            found = re.match(r'(\d+)\. ',line)
+            if found:
+                title = found.group(1)
+            elif line.strip().startswith('->') and title:
+                status[title] = line.split()[1]
+    return [('castep npt check '+k,status.get(k,'missing'),'OK',0) for k in ('1','2','9')]
+
+
 import math
 CASES += [
     Case('syn_idealgas',[],[('@synthetic.py',['idealgas']),('gofr_umd.py',['-f','idealgas.umd.dat'])],truth=[t_idealgas],
@@ -972,6 +1028,11 @@ CASES += [
     Case('syn_composition',[],[('@synthetic.py',['composition'])]+[('composition_umd.py',['-f',f+'.umd.dat','-n','4']+o) for f, o in
                                (('comp_ideal',[]),('comp_segregated',[]),('comp_hole',['-g','He']))],truth=[t_composition],
          about='synthetic grids : ideal mixing (variance / binomial 1, correlation 0, time correlation 0.9^t), segregated halves (ratio 2), a hole across the periodic faces (voids, densities, partition)'),
+    Case('syn_castep',[],[('@synthetic.py',['castep']),('CastepParser.py',['-f','castep_npt.md']),('CastepParser.py',['-f','castep_nvt.md.gz']),
+                          ('CastepParser.py',['-f','castep_nvt.md.gz','-i','5','-s','3','-o','castep_is.umd.dat']),
+                          ('check_umd.py',['-f','castep_npt.md.umd.dat'])],truth=[t_castep,t_castep_check],
+         about='synthetic .md files of CASTEP : a triclinic cell changing at every frame, species Fe:up, Fe:dn, H:D, isotope masses found from the kinetic '
+               'energies, a continued run, a last frame cut short ; wrapped positions, no stress, compressed, -i -s : every value of the UMD files exact'),
     Case('syn_check',[],[('@synthetic.py',['faults']),('check_umd.py',['-f','faults_clean.umd.dat']),
                          ('check_umd.py',['-f','faults_bad.umd.dat'])],truth=[t_faults],
          about='synthetic random walk, clean and with a duplicated snapshot and a missed crossing : check_umd'),

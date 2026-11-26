@@ -13,7 +13,7 @@ The C libraries must be compiled first (README.txt). The reference files are tho
 -d gives another folder with the same files.
 
 Each case runs in a fresh folder of its own (validation/runs/<date-time>/<case>/, not tracked ; -o another run folder), with links to
-its inputs (zip files are extracted there) : data/ is never written to, and it is checked before and after the run. The output of each
+its inputs (zip and tar archives are extracted there) : data/ is never written to, and it is checked before and after the run. The output of each
 command is in <nn>.<script>.out of the case folder ; report.txt sums up the run.
 
 For each case the reference (reference/<case>.json, committed with the package) holds :
