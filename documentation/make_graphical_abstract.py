@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Graphical abstract of MAGMATOMIX/UMD 3.0 (one 16:9 slide), in the style of the flowchart:
+"""Graphical abstract of MAGMATOMIX/UMD (one 16:9 slide), in the style of the flowchart ; the version, the codes, the analyses and
+the numbers of the boxes (cases of the validation suite, speed) are set below : update them at a release.
 
     python3 make_graphical_abstract.py <folder with the workflow outputs of pyrolite.a13.T3000K.outcar.umd.dat> [output.svg]
 
@@ -10,6 +11,9 @@ import os, sys, math
 import numpy as np
 
 W, H = 1920, 1080
+VERSION = '3.5'
+CODES = ['VASP','ABINIT','CASTEP','CP2K','LAMMPS','QBox']
+CASES = 60                          #cases of the validation suite (run_validation.py -l)
 PURPLE, MAGENTA, BLACK, GRAY, LIGHT = '#782F9A', '#ED127B', '#231F20', '#6d6a6b', '#f4eef7'
 FONT = "Helvetica, 'Helvetica Neue', Arial, sans-serif"
 BASE = 'pyrolite.a13.T3000K.outcar'
@@ -68,13 +72,13 @@ def main(folder,svgfile):
     p = lambda ext: os.path.join(folder,BASE+ext)
 
     # title
-    text(80,108,'MAGMATOMIX/UMD 3.0',80,PURPLE,weight='bold')
+    text(80,108,'MAGMATOMIX/UMD '+VERSION,80,PURPLE,weight='bold')
     text(82,160,'from molecular-dynamics runs to properties, with their errors',34,BLACK)
 
     # inputs
     rect(80,250,300,370,BLACK,'white',3)
     text(230,307,['ab initio and','machine-learning','molecular dynamics'],27,BLACK,'middle',weight='bold',spacing=1.2)
-    text(230,440,['VASP','ABINIT','CP2K','LAMMPS','QBox'],29,PURPLE,'middle',spacing=1.25)
+    text(230,426,CODES,28,PURPLE,'middle',spacing=1.17)
     arrow(380,435,462,435)
 
     # the UMD file (a page with a folded corner) and the checks
@@ -98,7 +102,7 @@ def main(folder,svgfile):
     out.append('<rect x="%g" y="%g" width="460" height="40" fill="white"/>' % ((px+x1)/2-230,py-58))
     text((px+x1)/2,py-30,'one command : umd_workflow.py',25,PURPLE,'middle',mono=True)
     panels = [('STRUCTURE',['g(r), bonds, coordination','speciation, angles','lifetimes of species','liquid / vapor','rotations of molecules']),
-              ('TRANSPORT',['diffusion and its tensor','diffusion of species','viscosity','velocity autocorrelation']),
+              ('TRANSPORT',['diffusion and its tensor','viscosity','bond displacements (MSRD)','compositional fluctuations','exchange between phases']),
               ('THERMODYNAMICS',['averages, heat capacity','vibrational spectra','2PT entropy','free energy (integration)'])]
     boxes = []
     for i,(title,items) in enumerate(panels):
@@ -124,10 +128,10 @@ def main(folder,svgfile):
     for (bx,by,bw,bh),cap in zip(boxes,['g(r) of Si–O, Mg–O','MSD of O, Si (log–log)','vDOS']):
         text(bx+bw/2,by+bh+32,cap,18,GRAY,'middle')
 
-    # what is new in 3.0
+    # what version 3 brings
     new = [('any cell','NVT and NPT runs,','non-orthogonal cells'),
            ('± errors','on every statistical','quantity, calibrated'),
-           ('validated','38 cases, synthetic runs','with exact answers'),
+           ('validated','%d cases, exact synthetic runs' % CASES,'tested on Linux, macOS, Windows'),
            ('6× faster','parallel workers,','memory bounded')]
     bw, bgap, by0 = (W-160-3*30)/4, 30, 700
     for i,(big,l1,l2) in enumerate(new):
@@ -139,8 +143,8 @@ def main(folder,svgfile):
     # footer
     # schools: the first one written, the rest of the line left empty for the next ones
     text(80,915,'Schools:',30,MAGENTA,weight='bold')
-    text(215,915,'Bucharest, April 2027',30,BLACK)
-    out.append('<path d="M 560 922 L %g 922" stroke="%s" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>' % (W-80,GRAY))
+    text(215,915,'University of Bucharest, 26–29 April 2027',30,BLACK)
+    out.append('<path d="M 830 922 L %g 922" stroke="%s" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>' % (W-80,GRAY))
 
     out.append('<path d="M 80 970 L %g 970" stroke="%s" stroke-width="2"/>' % (W-80,GRAY))
     text(80,1025,'github.com/rcaracas/MAGMATOMIX-UMD_package',26,PURPLE,mono=True)

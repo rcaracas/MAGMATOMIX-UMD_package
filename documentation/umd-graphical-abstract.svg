@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
 <rect width="1920" height="1080" fill="white"/>
-<text x="80" y="108" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="80" fill="#782F9A" text-anchor="start" font-weight="bold"><tspan x="80" dy="0">MAGMATOMIX/UMD 3.0</tspan></text>
+<text x="80" y="108" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="80" fill="#782F9A" text-anchor="start" font-weight="bold"><tspan x="80" dy="0">MAGMATOMIX/UMD 3.5</tspan></text>
 <text x="82" y="160" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="34" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="82" dy="0">from molecular-dynamics runs to properties, with their errors</tspan></text>
 <rect x="80" y="250" width="300" height="370" rx="14" fill="white" stroke="#231F20" stroke-width="3"/>
 <text x="230" y="307" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="27" fill="#231F20" text-anchor="middle" font-weight="bold"><tspan x="230" dy="0">ab initio and</tspan><tspan x="230" dy="32.4">machine-learning</tspan><tspan x="230" dy="32.4">molecular dynamics</tspan></text>
-<text x="230" y="440" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="29" fill="#782F9A" text-anchor="middle" font-weight="normal"><tspan x="230" dy="0">VASP</tspan><tspan x="230" dy="36.25">ABINIT</tspan><tspan x="230" dy="36.25">CP2K</tspan><tspan x="230" dy="36.25">LAMMPS</tspan><tspan x="230" dy="36.25">QBox</tspan></text>
+<text x="230" y="426" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#782F9A" text-anchor="middle" font-weight="normal"><tspan x="230" dy="0">VASP</tspan><tspan x="230" dy="32.76">ABINIT</tspan><tspan x="230" dy="32.76">CASTEP</tspan><tspan x="230" dy="32.76">CP2K</tspan><tspan x="230" dy="32.76">LAMMPS</tspan><tspan x="230" dy="32.76">QBox</tspan></text>
 <path d="M 380 435 L 444.4 435" stroke="#231F20" stroke-width="4" fill="none"/>
 <path d="M 462 435 L 440 425 L 440 445 Z" fill="#231F20"/>
 <path d="M 470 250 L 674 250 L 720 296 L 720 550 L 470 550 Z" fill="#f4eef7" stroke="#782F9A" stroke-width="3" stroke-linejoin="round"/>
@@ -28,7 +28,7 @@
 <text x="838" y="517" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="838" dy="0">g(r), bonds, coordination</tspan><tspan x="838" dy="28.6">speciation, angles</tspan><tspan x="838" dy="28.6">lifetimes of species</tspan><tspan x="838" dy="28.6">liquid / vapor</tspan><tspan x="838" dy="28.6">rotations of molecules</tspan></text>
 <rect x="1160" y="235" width="330" height="410" rx="14" fill="white" stroke="#231F20" stroke-width="3" stroke-dasharray="12 9"/>
 <text x="1325" y="285" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#231F20" text-anchor="middle" font-weight="bold"><tspan x="1325" dy="0">TRANSPORT</tspan></text>
-<text x="1188" y="517" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1188" dy="0">diffusion and its tensor</tspan><tspan x="1188" dy="28.6">diffusion of species</tspan><tspan x="1188" dy="28.6">viscosity</tspan><tspan x="1188" dy="28.6">velocity autocorrelation</tspan></text>
+<text x="1188" y="517" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1188" dy="0">diffusion and its tensor</tspan><tspan x="1188" dy="28.6">viscosity</tspan><tspan x="1188" dy="28.6">bond displacements (MSRD)</tspan><tspan x="1188" dy="28.6">compositional fluctuations</tspan><tspan x="1188" dy="28.6">exchange between phases</tspan></text>
 <rect x="1510" y="235" width="330" height="410" rx="14" fill="white" stroke="#231F20" stroke-width="3" stroke-dasharray="12 9"/>
 <text x="1675" y="285" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#231F20" text-anchor="middle" font-weight="bold"><tspan x="1675" dy="0">THERMODYNAMICS</tspan></text>
 <text x="1538" y="517" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#ED127B" text-anchor="start" font-weight="normal"><tspan x="1538" dy="0">averages, heat capacity</tspan><tspan x="1538" dy="28.6">vibrational spectra</tspan><tspan x="1538" dy="28.6">2PT entropy</tspan><tspan x="1538" dy="28.6">free energy (integration)</tspan></text>
@@ -52,13 +52,13 @@
 <text x="557.5" y="796" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="557.5" dy="0">on every statistical</tspan><tspan x="557.5" dy="28.6">quantity, calibrated</tspan></text>
 <rect x="975" y="700" width="417.5" height="140" rx="16" fill="#f4eef7" stroke="#782F9A" stroke-width="0"/>
 <text x="1005" y="758" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="40" fill="#782F9A" text-anchor="start" font-weight="bold"><tspan x="1005" dy="0">validated</tspan></text>
-<text x="1005" y="796" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="1005" dy="0">38 cases, synthetic runs</tspan><tspan x="1005" dy="28.6">with exact answers</tspan></text>
+<text x="1005" y="796" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="1005" dy="0">60 cases, exact synthetic runs</tspan><tspan x="1005" dy="28.6">tested on Linux, macOS, Windows</tspan></text>
 <rect x="1422.5" y="700" width="417.5" height="140" rx="16" fill="#f4eef7" stroke="#782F9A" stroke-width="0"/>
 <text x="1452.5" y="758" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="40" fill="#782F9A" text-anchor="start" font-weight="bold"><tspan x="1452.5" dy="0">6× faster</tspan></text>
 <text x="1452.5" y="796" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="1452.5" dy="0">parallel workers,</tspan><tspan x="1452.5" dy="28.6">memory bounded</tspan></text>
 <text x="80" y="915" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="30" fill="#ED127B" text-anchor="start" font-weight="bold"><tspan x="80" dy="0">Schools:</tspan></text>
-<text x="215" y="915" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="30" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="215" dy="0">Bucharest, April 2027</tspan></text>
-<path d="M 560 922 L 1840 922" stroke="#6d6a6b" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>
+<text x="215" y="915" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="30" fill="#231F20" text-anchor="start" font-weight="normal"><tspan x="215" dy="0">University of Bucharest, 26–29 April 2027</tspan></text>
+<path d="M 830 922 L 1840 922" stroke="#6d6a6b" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>
 <path d="M 80 970 L 1840 970" stroke="#6d6a6b" stroke-width="2"/>
 <text x="80" y="1025" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="26" fill="#782F9A" text-anchor="start" font-weight="normal"><tspan x="80" dy="0">github.com/rcaracas/MAGMATOMIX-UMD_package</tspan></text>
 <text x="1840" y="1025" font-family="Helvetica, 'Helvetica Neue', Arial, sans-serif" font-size="28" fill="#ED127B" text-anchor="end" font-weight="bold"><tspan x="1840" dy="0">next, 3.x: towards 10⁹ atoms</tspan></text>
