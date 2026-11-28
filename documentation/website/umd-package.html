@@ -16,9 +16,9 @@ License: GNU GPL v3 and CeCILL v2.</p>
 <li><strong>Quality checks:</strong> 14 checks of a run before any analysis (times, unwrapping, energy drift, time step, momentum, equilibration, temperature, stress, core overlap, charge balance).</li>
 <li><strong>Structure:</strong> pair distribution functions and coordination numbers, bond lengths found automatically, bonds, chemical species and their lifetimes, polymerization, angles, liquid and vapor, orientations of molecules (water, ammonia, methane, sulfate…) and their correlations.</li>
 <li><strong>Heterogeneity and degassing:</strong> compositional fluctuations in a grid of sub-cells (segregation in alloys, bubbles and droplets followed in time), exchange of atoms and molecules between a melt and its gas through their interface (evaporation, condensation, sticking, gas pressure and composition, partition), or between two condensed phases (e.g. He between liquid iron and a silicate melt).</li>
-<li><strong>Transport:</strong> diffusion coefficients (also of molecules, and the anisotropic diffusion tensor), viscosity by Green–Kubo.</li>
+<li><strong>Transport:</strong> diffusion coefficients (also of molecules, and the anisotropic diffusion tensor), viscosity by Green–Kubo, mean square relative displacements of the bonds of coordination polyhedra (along and across the bond, bridging and non-bridging, as measured by EXAFS).</li>
 <li><strong>Thermodynamics:</strong> averages with errors, heat capacity, vibrational spectra, quantum corrections, entropy of liquids (two-phase thermodynamic model, also for the rotation of molecules), free energy by thermodynamic integration.</li>
-<li><strong>Workflow:</strong> one command runs all the analyses of a run and gathers the results in one table; run again, it redoes only what changed.</li>
+<li><strong>Workflow:</strong> one command runs the basic analyses of a run and gathers the results in one table; run again, it redoes only what changed. The specialized analyses (molecules and their diffusion, orientations, relative displacements, liquid and vapor) are run by hand.</li>
 </ul>
 
 <p>Any cell shape, constant volume or constant pressure; runs may be kept compressed (<code>.umd.dat.gz</code>). Every script is checked by a validation suite on reference runs and on synthetic runs with exact answers. It runs on macOS, Linux and Windows, and is tested on the three at every change.</p>
@@ -104,4 +104,4 @@ python3 ../MAGMATOMIX-UMD_package/src/speciation_and_angles.py -f pyrolite.a13.T
 <pre><code>python3 ../MAGMATOMIX-UMD_package/src/umd_workflow.py -f pyrolite.a13.T3000K.umd.dat</code></pre>
 <p>Or everything at once: checks, structure, speciation, diffusion, viscosity, compositional fluctuations, vibrations and thermodynamics in about 20 seconds, summarized in <code>umd_workflow.summary.dat</code>.</p>
 
-<p>Every script lists its options with <code>-h</code>. The <a href="https://github.com/rcaracas/MAGMATOMIX-UMD_package/raw/master/documentation/umd-quick-help.pdf">quick help</a> (two pages, PDF) has one card per script with a typical command and its outputs.</p>
+<p>Every script lists its options with <code>-h</code>. The <a href="https://github.com/rcaracas/MAGMATOMIX-UMD_package/raw/master/documentation/umd-quick-help.pdf">quick help</a> (three pages, PDF) has one card per script with a typical command and its outputs.</p>

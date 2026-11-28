@@ -6,7 +6,8 @@ Naming conventions:
 vX.0 => stable production versions
 vX.Y => major bug-free improvements
 vX.Y.Z => minor improvements, debugging, experimental personal versions
-New parsers (Quantum ESPRESSO, QBox, ...) can come at any time, as vX.Y.Z releases (CP2K: v3.0.1 ; CASTEP came with v3.5).
+New parsers (Quantum ESPRESSO, QBox, ...) can come at any time, as vX.Y.Z releases (CP2K: v3.0.1 ; CASTEP came with v3.5);
+the plan for Quantum ESPRESSO is below (NEW PARSERS).
 v3.1 (November 2026): rotations_umd.py, orientations of molecular units, their correlations, and their entropy of
 translation and rotation by 2PT, with the volume of a unit from Bader analyses.
 v3.2 (November 2026): an example run with its tutorial (examples/), averages.py without grep (towards Windows).
@@ -31,6 +32,56 @@ MAJOR AIMS for the v3.0 version (all done, November 2026):
 CPU-parallelization : snapshots given to worker processes in batches sized from their bytes, read by the workers from the file (bonding, g(r), speciation), v2.14
 removal of the graphical interface (UMD_GUI.py) : set aside in the gui folder, v2.11
 validation of all the scripts on reference test data : the validation suite (validation/), v2.12
+
+NEW PARSERS: Quantum ESPRESSO (planned, as a vX.Y.Z release; waiting for real runs)
+QE runs molecular dynamics with two programs, whose outputs have nothing in common: one
+script (QEParser.py; options -f, -i, -s, -o, -m as the other parsers), two readers.
+The layouts below are from the documentation and from memory: every point is to be measured
+on real files before anything is written, as for ABINIT and CASTEP.
+
+pw.x (Born-Oppenheimer; calculation = 'md' or 'vc-md'): everything in the standard output.
+- header: alat, crystal axes in units of alat, species with masses and valence charges,
+  number of electrons, time step in a.u. and fs
+- each step: "! total energy" (Ry), forces (Ry/bohr), "Entering Dynamics: iteration = n",
+  time (ps), ATOMIC_POSITIONS, kinetic energy, temperature, "Ekin + Etot (const)"
+- only when asked for: the stress (tstress = .true., not the default for 'md'), in
+  Ry/bohr^3 and kbar; with smearing: "smearing contrib. (-TS)", "internal energy E=F+TS";
+  with 'vc-md': CELL_PARAMETERS at every step
+cp.x (Car-Parrinello): a set of files in outdir, matched by their step, as for CP2K:
+<prefix>.pos, .vel, .for, .cel, .str, .evp (energies, temperatures, conserved quantities),
+.nos (thermostat).
+
+To check on the real files:
+- pw.x prints no velocities: the central difference of the positions (as its Verlet)
+- pw.x: the positions printed after "Entering Dynamics" would be those of the next step,
+  the energy, forces and stress above them those of the previous positions (one step off,
+  the kind of trap of the two blocks of ABINIT)
+- pw.x stress: static only, positive in compression; UMD stress = it + sum m v v / V
+- energy: with smearing "total energy" is the free energy the forces derive from
+  (TotalElectronicEnergy), ElectronicEntropy from the -TS line
+- pw.x with a thermostat has no conserved quantity: EnergyWithDrift = InternalEnergy
+- units: Rydberg atomic units in pw.x, Hartree in cp.x (time and velocity differ by 2)
+- time printed in ps with 4 decimals: times counted in steps from the time step
+- cp.x: rows or columns of the cell in the .cel file; order of the atoms (by species?);
+  the columns of the .evp file change with the version (read its header); the fictitious
+  kinetic energy of the electrons stays out of InternalEnergy
+- 'vc-md': whether a step is printed as in 'md'
+
+Real runs needed (inputs and outputs):
+1. pw.x NVT, a few hundred steps or more, tstress and tprnfor = .true., ideally a metal
+   with smearing: enough to write and check the pw.x reader
+2. pw.x vc-md, preferably in a non-orthogonal cell
+3. cp.x: the whole set of text files of outdir, NVT and if possible NPT
+4. later: a restarted run, a spin-polarized run, outputs of two versions (6.x and 7.x)
+
+Checks, as for the other parsers: an independent script reading the raw files gives every
+value of the UMD file; m a = F and dE = -int F.dx on the raw numbers; kinetic temperature
+of the velocities against the printed one; static pressure against the printed P; -i -s
+equal to the matching snapshots; the workflow; the readers of v2.7 on the new file.
+Validation cases parse_qe, parse_qe_is, chain_qe, and syn_qe (synthetic, run on GitHub
+without any QE file). Then README, flowchart, quick help, webpage, graphical abstract.
+
+Order: pw.x first, released on its own; cp.x when a run is available.
 
 MAJOR AIMS for the v3.Y versions (from v3.6): large systems, up to 1 billion atoms
 Aim: UMD runs on systems of up to 10^9 atoms (large classical and machine-learning
